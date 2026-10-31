@@ -4,8 +4,9 @@
 > unless marked so. **Phase 0 was answered 2026-10-30** (§2), and §7 is **built through
 > step 5 the same day**: M1 (the installable panel, which is D1), A3 (the push seam), M2
 > (push end to end), A4 and M3 (the bell and a manager's approvals over `/v1`), and **step 6
-> on 2026-10-31**: O1, the sync engine on attendance punches (§5a). What each answer settled is
-> recorded beside its question; what remains is O2–O5 and the gated M4/D2.
+> on 2026-10-31**: O1, the sync engine on attendance punches (§5a), and **step 7 the same day**: O2,
+> site work offline — diary lines, snag changes with `base_version`, and photographs behind their line.
+> What each answer settled is recorded beside its question; what remains is O3–O5 and the gated M4/D2.
 
 ## 0. What is true today, and the one fact that reorders everything
 
@@ -225,7 +226,7 @@ syncing, tell the user", per the modules-plan risk note.
 | Phase | What | Proves / adds | Gate |
 |---|---|---|---|
 | O1 | Engine core + **attendance punches** — **built 2026-10-31** (`OfflineSyncTest`) | Outbox, inbox idempotency, cursor reads — on the simplest append-only shape there is | A1, A2 |
-| O2 | **Construction field**: daily logs, punch lists, inspections, photos | Blob queue, the one mutable-document policy (`base_version`), site-day offline windows | O1 |
+| O2 | **Construction field**: daily logs, punch lists, inspections, photos — **built 2026-10-31** (`OfflineFieldSyncTest`) | Blob queue, the one mutable-document policy (`base_version`), site-day offline windows | O1 |
 | O3 | **MPR field entry**: compose offline, sync up | First write API for MPRs (today read-only), draft states | O1 |
 | O4 | **Retail till**: offline sales | Staged-sale posting through the ledger door | O1 **and** the retail plan's own phases 1–2 (stores/tills exist) |
 
@@ -254,6 +255,51 @@ out now" button when the panel has told the browser the signed-in person is an e
 with attendance. Deviations from the sketch above: the inbox URL has a fixed segment per workflow
 rather than a free `{workflow}`, because the module gate on a punch has to be attendance's; and the
 device/token id is recorded when the caller holds a personal access token, null from the panel.
+
+**O2 — Built 2026-10-31** (`OfflineFieldSyncTest`). Two workflows in ConstructionField
+(`app/Modules/ConstructionField/Sync`), registered in its provider, mounted in its own `routes/api.php`
+under `module:construction_field` on `/v1` only, with session routes for the panel in `routes/web.php`.
+
+- **`site-diary`, append-only.** A command is one line on a job's day — the `DailyLogEvent` kinds — and
+  goes through `DailyLogService`: the day is found, or opened by `open()` (one diary per job per day), and
+  the line is added by `addEvent()`, which refuses a signed-off day (`rejected`, recorded). Lines that
+  arrive out of order land on the same day at their own `started_at`. The read pages diary *days*, each
+  with its lines and photographs; a line or photograph now touches its day (`$touches`), so adding or
+  removing one brings the day round again whole. A day is never deleted, so `deleted` is empty.
+- **`punch-items`, the one mutable document (rule 4).** `version` is a new integer column on
+  `construction_punch_items`, bumped by the model on every save — not `updated_at`, because an inspection
+  saves the item in the same second as the step before it. A command names the item, its `base_version`
+  and an action (`ready`, `inspect` with a result, `reject` with a reason), each the panel's own
+  `PunchListService` method. A matching version applies; a stale one keeps the server's value, writes the
+  device's change on the item's notes for a person (`PunchListService::fileOfflineChange()`, which the
+  activity log records like any edit), and answers **`stale` (409)** — a new, recorded inbox status, with
+  the item as the server holds it. A workflow signals it by throwing `App\Support\Sync\Stale` after its
+  trail is written; the inbox catches it inside the command's transaction so the trail commits with the
+  record. The read carries each item's `version`; an item never inspected may be hard-deleted, so
+  `deleted` is read from the activity log's `deleted` events since the cursor's moment.
+- **Blobs ride behind their command (rule 5).** `POST /sync/site-diary/blobs` takes one file for one
+  command this person sent and the server applied, keyed by the file's own ULID and recorded in
+  `sync_commands` as `site-diary:blob`, so a lost answer is replayed and the file stored once. A
+  workflow that carries files implements `AcceptsBlobs` (rules with the size cap, directory, attach);
+  `SyncBlobs` does the rest. Stored on the company's `public` disk under the Photos tab's own directory and
+  cap (12 MB, JPEG/PNG/WebP/HEIC), attached with `addPhoto()` to the line's day and the line. A file naming
+  a command never sent, or one the server refused, is `rejected` and recorded; the stored file is deleted
+  on every path that does not end attached.
+- **The client.** The outbox's IndexedDB gains a `blobs` store (version 2); `enqueue()` takes the files
+  with the command, and a file is uploaded one at a time only after its command has left the outbox.
+  `stale` is final like `rejected`. The offline page offers **a line for the site diary** with an
+  optional photograph when the panel has said which live jobs the person may write a diary for — a code
+  and a name per job is the only company data it leaves on the device.
+
+Deviations from the sketch: the conflict trail is the item's notes plus the activity log rather than a
+separate comment, because punch items have no comments; the panel's offline page offers diary lines and
+not snag changes, because a change needs the item's version on the device and keeping a copy of the
+register there is O5's decision (§5b), not O2's — the API and the outbox support snag changes for a
+client that holds its own copy; photographs attach to diary lines only, not to a snag's before/after
+pair; and the read is scoped by the panel's own permission (`ConstructionDailyLogView`,
+`ConstructionPunchView`) because the panel scopes these registers by nothing narrower — there is no
+per-job access rule to inherit. "Site-day offline windows" needed nothing new: a dark day's lines replay
+in order when the phone returns, and A1's thirty-day tokens already cover a rotation.
 
 ## 5b. Whole-ERP offline replication: what it would take (asked 2026-09-27, costed here)
 
@@ -324,7 +370,7 @@ retail plan's own phases, not this document.
 | 4 | A3 push seam + M2 delivery — **built 2026-10-30** | Phase 0 Q4 |
 | 5 | A4 + M3 approvals — **built 2026-10-30** | Phase 0 Q2 |
 | 6 | O1 engine + attendance punches — **built 2026-10-31** | A1, A2 |
-| 7 | O2 construction field offline | O1 |
+| 7 | O2 construction field offline — **built 2026-10-31** | O1 |
 | 8 | O3 MPR offline entry | O1 |
 | 9 | M4 Capacitor / D2 Tauri | a named need, in writing |
 | 10 | O5 offline read replica (§5b) | M1, O1 |

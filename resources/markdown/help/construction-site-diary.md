@@ -139,3 +139,15 @@ publishing is the register's own approval gate and a different permission again.
 A promoted photograph can no longer be deleted from the diary, because the register's
 container points at the same file. A register listing a file nobody can produce is
 worse than a photograph nobody wanted.
+
+## Writing the diary without a signal
+
+A site with no signal does not stop the diary. When the panel is installed on a phone
+and the connection drops, the offline page offers **a line for the site diary**: pick
+the job, say what kind of line it is and what happened, and add a photograph if there
+is one. It is kept on the phone and sent as soon as the phone is back online, with the
+photograph uploaded after the line it belongs to.
+
+The line lands on that day's diary, opening the day if nobody has yet. Lines written
+out of order still land on the right day, each at the time it was written. A line for
+a day that was signed off before the phone came back is refused, and the phone says so.
