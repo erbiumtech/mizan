@@ -11,11 +11,12 @@ use ReflectionClass;
  * `RecordSheetCoverageTest` fails the day one does not, so a new resource makes the choice on purpose:
  *
  *  - `Sheet`: master data. View and edit open in a Material side sheet over the list, which keeps its
- *    filters, scroll and page. Only for a resource whose edit page adds nothing to Filament's save — no
- *    lifecycle hooks, no custom fields, no relation managers, no repeaters — because the sheet runs
- *    Filament's own edit action, not that page.
- *  - `SheetView`: viewing opens in the sheet; editing stays on the full page, which the sheet links to.
- *  - `Page`: everything stays on full pages — documents with lines, relation managers or edit logic.
+ *    filters, scroll and page. The sheet saves through the edit page's own hooks
+ *    ({@see RecordSheetEditPage}), so only for a resource whose edit page does nothing else around a
+ *    save, with no relation managers and no repeaters.
+ *  - `SheetView`: medium records. Viewing opens in the sheet; editing stays on the full page, which
+ *    the sheet links to.
+ *  - `Page`: everything stays on full pages — documents with lines, tabs or their own actions.
  *
  * The full pages stay registered whatever the choice, so links, bookmarks and tests keep working; the
  * list page carries {@see \App\Filament\Concerns\OpensRecordsInSheets} to act on the declaration.
