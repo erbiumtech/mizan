@@ -175,7 +175,9 @@ class SeedTenantBaseline extends Command
         // true of a Bookkeeping Only company: the question is "does this
         // company's baseline include slabs", and its seeder list is the only
         // thing that actually knows.
-        $tables = ['fiscal_years', 'currencies', 'accounts', 'banks', 'transaction_types', 'tax_schedules'];
+        // option_values too: a list a module declares in a later release reaches an existing
+        // company only through this command, and the report should say it did.
+        $tables = ['fiscal_years', 'currencies', 'accounts', 'banks', 'transaction_types', 'tax_schedules', 'option_values'];
 
         if (in_array(SalarySlabSeeder::class, CompanyProfiles::seeders($company->profile, $company->type), true)) {
             $tables[] = 'salary_slabs';

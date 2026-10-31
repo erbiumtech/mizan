@@ -73,7 +73,7 @@ class EmploymentContractResource extends Resource
                 ->options(fn (): array => Employee::query()->where('is_active', true)->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()->required()->disabledOn('edit'),
             TextInput::make('number')->maxLength(40)->placeholder(fn (): string => EmploymentContract::nextNumber())->helperText('Left blank, the next number is taken.'),
-            Select::make('type')->options(EmploymentContract::TYPES)->default('permanent')->required(),
+            Select::make('type')->options(fn (?EmploymentContract $record): array => options('lifecycle.employment_contract_type', $record?->type))->default('permanent')->required(),
             DatePicker::make('starts_on')->native(false)->required(),
             DatePicker::make('ends_on')->native(false)->nullable()->afterOrEqual('starts_on')->helperText('Blank for open-ended. A dated contract reaches the expiring-documents report once signed.'),
             TextInput::make('gross')->label(__('Monthly gross'))->numeric()->minValue(0)->required(),
@@ -88,7 +88,7 @@ class EmploymentContractResource extends Resource
             ->columns([
                 TextColumn::make('number')->searchable()->sortable(),
                 TextColumn::make('employee.display_label')->label(__('Employee')),
-                TextColumn::make('type')->formatStateUsing(fn (string $state): string => EmploymentContract::TYPES[$state] ?? $state),
+                TextColumn::make('type')->formatStateUsing(fn (string $state): string => options('lifecycle.employment_contract_type', $state)[$state] ?? $state),
                 TextColumn::make('starts_on')->date('d M Y'),
                 TextColumn::make('ends_on')->date('d M Y')->placeholder('open-ended'),
                 TextColumn::make('gross')->numeric(0)->alignRight(),

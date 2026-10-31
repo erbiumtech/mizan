@@ -62,6 +62,22 @@ return [
             'help' => 'The kinds of ticket you take, each with the response and resolution times you have committed to.',
             'managed_by' => 'App\\Filament\\Resources\\TicketCategories\\TicketCategoryResource',
         ],
+
+        // How the customer asked. A label and a reporting column, nothing more: no channel is
+        // parsed or routed differently, and a company that takes tickets over Teams or at a
+        // counter should be able to say so. "panel" stays: it is what a ticket raised from the
+        // panel is stamped with by default.
+        'support.ticket_channel' => [
+            'label' => 'Ticket channels',
+            'help' => 'How a customer raised the ticket. Shown on the ticket and in the ticket report; nothing is routed by it. Keep "panel": tickets raised in the panel are stamped with it.',
+            'values' => [
+                'phone' => 'Phone',
+                'email' => 'Email',
+                'whatsapp' => 'Whatsapp',
+                'panel' => 'Panel',
+                'in_person' => 'In person',
+            ],
+        ],
     ],
 
     'permission_groups' => [

@@ -110,7 +110,8 @@ class Employee extends Model
     /** The statuses under which the person is still on the books — `is_active` is true for exactly these. */
     public const WORKING_STATUSES = [self::STATUS_ACTIVE, self::STATUS_ON_LEAVE];
 
-    public const MARITAL_STATUSES = ['single' => 'Single', 'married' => 'Married', 'widowed' => 'Widowed', 'divorced' => 'Divorced'];
+    // Marital statuses are an admin-managed list: options('employees.marital_status'), declared in
+    // this module's module.php.
 
     protected static function booted()
     {

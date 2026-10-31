@@ -126,6 +126,20 @@ return [
             ],
         ],
 
+        // Recorded on the personal tab and counted on the headcount report, which prints the value
+        // as it is. Nothing is computed from it — tax and payroll do not ask — and a company may
+        // want "separated" or a wording of its own. Plain string column, 20 wide.
+        'employees.marital_status' => [
+            'label' => 'Marital statuses',
+            'help' => 'Recorded on the employee record and counted on the headcount report. Nothing is calculated from it. Keep values under 20 characters.',
+            'values' => [
+                'single' => 'Single',
+                'married' => 'Married',
+                'widowed' => 'Widowed',
+                'divorced' => 'Divorced',
+            ],
+        ],
+
         'employees.gender' => [
             'label' => 'Genders',
             'help' => 'How people are recorded. Nothing computes from this: it is printed on the employee record and reported on.',
