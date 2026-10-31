@@ -22,11 +22,16 @@
     }"
 >
     @foreach ($columns as $column)
-        <section @class(['fi-board-column', 'fi-over' => $column['over']])>
+        <section @class(['fi-board-column', 'fi-over' => $column['over']]) aria-label="{{ $column['label'] }}">
+            {{-- Material 3 board column: a status-category dot, the name, and a count chip that turns red at its limit. --}}
             <header class="fi-board-column-head">
+                <span @class([
+                    'fi-board-column-dot',
+                    'fi-board-column-dot-'.str_replace('_', '-', (string) ($column['category'] ?? 'todo')),
+                ]) aria-hidden="true"></span>
                 <span class="fi-board-column-name">{{ $column['label'] }}</span>
-                <span class="fi-board-column-count">
-                    {{ $column['total'] }}@if ($column['limit']) / {{ $column['limit'] }} @endif
+                <span @class(['fi-board-column-count', 'fi-over' => $column['over'] || ($column['limit'] && $column['total'] >= $column['limit'])])>
+                    {{ $column['total'] }}@if ($column['limit']) / {{ $column['limit'] }}@endif
                 </span>
             </header>
 
@@ -44,46 +49,59 @@
                     wire:key="col-{{ $column['index'] }}-lane-{{ $lane['key'] }}"
                 >
                     @foreach ($lane['cards'] as $card)
+                        @php($priority = strtolower((string) ($card['priority'] ?? '')))
                         <article
                             class="fi-board-card"
                             x-sortable-item="{{ $card['id'] }}"
                             x-sortable-handle
                             wire:key="card-{{ $card['id'] }}"
                         >
-                            <a href="{{ $card['url'] }}" class="fi-board-card-key">{{ $card['key'] }}</a>
+                            <p class="fi-board-card-meta">
+                                <a href="{{ $card['url'] }}" class="fi-board-card-key">{{ $card['key'] }}</a>
+                                <span aria-hidden="true">·</span>
+                                <span class="fi-board-type">{{ ucfirst((string) $card['type']) }}</span>
+                            </p>
+
                             <p class="fi-board-card-title">{{ $card['title'] }}</p>
 
-                            @if ($card['labels'] !== [])
+                            @if ($card['labels'] !== [] || $card['blocked'] || $card['epic'] || $card['subtasks'] > 0 || $card['points'] !== null)
                                 <p class="fi-board-card-labels">
+                                    @if ($card['blocked'])
+                                        <span class="fi-board-chip fi-blocked">{{ __('Blocked') }}</span>
+                                    @endif
+
                                     @foreach ($card['labels'] as $label)
                                         <span class="fi-board-chip">{{ $label['name'] }}</span>
                                     @endforeach
+
+                                    @if ($card['epic'])
+                                        <span class="fi-board-chip" title="{{ __('Parent') }}">{{ $card['epic'] }}</span>
+                                    @endif
+
+                                    @if ($card['subtasks'] > 0)
+                                        <span class="fi-board-chip" title="{{ __('Subtasks done') }}">{{ $card['subtasks_done'] }}/{{ $card['subtasks'] }}</span>
+                                    @endif
+
+                                    @if ($card['points'] !== null)
+                                        <span class="fi-board-chip" title="{{ __('Points') }}">{{ $card['points'] }}</span>
+                                    @endif
                                 </p>
                             @endif
 
                             <footer class="fi-board-card-foot">
-                                <span class="fi-board-type">{{ $card['type'] }}</span>
-
-                                @if ($card['blocked'])
-                                    <span class="fi-board-chip fi-blocked">{{ __('Blocked') }}</span>
+                                @if ($priority !== '' && $priority !== 'none')
+                                    <span @class([
+                                        'fi-board-priority',
+                                        'fi-board-priority-high' => in_array($priority, ['highest', 'high'], true),
+                                        'fi-board-priority-medium' => $priority === 'medium',
+                                        'fi-board-priority-low' => in_array($priority, ['low', 'lowest'], true),
+                                    ])>{{ __(ucfirst($priority)) }}</span>
                                 @endif
 
-                                @if ($card['epic'])
-                                    <span class="fi-board-chip">{{ $card['epic'] }}</span>
-                                @endif
-
-                                @if ($card['subtasks'] > 0)
-                                    <span class="fi-board-chip">{{ $card['subtasks_done'] }}/{{ $card['subtasks'] }}</span>
-                                @endif
-
-                                @if ($card['points'] !== null)
-                                    <span class="fi-board-chip">{{ $card['points'] }}</span>
-                                @endif
+                                <span class="fi-board-card-spacer"></span>
 
                                 @if ($card['due_on'])
-                                    <span @class(['fi-board-chip', 'fi-overdue' => $card['overdue']])>
-                                        {{ $card['due_on'] }}
-                                    </span>
+                                    <span @class(['fi-board-due', 'fi-overdue' => $card['overdue']])>{{ $card['due_on'] }}</span>
                                 @endif
 
                                 @if ($card['initials'] !== '')
