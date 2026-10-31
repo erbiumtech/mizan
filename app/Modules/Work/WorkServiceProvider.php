@@ -101,10 +101,13 @@ use Filament\Forms\Components\Select;
 use Filament\Navigation\NavigationItem;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Support\Facades\FilamentView;
 use Filament\Tables\Columns\TextColumn;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 
 /**
  * Policies, registries and scheduled work for the work module.
@@ -144,6 +147,16 @@ class WorkServiceProvider extends ServiceProvider
         foreach (self::POLICIES as $model => $policy) {
             Gate::policy($model, $policy);
         }
+
+        // The board's List | Board | Timeline segmented control, before its header actions — Material
+        // board design. Scoped to the Board page; the page itself says where each view leads.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::PAGE_HEADER_ACTIONS_BEFORE,
+            fn (): string => ($page = Livewire::current()) instanceof Board
+                ? view('filament.work.board-view-switch', ['links' => $page->viewSwitch()])->render()
+                : '',
+            scopes: Board::class,
+        );
 
         /*
          * A work item takes custom fields from the day it exists — docs/project-management-plan.md §3.2.

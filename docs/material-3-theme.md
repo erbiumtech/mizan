@@ -69,13 +69,28 @@ The design's New employee form:
 - **Form sections** are filled cards on `surface-container-low`, with 16px corners and no outline. The title is 16/24 500 and the description 14px on-surface-variant. Rows are 20px apart and columns 16px. Sections without fields (tables, read-only infolists) stay outlined cards.
 - **Form actions** are right-aligned 40px pills. Cancel is a text button, a secondary action such as "Create & create another" is outlined, and the submit is filled.
 
+## Lists
+
+Every resource list page (Filament marks it `fi-resource-list-records-page`) follows the "People › Employees" design. The table's search pill and any filter chips sit in one row on the page surface. The card below holds only the table and its pagination: `surface-container-lowest`, a 1px `outline-variant` ring and 12px corners. A widget's table on the same page, a relation manager and a grid of cards keep the card round their toolbar.
+
+This needs no code on any list. The CSS lives in `material.css` under "list pages".
+
+Making another list look exactly like the Employees one takes four steps in its table class:
+
+1. **Lay the filters out above the table** with `->filtersLayout(FiltersLayout::AboveContent)->deferFilters(false)`. Each filter becomes a 32px chip with 8px corners and a 1px outline, filled in `secondary-container` once it is on. The indicator row under the toolbar is hidden on such a list, because the chips already show what is on.
+2. **Make yes/no filters chips** with `Filter::make(...)->checkbox()`. The checkbox is hidden until it is ticked and then shows as the chip's leading check.
+3. **Make select filters chips** by giving them no label and their name as the placeholder. `EmployeesTable::chip()` does this with `->placeholder($filter->getLabel())->modifyFormFieldUsing(fn (Select $field) => $field->hiddenLabel())`, so the chip reads "Department" until one is picked.
+4. **Draw a person** with `ViewColumn::make(...)->view('filament.tables.columns.person')`. It shows a 36px initials circle with the name over the company email, and the column keeps its own `searchable()` and `sortable()` queries.
+
+Header actions map through Filament's colours. `->outlined()` gives an outlined pill (Import), gray gives a tonal pill, and primary gives a filled pill (New employee, with `Heroicon::Plus`).
+
 ## Other components
 
 | Filament | Material 3 |
 |---|---|
 | Domain rail (`.fi-domain-rail-item`) | Navigation rail: icon over a 12px label, active domain in a 56×32 secondary-container pill |
 | Contextual column (`.fi-sidebar`) | Navigation drawer: surface-container-low with a rounded trailing edge, pill items, active item in secondary-container |
-| `.fi-btn` with a colour | Filled pill. In dark mode, primary uses primary / on-primary |
+| `.fi-btn` with a colour | Filled pill. Primary uses the primary / on-primary tokens in both modes |
 | `.fi-btn` gray or uncoloured | Tonal pill (secondary-container) |
 | `.fi-btn.fi-outlined` | Outlined pill, 1px outline |
 | `.fi-icon-btn` | Circular |
@@ -91,7 +106,7 @@ The design's New employee form:
 
 ## Left as it was, and why
 
-- **Table row height.** Filament pads cell content per column type. Forcing 52–56px rows would mean overriding every cell type, and dense tables are worth more here than the spec height.
+- **Table row height** is a 56px minimum (the cell's height), set by the list-page work. Content taller than that still grows the row.
 - **Drawer item height** is 48px rather than Material's 56px, because a domain lists up to thirty screens. To use the spec height, change `--md-nav-item-height` to `3.5rem`.
 - **Report explorer, board, backlog, hiring pipeline and other custom components** in `theme.css` use the panel's gray and primary ramps. They follow the new colours but keep their own shapes.
 - **Floating action button.** Filament has no slot for one. Each page's primary header action is a filled pill instead.

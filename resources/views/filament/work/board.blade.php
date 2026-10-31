@@ -28,6 +28,14 @@
     @else
         {{-- Quick filters. They live in the URL, so a filtered board is a link somebody can send. --}}
         <div class="fi-board-bar">
+            <input
+                type="search"
+                wire:model.live.debounce.400ms="search"
+                class="fi-board-search"
+                placeholder="{{ __('Search this board') }}"
+                aria-label="{{ __('Search this board') }}"
+            />
+
             <select wire:model.live="project" class="fi-board-project" aria-label="{{ __('Project') }}">
                 @foreach ($this->projects() as $id => $name)
                     <option value="{{ $id }}">{{ $name }}</option>
@@ -44,24 +52,21 @@
                 </select>
             @endif
 
-            <input
-                type="search"
-                wire:model.live.debounce.400ms="search"
-                class="fi-board-search"
-                placeholder="{{ __('Search this board') }}"
-                aria-label="{{ __('Search this board') }}"
-            />
-
-            <div class="fi-board-toggles">
-                <button type="button" wire:click="$toggle('mine')" @class(['fi-board-toggle', 'fi-on' => $this->mine])>
-                    {{ __('Mine') }}
-                </button>
-                <button type="button" wire:click="$toggle('unassigned')" @class(['fi-board-toggle', 'fi-on' => $this->unassigned])>
-                    {{ __('Unassigned') }}
-                </button>
-                <button type="button" wire:click="$toggle('blocked')" @class(['fi-board-toggle', 'fi-on' => $this->blocked])>
-                    {{ __('Blocked') }}
-                </button>
+            {{-- Material 3 filter chips: outlined, and tonal with a leading check while on. Still the URL's quick filters. --}}
+            <div class="fi-board-toggles" role="group" aria-label="{{ __('Quick filters') }}">
+                @foreach (['mine' => __('Mine'), 'unassigned' => __('Unassigned'), 'blocked' => __('Blocked')] as $filter => $label)
+                    <button
+                        type="button"
+                        wire:click="$toggle('{{ $filter }}')"
+                        aria-pressed="{{ $this->{$filter} ? 'true' : 'false' }}"
+                        @class(['fi-board-toggle', 'fi-on' => $this->{$filter}])
+                    >
+                        @if ($this->{$filter})
+                            <svg class="fi-board-toggle-check" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="m5 12 5 5 9-10"></path></svg>
+                        @endif
+                        {{ $label }}
+                    </button>
+                @endforeach
             </div>
         </div>
 

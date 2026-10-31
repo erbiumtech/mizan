@@ -372,10 +372,17 @@
     }
 }
 
-/* Filled primary, in dark mode, uses Material's light-on-dark pair rather than a mid-tone. */
-.fi-btn.fi-color-primary:not(.fi-outlined):not(label):where(.dark, .dark *) {
+/*
+ * Filled primary: Material's primary / on-primary pair in both modes (the tokens change with the mode), so
+ * the filled button is the scheme's own colour whatever Filament's ramp shade would have been.
+ */
+.fi-btn.fi-color-primary:not(.fi-outlined):not(label) {
     background-color: var(--md-sys-color-primary);
     color: var(--md-sys-color-on-primary);
+
+    &:hover {
+        background-color: color-mix(in srgb, var(--md-sys-color-on-primary) 8%, var(--md-sys-color-primary));
+    }
 
     & > .fi-icon {
         color: var(--md-sys-color-on-primary);
@@ -685,6 +692,268 @@
         border-radius: var(--md-sys-shape-full, 9999px);
         box-shadow: inset 0 0 0 1px var(--md-sys-color-outline);
     }
+}
+
+/* ------------------------------------------------------------------ list pages
+ *
+ * The Material list design ("People › Employees"): the search pill and a row of filter chips on the page
+ * surface, then the card, which holds only the table and its pagination. Scoped to a resource's list page
+ * (Filament puts `fi-resource-list-records-page` on it) and to its own table — not to a widget's table on
+ * that page, and not to a grid of cards, which has no table to frame. Relation managers and widgets keep
+ * the card round their toolbar. docs/material-3-theme.md, "Lists", says how to make another list match.
+ */
+.fi-resource-list-records-page .fi-ta-ctn:not(.fi-ta-ctn-with-content-layout):not(.fi-wi *) {
+    overflow: visible;
+    border-radius: 0;
+    background-color: transparent;
+    box-shadow: none;
+
+    /* One wrapping row: the search first, then the filter chips, then any toolbar actions on the right. */
+    & .fi-ta-header-ctn {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+        padding-block-end: 1rem;
+        border: 0;
+    }
+
+    & .fi-ta-header-toolbar {
+        display: contents;
+    }
+
+    & .fi-ta-header-toolbar > :nth-child(2) {
+        order: 1;
+        margin-inline-start: 0;
+    }
+
+    & .fi-ta-filters-above-content-ctn {
+        order: 2;
+        flex: 1 1 24rem;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    & .fi-ta-header-toolbar > .fi-ta-actions {
+        order: 3;
+        margin-inline-start: auto;
+    }
+
+    & .fi-ta-search-field {
+        width: min(20rem, 100%);
+    }
+
+    & .fi-ta-search-field .fi-input-wrp {
+        background-color: var(--md-sys-color-surface-container-high);
+    }
+
+    /* The chips say which filters are on; the indicator row under them would say it twice. */
+    & .fi-ta-main:has(> .fi-ta-header-ctn > .fi-ta-filters-above-content-ctn) > .fi-ta-filter-indicators {
+        display: none;
+    }
+
+    /* The card: the table and its footer, one outlined surface with 12px corners. */
+    & .fi-ta-content-ctn,
+    & .fi-ta-empty-state,
+    & .fi-ta-main > .fi-pagination {
+        background-color: var(--md-sys-color-surface-container-lowest);
+        box-shadow: inset 0 0 0 1px var(--md-sys-color-outline-variant);
+    }
+
+    & .fi-ta-content-ctn {
+        border-start-start-radius: var(--md-sys-shape-medium);
+        border-start-end-radius: var(--md-sys-shape-medium);
+        overflow-x: auto;
+    }
+
+    & .fi-ta-content-ctn:not(:has(+ .fi-pagination)),
+    & .fi-ta-empty-state {
+        border-radius: var(--md-sys-shape-medium);
+    }
+
+    & .fi-ta-main > .fi-pagination {
+        margin-block-start: -1px;
+        border-end-start-radius: var(--md-sys-shape-medium);
+        border-end-end-radius: var(--md-sys-shape-medium);
+    }
+}
+
+/*
+ * Filters laid out above the table, drawn as Material filter chips: one wrapping row of 32px chips with 8px
+ * corners and a 1px outline, the chosen ones filled in the selected-chip colour. A checkbox filter is the
+ * chip itself, its box hidden until it is ticked and then shown as the leading check; a Select filter
+ * (label hidden, its name as the placeholder — EmployeesTable::chip()) is a chip with its arrow.
+ */
+.fi-ta-filters-above-content-ctn {
+    & .fi-ta-filters {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    & .fi-ta-filters-header {
+        order: 2;
+
+        /* Reset as a text button. */
+        & .fi-link {
+            font-size: 0.875rem;
+            font-weight: 500;
+            line-height: 1.25rem;
+            padding-inline: 0.75rem;
+        }
+
+        & .fi-ta-filters-heading {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
+    }
+
+    & .fi-ta-filters .fi-sc {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    & .fi-ta-filters .fi-grid-col {
+        flex: 0 0 auto;
+        width: auto;
+        min-width: 0;
+    }
+
+    & .fi-fo-field {
+        row-gap: 0;
+    }
+
+    /* Select chips. */
+    & .fi-fo-field .fi-input-wrp {
+        min-height: 2rem;
+        min-width: 8.5rem;
+        border-radius: var(--md-sys-shape-small);
+        background-color: transparent;
+        box-shadow: inset 0 0 0 1px var(--md-sys-color-outline);
+
+        & .fi-input,
+        & .fi-select-input,
+        & .fi-select-input-btn {
+            min-height: 2rem;
+            height: 2rem;
+            padding-block: 0;
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+            font-weight: 500;
+        }
+
+        &:focus-within {
+            box-shadow: inset 0 0 0 2px var(--md-sys-color-primary);
+        }
+    }
+
+    & .fi-fo-field .fi-input-wrp:has(.fi-select-input-value-label),
+    & .fi-fo-field .fi-input-wrp:has(select option:checked:not([value=''])) {
+        background-color: var(--md-sys-color-secondary-container);
+        box-shadow: none;
+        color: var(--md-sys-color-on-secondary-container);
+    }
+
+    /* Checkbox chips: the label is the chip. */
+    & .fi-fo-field:has(.fi-checkbox-input) .fi-fo-field-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-height: 2rem;
+        padding-inline: 0.75rem 1rem;
+        border-radius: var(--md-sys-shape-small);
+        box-shadow: inset 0 0 0 1px var(--md-sys-color-outline);
+        cursor: pointer;
+
+        & .fi-fo-field-label-content {
+            font-size: 0.875rem;
+            font-weight: 500;
+            line-height: 1.25rem;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        &:focus-within {
+            box-shadow: inset 0 0 0 2px var(--md-sys-color-primary);
+        }
+    }
+
+    & .fi-checkbox-input:not(:checked) {
+        width: 0;
+        height: 0;
+        margin: 0;
+        opacity: 0;
+        position: absolute;
+    }
+
+    /* Ticked, the box becomes the chip's leading check: the mark alone, in the chip's text colour. */
+    & .fi-checkbox-input:checked {
+        width: 1.125rem;
+        height: 1.125rem;
+        margin: 0;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        background-image: none;
+        background-color: var(--md-sys-color-on-secondary-container);
+        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z'/%3E%3C/svg%3E") center / contain no-repeat;
+    }
+
+    & .fi-fo-field-label:has(.fi-checkbox-input:checked) {
+        background-color: var(--md-sys-color-secondary-container);
+        box-shadow: none;
+
+        & .fi-fo-field-label-content {
+            color: var(--md-sys-color-on-secondary-container);
+        }
+    }
+}
+
+/* A person in a list: a 36px tonal circle with initials, then the name over a secondary line. */
+.fi-md-person {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    padding-block: 0.5rem;
+}
+
+.fi-md-person-avatar {
+    display: grid;
+    flex: none;
+    width: 2.25rem;
+    height: 2.25rem;
+    place-items: center;
+    border-radius: 9999px;
+    background-color: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.fi-md-person-text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.fi-md-person-name {
+    font-size: 0.9375rem;
+    line-height: 1.25rem;
+    color: var(--md-sys-color-on-surface);
+}
+
+.fi-md-person-meta {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--md-sys-color-on-surface-variant);
 }
 
 /* ---------------------------------------------------------------- chips (badges) */

@@ -5,6 +5,7 @@ namespace App\Modules\Work\Filament\Pages;
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\HelpAction;
 use App\Modules\Projects\Models\Project;
+use App\Modules\Work\Filament\Resources\WorkItems\WorkItemResource;
 use App\Modules\Work\Models\WorkBoard;
 use App\Modules\Work\Models\WorkItem;
 use App\Modules\Work\Models\WorkWorkflow;
@@ -93,6 +94,40 @@ class Board extends Page
         return __('Board');
     }
 
+    /** "Work · {project}" over the title, as the Material board design reads. */
+    public function getBreadcrumbs(): array
+    {
+        return array_values(array_filter([__('Work'), $this->currentProject()?->name]));
+    }
+
+    /**
+     * The List | Board | Timeline segmented control beside the header actions — the same project in the
+     * three views it has. Rendered by a page-header render hook (WorkServiceProvider), since Filament
+     * actions cannot draw a joined control. A link is null when its page is not reachable here.
+     *
+     * @return array<int, array{label: string, url: ?string, current: bool}>
+     */
+    public function viewSwitch(): array
+    {
+        $project = $this->currentProject()?->getKey();
+
+        return [
+            [
+                'label' => __('List'),
+                'url' => WorkItemResource::canAccess()
+                    ? WorkItemResource::getUrl('index', $project !== null ? ['filters' => ['project_id' => ['value' => $project]]] : [])
+                    : null,
+                'current' => false,
+            ],
+            ['label' => __('Board'), 'url' => null, 'current' => true],
+            [
+                'label' => __('Timeline'),
+                'url' => Timeline::canAccess() ? Timeline::getUrl($project !== null ? ['project' => $project] : []) : null,
+                'current' => false,
+            ],
+        ];
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -120,7 +155,8 @@ class Board extends Page
         return Action::make('boardSettings')
             ->label(__('Board settings'))
             ->icon('heroicon-o-adjustments-horizontal')
-            ->color('gray')
+            // A Material text button beside the List | Board | Timeline control.
+            ->link()
             ->visible(fn (): bool => ($board = $this->board()) !== null && (auth()->user()?->can('update', $board) ?? false))
             ->modalHeading(fn (): string => __('Settings for :board', ['board' => $this->board()?->name ?? __('Board')]))
             ->modalWidth(Width::FourExtraLarge)

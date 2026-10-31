@@ -227,6 +227,29 @@ class WorkBoardTest extends AccountingTestCase
             ->assertSee('APP-1');
     }
 
+    /**
+     * The Material board's header pieces: the project under "Work" in the breadcrumbs, a column's
+     * status category for its dot, a count chip reading "n / limit", and List | Board | Timeline
+     * links for the same project.
+     */
+    public function test_the_board_draws_its_material_header_and_count_chips(): void
+    {
+        $this->board->update(['wip_limits' => ['1' => 3]]);
+        $this->item(['title' => 'Counted']);
+
+        $columns = app(Boards::class)->columns($this->board);
+        $this->assertSame(WorkStatus::TODO, $columns[0]['category']);
+
+        $page = Livewire::test(Board::class, ['project' => $this->project->getKey()])
+            ->assertSuccessful()
+            ->assertSee('fi-board-column-dot', false);
+
+        $links = collect($page->instance()->viewSwitch())->keyBy('label');
+        $this->assertTrue($links['Board']['current']);
+        $this->assertStringContainsString('project='.$this->project->getKey(), (string) $links['Timeline']['url']);
+        $this->assertContains($this->project->name, $page->instance()->getBreadcrumbs());
+    }
+
     /** A refused drop reaches the screen as a message rather than as a card in the wrong place. */
     public function test_the_screen_reports_a_refusal_and_leaves_the_card(): void
     {

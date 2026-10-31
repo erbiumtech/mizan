@@ -18,8 +18,12 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ViewColumn;
+use Filament\Tables\Enums\FiltersLayout;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -40,34 +44,69 @@ class EmployeesTable
         // See docs/page-load-performance-plan.md.
         return $table
             ->deferLoading()
+            /*
+             * The columns of the Material list design — docs/material-3-theme.md, "Lists": the person
+             * (initials, name, company email), their code, department, designation, status and joining
+             * date. Everything the list showed before is still in the column manager, hidden until asked for.
+             */
             ->columns([
-                // Nova ID: canSee Administrators only.
-                TextColumn::make('id')
-                    ->label(__('ID'))
-                    ->sortable()
-                    ->visible(fn (): bool => auth()->user()?->isAdministrator() ?? false),
+                // Name and email live on the landlord `users` table while employees live in the tenant
+                // database, so they cannot use Filament's relationship search/sort — see LandlordUserColumn.
+                // One search covers both, so typing a name or a company email finds the person.
+                ViewColumn::make('user.name')
+                    ->label(__('Name'))
+                    ->view('filament.tables.columns.person')
+                    ->sortable(query: fn (Builder $query, string $direction): Builder => LandlordUserColumn::sort($query, $direction, 'name'))
+                    ->searchable(query: fn (Builder $query, string $search): Builder => LandlordUserColumn::search($query, $search, ['name', 'email'])),
 
                 TextColumn::make('employee_id')
                     ->label(__('Employee ID'))
                     ->searchable(),
 
-                // Name and email live on the landlord `users` table while
-                // employees live in the tenant database, so these cannot use
-                // Filament's relationship search/sort — see LandlordUserColumn.
-                TextColumn::make('user.name')
-                    ->label(__('Employee Name'))
-                    ->sortable(query: fn (Builder $query, string $direction): Builder => LandlordUserColumn::sort($query, $direction, 'name'))
-                    ->searchable(query: fn (Builder $query, string $search): Builder => LandlordUserColumn::search($query, $search, ['name'])),
+                TextColumn::make('department')
+                    ->label(__('Department'))
+                    ->formatStateUsing(fn (?string $state): string => options('employees.department', $state)[$state] ?? (string) $state)
+                    ->placeholder('—')
+                    ->toggleable(),
+
+                TextColumn::make('designation')
+                    ->label(__('Designation'))
+                    ->formatStateUsing(fn (?string $state): string => options('employees.designation', $state)[$state] ?? (string) $state)
+                    ->placeholder('—')
+                    ->toggleable(),
+
+                // A status chip: tonal green for active, neutral otherwise.
+                TextColumn::make('is_active')
+                    ->label(__('Status'))
+                    ->badge()
+                    ->color(fn ($state): string => (int) $state === 1 ? 'success' : 'gray')
+                    ->formatStateUsing(fn ($state): string => (int) $state === 1 ? __('Active') : __('Inactive')),
+
+                TextColumn::make('date_of_joining')
+                    ->label(__('Joined'))
+                    ->date('d M Y')
+                    ->placeholder('—')
+                    ->alignEnd()
+                    ->sortable()
+                    ->toggleable(),
+
+                // Nova ID: canSee Administrators only.
+                TextColumn::make('id')
+                    ->label(__('ID'))
+                    ->sortable()
+                    ->visible(fn (): bool => auth()->user()?->isAdministrator() ?? false)
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('user.email')
                     ->label(__('Company Email'))
-                    ->searchable(query: fn (Builder $query, string $search): Builder => LandlordUserColumn::search($query, $search, ['email'])),
+                    ->searchable(query: fn (Builder $query, string $search): Builder => LandlordUserColumn::search($query, $search, ['email']))
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('personal_email')
                     ->label(__('Personal Email'))
                     ->placeholder('—')
                     ->searchable()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('date_of_birth')
                     ->label(__('Date of Birth'))
@@ -82,51 +121,71 @@ class EmployeesTable
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                // A status chip, as on the Material list design: tonal green for active, neutral otherwise.
-                TextColumn::make('is_active')
-                    ->label(__('Status'))
-                    ->badge()
-                    ->color(fn ($state): string => (int) $state === 1 ? 'success' : 'gray')
-                    ->formatStateUsing(fn ($state): string => (int) $state === 1 ? __('Active') : __('Inactive')),
-
                 TextColumn::make('bank_code')
-                    ->searchable(),
+                    ->label(__('Bank code'))
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('bank_short_code')
-                    ->searchable(),
+                    ->label(__('Bank short code'))
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 ...CustomFieldsSchema::tableColumns(Employee::class),
             ])
             // A grid of cards or the list — docs/saas-launch-plan.md §14.2; the choice is kept for the session.
             ->contentGrid(fn (): ?array => session('employees.layout') === 'grid' ? ['md' => 2, 'xl' => 3] : null)
+            /*
+             * Filters as a row of chips above the table, after the search — the Material list design. The
+             * design's four come first and the rest follow in the same row. A Select filter shows its name
+             * as its placeholder rather than as a label above it (chip()), so a chip reads "Department"
+             * until a department is chosen.
+             */
+            ->filtersLayout(FiltersLayout::AboveContent)
+            ->deferFilters(false)
             ->filters([
-                ...CustomFieldsSchema::tableFilters(Employee::class),
+                Filter::make('active')
+                    ->label(__('Active'))
+                    ->checkbox()
+                    ->query(fn (Builder $query): Builder => $query->where('is_active', true)),
 
-                // The directory's own two — docs/saas-launch-plan.md §14.2.
-                SelectFilter::make('department')
-                    ->options(fn (): array => options('employees.department')),
-                SelectFilter::make('status')
-                    ->options(Employee::STATUSES),
+                // The directory's own — docs/saas-launch-plan.md §14.2.
+                static::chip(SelectFilter::make('department')
+                    ->label(__('Department'))
+                    ->options(fn (): array => options('employees.department'))),
 
-                SelectFilter::make('location_id')
+                static::chip(SelectFilter::make('employment_type')
+                    ->label(__('Employment type'))
+                    ->options(fn (): array => options('employees.employment_type'))),
+
+                Filter::make('joined_this_year')
+                    ->label(__('Joined this year'))
+                    ->checkbox()
+                    ->query(fn (Builder $query): Builder => $query->whereYear('date_of_joining', now()->year)),
+
+                static::chip(SelectFilter::make('status')
+                    ->label(__('Status'))
+                    ->options(Employee::STATUSES)),
+
+                static::chip(SelectFilter::make('location_id')
                     ->label(__('Location'))
-                    ->options(fn (): array => \App\Modules\Core\Models\WorkLocation::options()),
+                    ->options(fn (): array => \App\Modules\Core\Models\WorkLocation::options())),
 
-                SelectFilter::make('employee_name')
+                static::chip(SelectFilter::make('employee_name')
                     ->label(__('Employee Name'))
                     ->attribute('id')
                     ->options(fn (): array => static::accessibleEmployees()
                         ->mapWithKeys(fn (Employee $e) => [$e->id => $e->user?->name ?? 'Unknown'])
                         ->toArray())
-                    ->searchable(),
+                    ->searchable()),
 
-                SelectFilter::make('employee_email')
+                static::chip(SelectFilter::make('employee_email')
                     ->label(__('Company Email'))
                     ->attribute('id')
                     ->options(fn (): array => static::accessibleEmployees()
                         ->mapWithKeys(fn (Employee $e) => [$e->id => $e->user?->email ?? 'No Email'])
                         ->toArray())
-                    ->searchable(),
+                    ->searchable()),
 
                 /*
                  * Which bank an employee is paid into.
@@ -142,13 +201,15 @@ class EmployeesTable
                  * Filters on `bank_id` rather than on the denormalised `bank_code`, because two banks can
                  * share a code in a chart that has been edited by hand and the id cannot.
                  */
-                SelectFilter::make('bank_id')
+                static::chip(SelectFilter::make('bank_id')
                     ->label(__('Bank'))
                     ->options(fn (): array => Bank::query()
                         ->orderBy('bank_name')
                         ->pluck('bank_name', 'id')
                         ->all())
-                    ->searchable(),
+                    ->searchable()),
+
+                ...CustomFieldsSchema::tableFilters(Employee::class),
             ])
             ->recordActions([
                 ViewAction::make(),
@@ -205,6 +266,17 @@ class EmployeesTable
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * A Select filter drawn as a filter chip: no label above it and its name as the placeholder, so the
+     * chip reads "Department" until one is picked and then the department itself.
+     */
+    protected static function chip(SelectFilter $filter): SelectFilter
+    {
+        return $filter
+            ->placeholder($filter->getLabel())
+            ->modifyFormFieldUsing(fn (Select $field): Select => $field->hiddenLabel());
     }
 
     /** Employees the current user may filter by (own + downline; all if privileged). */

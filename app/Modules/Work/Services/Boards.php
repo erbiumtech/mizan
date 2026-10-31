@@ -40,6 +40,11 @@ class Boards
 
         $columns = [];
 
+        // Each column's status category, for the coloured dot in its header — one query for the board.
+        $categories = WorkStatus::query()
+            ->whereIn('id', collect($board->columns ?? [])->pluck('status_ids')->flatten()->map(fn ($id): int => (int) $id)->all())
+            ->pluck('category', 'id');
+
         foreach (($board->columns ?? []) as $index => $column) {
             $statusIds = array_map('intval', $column['status_ids'] ?? []);
             $inColumn = $items->filter(
@@ -55,6 +60,7 @@ class Boards
                 // The status a card dropped here lands in: the first. The card's own menu offers the
                 // others, which is how a two-status column stays usable without being ambiguous.
                 'drop_status_id' => $statusIds[0] ?? null,
+                'category' => $categories[$statusIds[0] ?? 0] ?? null,
                 'limit' => $limit,
                 'over' => $limit !== null && $inColumn->count() > $limit,
                 'total' => $inColumn->count(),
