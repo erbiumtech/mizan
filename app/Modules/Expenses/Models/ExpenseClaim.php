@@ -59,6 +59,12 @@ class ExpenseClaim extends Model implements PayableDocument, Replicable
         return app(ExpenseClaimBankPayment::class)->settle($this, $payment);
     }
 
+    /**
+     * The state that means "waiting for someone to approve it": its list puts these rows first
+     * (App\Filament\Support\PendingFirst). [column, values], or [column, null] for "while empty".
+     */
+    public const PENDING_APPROVAL = ['status', [self::STATUS_PENDING]];
+
     /** Being written — docs/saas-launch-plan.md §14.3. Nobody is told until it is submitted. */
     public const STATUS_DRAFT = 'draft';
 

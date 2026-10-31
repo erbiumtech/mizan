@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionContracts\Filament\Resources\Contracts\RelationManagers;
 
+use App\Filament\Support\PendingFirst;
 use App\Modules\ConstructionContracts\Models\Contract;
 use App\Modules\ConstructionContracts\Services\CertificateCommitmentService;
 use App\Modules\ConstructionCosting\Models\Commitment;
@@ -121,7 +122,7 @@ class OrdersRelationManager extends RelationManager
                     ->alignEnd()
                     ->getStateUsing(fn (Commitment $record): float => $record->openTotal()),
             ])
-            ->defaultSort('number')
+            ->defaultSort(PendingFirst::sort(Commitment::class, 'number', 'asc'))
             ->headerActions([
                 Action::make('link')
                     ->label(__('Link an order'))

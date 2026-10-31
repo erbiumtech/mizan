@@ -3,6 +3,7 @@
 namespace App\Modules\Expenses\Filament\Resources\ExpenseClaims\Tables;
 
 use App\Filament\Actions\ReplicateRecordAction;
+use App\Filament\Support\PendingFirst;
 use App\Modules\Accounting\Models\CompanyBankAccount;
 use App\Modules\Expenses\Models\ExpenseClaim;
 use App\Modules\Expenses\Services\ExpenseClaimBankPayment;
@@ -67,7 +68,7 @@ class ExpenseClaimsTable
                     })
                     ->toggleable(),
             ])
-            ->defaultSort('claimed_on', 'desc')
+            ->defaultSort(PendingFirst::sort(ExpenseClaim::class, 'claimed_on'))
             ->filters([
                 SelectFilter::make('status')->options([
                     ExpenseClaim::STATUS_PENDING => 'Pending',

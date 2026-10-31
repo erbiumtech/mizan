@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\JournalEntries\Tables;
 
+use App\Filament\Support\PendingFirst;
 use App\Modules\Accounting\Models\JournalEntry;
 use App\Modules\Accounting\Services\JournalEntryService;
 use Filament\Actions\Action;
@@ -30,6 +31,7 @@ class JournalEntriesTable
         // See docs/page-load-performance-plan.md.
         return $table
             ->deferLoading()
+            ->defaultSort(PendingFirst::sort(JournalEntry::class, 'id', 'asc'))
             ->columns([
                 TextColumn::make('entry_number')
                     ->label(__('Entry Number'))

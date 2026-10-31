@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionCosting\Filament\Resources\LabourRecords\Tables;
 
+use App\Filament\Support\PendingFirst;
 use App\Modules\ConstructionCosting\Models\LabourRecord;
 use App\Modules\ConstructionCosting\Services\LabourRecordService;
 use App\Support\CompanyCurrency;
@@ -132,7 +133,7 @@ class LabourRecordsTable
                     ->query(fn (Builder $query) => $query->draft())
                     ->toggle(),
             ])
-            ->defaultSort('worked_on', 'desc')
+            ->defaultSort(PendingFirst::sort(LabourRecord::class, 'worked_on'))
             ->recordActions([
                 EditAction::make()
                     ->visible(fn (LabourRecord $record): bool => auth()->user()?->can('update', $record) ?? false),

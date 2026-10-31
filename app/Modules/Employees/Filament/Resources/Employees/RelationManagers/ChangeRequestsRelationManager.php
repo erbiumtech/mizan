@@ -2,6 +2,8 @@
 
 namespace App\Modules\Employees\Filament\Resources\Employees\RelationManagers;
 
+use App\Filament\Support\PendingFirst;
+use App\Modules\Employees\Models\EmployeeChangeRequest;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -40,6 +42,6 @@ class ChangeRequestsRelationManager extends RelationManager
                     ->dateTime()
                     ->sortable(),
             ])
-            ->defaultSort('created_at', 'desc');
+            ->defaultSort(PendingFirst::sort(EmployeeChangeRequest::class, 'created_at'));
     }
 }

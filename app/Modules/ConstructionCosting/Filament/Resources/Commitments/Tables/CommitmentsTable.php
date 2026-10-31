@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionCosting\Filament\Resources\Commitments\Tables;
 
 use App\Filament\Actions\ReplicateRecordAction;
+use App\Filament\Support\PendingFirst;
 use App\Modules\ConstructionCosting\Models\Commitment;
 use App\Modules\ConstructionCosting\Services\CommitmentService;
 use App\Support\CompanyCurrency;
@@ -140,7 +141,7 @@ class CommitmentsTable
                     ->query(fn (Builder $query) => $query->open())
                     ->toggle(),
             ])
-            ->defaultSort('id', 'desc')
+            ->defaultSort(PendingFirst::sort(Commitment::class))
             ->recordActions([
                 EditAction::make()
                     ->visible(fn (Commitment $record): bool => auth()->user()?->can('update', $record) ?? false),

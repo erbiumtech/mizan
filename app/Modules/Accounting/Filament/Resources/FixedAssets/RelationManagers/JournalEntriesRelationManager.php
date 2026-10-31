@@ -2,6 +2,8 @@
 
 namespace App\Modules\Accounting\Filament\Resources\FixedAssets\RelationManagers;
 
+use App\Filament\Support\PendingFirst;
+use App\Modules\Accounting\Models\JournalEntry;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -37,6 +39,6 @@ class JournalEntriesRelationManager extends RelationManager
                     ->badge()
                     ->sortable(),
             ])
-            ->defaultSort('entry_date', 'desc');
+            ->defaultSort(PendingFirst::sort(JournalEntry::class, 'entry_date'));
     }
 }

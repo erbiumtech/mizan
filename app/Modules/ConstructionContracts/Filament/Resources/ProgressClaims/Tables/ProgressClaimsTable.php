@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionContracts\Filament\Resources\ProgressClaims\Tables;
 
+use App\Filament\Support\PendingFirst;
 use App\Modules\ConstructionContracts\Models\PaymentCertificate;
 use App\Modules\ConstructionContracts\Models\ProgressClaim;
 use App\Modules\ConstructionContracts\Services\CertificationService;
@@ -105,7 +106,7 @@ class ProgressClaimsTable
                     ->query(fn (Builder $query) => $query->awaitingCertification())
                     ->toggle(),
             ])
-            ->defaultSort('id', 'desc')
+            ->defaultSort(PendingFirst::sort(ProgressClaim::class))
             ->recordActions([
                 EditAction::make()
                     ->visible(fn (ProgressClaim $record): bool => auth()->user()?->can('update', $record) ?? false),

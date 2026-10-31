@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionCosting\Filament\Resources\PlantLogs\Tables;
 
+use App\Filament\Support\PendingFirst;
 use App\Modules\ConstructionCosting\Models\PlantItem;
 use App\Modules\ConstructionCosting\Models\PlantLog;
 use App\Modules\ConstructionCosting\Services\PlantService;
@@ -133,7 +134,7 @@ class PlantLogsTable
                         ->where(fn (Builder $q) => $q->where('idle_units', '>', 0)->orWhere('standby_units', '>', 0)))
                     ->toggle(),
             ])
-            ->defaultSort('logged_on', 'desc')
+            ->defaultSort(PendingFirst::sort(PlantLog::class, 'logged_on'))
             ->recordActions([
                 EditAction::make()
                     ->visible(fn (PlantLog $record): bool => auth()->user()?->can('update', $record) ?? false),

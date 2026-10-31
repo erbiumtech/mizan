@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionCosting\Filament\Resources\Requisitions\Tables;
 
 use App\Filament\Actions\ReplicateRecordAction;
+use App\Filament\Support\PendingFirst;
 use App\Modules\ConstructionCosting\Models\Commitment;
 use App\Modules\ConstructionCosting\Models\Requisition;
 use App\Modules\ConstructionCosting\Models\RequisitionLine;
@@ -119,7 +120,7 @@ class RequisitionsTable
                     ->query(fn (Builder $query) => $query->toOrder())
                     ->toggle(),
             ])
-            ->defaultSort('id', 'desc')
+            ->defaultSort(PendingFirst::sort(Requisition::class))
             ->recordActions([
                 EditAction::make()
                     ->visible(fn (Requisition $record): bool => auth()->user()?->can('update', $record) ?? false),
