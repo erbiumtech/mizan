@@ -24,26 +24,50 @@ every sheet has an **Open the full page** button in its header.
   view and edit actions the URL of their page whenever the page exists; the trait withholds it for the
   ones that open in the sheet, and Filament then opens them as a modal over the list. The row runs that
   action instead of linking to the page.
-- The sheet is Filament's own `EditAction` / `ViewAction`, so the form, validation, policy checks and
-  saving are Filament's. `App\Filament\Support\RecordSheetActions` only dresses it: the header
-  (title, a status badge when the record has one, **Copy link**, **Open the full page**, close), the
-  pinned Save / Cancel footer, and an edit sheet that does not close on a click outside it.
+- The sheet is Filament's own `EditAction` / `ViewAction`, so the form, validation and policy checks
+  are Filament's. `App\Filament\Support\RecordSheetActions` dresses it: the header (title, a status
+  badge when the record has one, **Copy link**, **Open the full page**, close), the pinned Save /
+  Cancel footer, and an edit sheet that does not close on a click outside it.
+- An edit sheet fills and saves through the resource's **own edit page**
+  (`App\Filament\Support\RecordSheetEditPage`): the page is instantiated with the record and the
+  form's raw state, and its `mutateFormDataBeforeFill()`, `beforeSave`, `mutateFormDataBeforeSave()`,
+  `handleRecordUpdate()` and `afterSave` run as they do on the page — trait hooks included, so custom
+  field values (`InteractsWithCustomFields`) load and save from the sheet. One code path: the hooks are
+  the page's, not copies.
+- Closing an edit sheet with changes — Escape, the close button or Cancel — asks first ("Discard your
+  unsaved changes?"). The sheet compares the form's live state with the state it had when it was first
+  touched; saving closes it without asking.
+- A `SheetView` resource with no infolist shows its form, read-only — Filament's own fallback for a
+  view action — so a view sheet needs no second schema to keep in step.
 - The open sheet is written into Filament's own `?tableAction=edit&tableActionRecord=5` parameters,
   which Filament reads on load, so a refresh or a copied link reopens it. They clear when it closes.
 
 ## When a resource may be a `Sheet`
 
-The edit sheet runs Filament's edit action, **not the resource's edit page**. So a resource is a
-`Sheet` only when its edit page adds nothing to Filament's save:
+The edit sheet runs the edit page's save hooks but never mounts or renders the page. So a resource is
+a `Sheet` when:
 
-- no lifecycle hooks on the edit page (`mutateFormDataBefore…`, `handleRecordUpdate`, `before…` /
-  `after…`) and no `InteractsWithCustomFields`;
-- no relation managers (the sheet has nowhere to show them);
-- no repeaters or builders in the form;
-- a form that does not read its Livewire page.
+- its edit page overrides nothing that takes part in a save beyond `mutateFormDataBeforeFill()`,
+  `mutateFormDataBeforeSave()`, `handleRecordUpdate()`, `beforeSave()` and `afterSave()` (no
+  `beforeFill` / `afterFill` / `…Validate`, no `mount()`, no form actions), and those hooks read only
+  the record and `$data` — not `$this->form`, a redirect or a dispatch;
+- it has no relation managers (the sheet has nowhere to show them);
+- its form has no repeaters or builders, and does not read its Livewire page.
 
 Beyond that, it should be master data — a lookup people fix in passing, not a document they work in.
 Header actions on the edit page are still there, one click away on the full page.
+
+## When a resource is a `SheetView`, and when it stays a `Page`
+
+`SheetView` is for **medium records**: master or register records people look up from the list
+far more often than they change — accounts, products, jobs, leads, tickets. They usually have
+relation managers or a long form, so editing stays on the full page, but reading one no longer
+costs a page load and the list's place.
+
+`Page` stays for **documents with lines, tabs or their own actions** — invoices, bills, quotations,
+payments, journal entries, payroll runs and payslips, contracts, claims, requisitions — and for
+records whose meaning is in the work done on them (approvals, schedules that send or create things,
+settings with effects elsewhere). A `Page` resource with no edit page at all is listed as such.
 
 `tests/Unit/RecordSheetCoverageTest.php` checks the declaration on every resource, the trait on the list
 page of every sheet resource (and nowhere else), the rules above for every `Sheet`, and that this
@@ -51,29 +75,29 @@ document lists every resource.
 
 ## Every resource
 
-29 `sheet`, 3 `sheet-view`, 132 `page` — 164 in all.
+30 `sheet`, 22 `sheet-view`, 112 `page` — 164 in all.
 
 | Module | Resource | Opens in | Why |
 | --- | --- | --- | --- |
-| Accounting | `AccountResource` | page | Has relation managers. |
+| Accounting | `AccountResource` | sheet-view | Looked up from the chart; its relation managers stay on the full page, where it is edited. |
 | Accounting | `BankFileFormatResource` | sheet | Master data: a short form, saved by Filament as it stands. |
 | Accounting | `BankResource` | sheet | Master data: a short form, saved by Filament as it stands. |
 | Accounting | `BankStatementLineResource` | page | Has relation managers. |
 | Accounting | `BankStatementResource` | page | Has relation managers. |
-| Accounting | `BeneficiaryResource` | page | Has relation managers, custom fields saved by the edit page. |
+| Accounting | `BeneficiaryResource` | sheet-view | Looked up from the list; relation managers and custom fields stay on the full page, where it is edited. |
 | Accounting | `BudgetResource` | page | Has relation managers, a repeater, edit-page logic (`mutateFormDataBeforeFill()`, `mutateFormDataBeforeSave()`, `afterSave()`). |
 | Accounting | `ChequeBookResource` | sheet | Master data: a short form, saved by Filament as it stands. |
 | Accounting | `ChequeLayoutResource` | page | A layout that needs room to place its fields. |
 | Accounting | `ChequeResource` | page | No edit page: the list is read-only or edits through its own actions. |
-| Accounting | `CompanyBankAccountResource` | page | Has relation managers. |
-| Accounting | `CurrencyResource` | page | Has relation managers. |
-| Accounting | `FixedAssetResource` | page | Has relation managers, custom fields saved by the edit page. |
+| Accounting | `CompanyBankAccountResource` | sheet-view | Looked up from the list; its relation managers stay on the full page, where it is edited. |
+| Accounting | `CurrencyResource` | sheet-view | Read from the list; its relation managers stay on the full page, where it is edited. |
+| Accounting | `FixedAssetResource` | sheet-view | Looked up from the register; relation managers and custom fields stay on the full page, where it is edited. |
 | Accounting | `JournalEntryLineResource` | page | A line of a posted document; changed with its journal entry. |
 | Accounting | `JournalEntryResource` | page | Has relation managers. |
 | Accounting | `LoanResource` | page | Has relation managers, edit-page logic (`beforeSave()`, `afterSave()`). |
 | Accounting | `PaymentResource` | page | A money record with its own posting. |
 | Accounting | `ScheduledTransactionResource` | page | Has a repeater. |
-| Accounting | `TransactionTypeResource` | page | Has relation managers. |
+| Accounting | `TransactionTypeResource` | sheet-view | Read from the list; its relation managers stay on the full page, where it is edited. |
 | Advances | `AdvanceResource` | page | A money record with its own approval and recovery. |
 | Advances | `AdvanceTypeResource` | sheet | Master data: a short form, saved by Filament as it stands. |
 | Attendance | `AttendanceDayResource` | page | Has edit-page logic (`handleRecordUpdate()`). |
@@ -83,10 +107,10 @@ document lists every resource.
 | Attendance | `RestDaySwapResource` | page | No edit page: the list is read-only or edits through its own actions. |
 | Attendance | `WorkPatternResource` | page | Has a repeater. |
 | Billing | `BillingRunResource` | page | A run that produces invoices. |
-| Campaigns | `CampaignResource` | page | Has relation managers. |
+| Campaigns | `CampaignResource` | sheet-view | Read from the list; its relation managers stay on the full page, where it is edited. |
 | Campaigns | `SegmentResource` | sheet | Master data: a short form, saved by Filament as it stands. |
 | Construction | `CostCodeResource` | sheet | Master data: a short form, saved by Filament as it stands. |
-| Construction | `JobResource` | page | An operational register record, not a lookup. |
+| Construction | `JobResource` | sheet-view | A register record read often from the list; edited deliberately, on its own page. |
 | ConstructionContracts | `BackChargeResource` | page | Has edit-page logic (`afterSave()`). |
 | ConstructionContracts | `ComplianceDocumentResource` | page | A document, usually with an upload. |
 | ConstructionContracts | `ComplianceRequirementResource` | sheet | Master data: a short form, saved by Filament as it stands. |
@@ -108,7 +132,7 @@ document lists every resource.
 | ConstructionCosting | `PlantLogResource` | page | Has edit-page logic (`handleRecordUpdate()`). |
 | ConstructionCosting | `RequisitionResource` | page | Has relation managers. |
 | ConstructionCosting | `TradeResource` | sheet | Master data: a short form, saved by Filament as it stands. |
-| ConstructionCosting | `WorkerResource` | page | An operational register record, not a lookup. |
+| ConstructionCosting | `WorkerResource` | sheet-view | A register record read often from the list; edited on its own page. |
 | ConstructionField | `ActivityResource` | page | Has relation managers. |
 | ConstructionField | `DailyLogResource` | page | Has relation managers, edit-page logic (`handleRecordUpdate()`). |
 | ConstructionField | `DelayEventResource` | page | A working record read and written at length. |
@@ -121,19 +145,19 @@ document lists every resource.
 | ConstructionQhse | `NcrResource` | page | Has relation managers, edit-page logic (`handleRecordUpdate()`). |
 | ConstructionQhse | `PermitResource` | page | Has edit-page logic (`handleRecordUpdate()`). |
 | ConstructionQhse | `QhseActionResource` | page | Has edit-page logic (`handleRecordUpdate()`). |
-| ConstructionQhse | `SitePersonnelResource` | page | Has relation managers. |
+| ConstructionQhse | `SitePersonnelResource` | sheet-view | Looked up from the list; its relation managers stay on the full page, where it is edited. |
 | ConstructionQhse | `ToolboxTalkResource` | page | Has relation managers. |
 | Core | `ActivityLogResource` | page | No edit page: the list is read-only or edits through its own actions. |
 | Core | `CommentResource` | page | Has relation managers. |
 | Core | `CompanyResource` | page | Has relation managers, edit-page logic (`applyProfileAction()`, `applyProfileSummary()`, `modulesToGrant()`…). |
 | Core | `ContactMessageResource` | page | No edit page: the list is read-only or edits through its own actions. |
-| Core | `CustomFieldResource` | page | Has relation managers. |
+| Core | `CustomFieldResource` | sheet-view | Configuration read from the list; its relation managers stay on the full page, where it is edited. |
 | Core | `EmailTemplateResource` | page | A template that needs room for its body. |
 | Core | `FiscalYearResource` | sheet | Master data: a short form, saved by Filament as it stands. |
 | Core | `HolidayResource` | sheet | Master data: a short form, saved by Filament as it stands. |
 | Core | `MessageLogResource` | page | No edit page: the list is read-only or edits through its own actions. |
 | Core | `OptionValueResource` | sheet | Master data: a short form, saved by Filament as it stands. |
-| Core | `PermissionResource` | page | Has edit-page logic (`afterSave()`). |
+| Core | `PermissionResource` | sheet | Master data: a name and a group. Its edit page flushes the permission cache after a save, and the sheet runs that hook. |
 | Core | `PlatformActivityLogResource` | page | No edit page: the list is read-only or edits through its own actions. |
 | Core | `PlatformRoleResource` | page | No edit page: the list is read-only or edits through its own actions. |
 | Core | `PlatformUserResource` | page | A platform account; kept on its own page. |
@@ -147,11 +171,11 @@ document lists every resource.
 | Crm | `FieldVisitRefusalResource` | page | No edit page: the list is read-only or edits through its own actions. |
 | Crm | `FieldVisitResource` | page | A working record read and written at length. |
 | Crm | `FieldVisitStaffResource` | page | No edit page: the list is read-only or edits through its own actions. |
-| Crm | `LeadResource` | page | A working record read and written at length. |
+| Crm | `LeadResource` | sheet-view | Glanced at from the list; worked on at length, on its own page. |
 | Crm | `LeadSourceResource` | sheet | Master data: a short form, saved by Filament as it stands. |
 | Crm | `LostReasonResource` | sheet | Master data: a short form, saved by Filament as it stands. |
 | Crm | `NextActionResource` | page | A working record read and written at length. |
-| Crm | `OpportunityResource` | page | A working record read and written at length. |
+| Crm | `OpportunityResource` | sheet-view | Glanced at from the list; a long form worked on at length, on its own page. |
 | Crm | `PipelineResource` | page | Has a repeater. |
 | Crm | `SalesTargetResource` | page | A plan per person and period, not a lookup. |
 | Crm | `WeeklySalesReportResource` | page | A report written at length. |
@@ -167,7 +191,7 @@ document lists every resource.
 | Employees | `LetterTemplateResource` | page | A template that needs room for its body. |
 | Expenses | `ExpenseCategoryResource` | sheet | Master data: a short form, saved by Filament as it stands. |
 | Expenses | `ExpenseClaimResource` | page | Has a repeater. |
-| Inventory | `ProductResource` | page | Has relation managers, custom fields saved by the edit page. |
+| Inventory | `ProductResource` | sheet-view | Looked up from the catalogue; relation managers and custom fields stay on the full page, where it is edited. |
 | Inventory | `StockLocationResource` | sheet | Master data: a short form, saved by Filament as it stands. |
 | Inventory | `StockMovementResource` | page | No edit page: the list is read-only or edits through its own actions. |
 | Invoicing | `ContactResource` | sheet-view | Looked up from the list; editing has custom fields and relation managers, so it stays on the full page. |
@@ -183,7 +207,7 @@ document lists every resource.
 | Lifecycle | `EmployeeDocumentResource` | page | A document about a person, usually with an upload. |
 | Lifecycle | `EmploymentContractResource` | page | A contract about a person. |
 | Lifecycle | `FinalSettlementResource` | page | No edit page: the list is read-only or edits through its own actions. |
-| Lifecycle | `IssuedAssetResource` | page | A record of something handed to a person. |
+| Lifecycle | `IssuedAssetResource` | sheet-view | Checked from the list (who holds what); edited on its own page. |
 | Lifecycle | `SeparationResource` | page | Has relation managers. |
 | Mpr | `MPRResource` | page | A report written at length. |
 | Payroll | `AnnualTaxResource` | page | Has relation managers. |
@@ -196,7 +220,7 @@ document lists every resource.
 | Payroll | `SalaryStructureResource` | page | Has a repeater. |
 | Performance | `BadgeResource` | sheet | Master data: a short form, saved by Filament as it stands. |
 | Performance | `DailyReportResource` | page | No edit page: the list is read-only or edits through its own actions. |
-| Performance | `GoalResource` | page | A working record read and written at length. |
+| Performance | `GoalResource` | sheet-view | Checked from the list; edited on its own page. |
 | Performance | `MeritEntryResource` | page | No edit page: the list is read-only or edits through its own actions. |
 | Performance | `OneToOneResource` | page | A working record read and written at length. |
 | Performance | `RecurringTaskResource` | page | A schedule that creates tasks; changed deliberately. |
@@ -207,12 +231,12 @@ document lists every resource.
 | Performance | `TaskOccurrenceResource` | page | No edit page: the list is read-only or edits through its own actions. |
 | Projects | `ProjectResource` | sheet-view | Looked up from the list; editing has environments (a repeater) and relation managers, so it stays on the full page. |
 | Quotations | `QuotationResource` | page | Has a repeater, edit-page logic (`afterSave()`). |
-| Recruitment | `ApplicantResource` | page | A working record read and written at length. |
+| Recruitment | `ApplicantResource` | sheet-view | Screened from the list; edited on its own page. |
 | Recruitment | `ApplicationResource` | page | Has a custom row link. |
 | Recruitment | `InterviewResource` | page | No edit page: the list is read-only or edits through its own actions. |
-| Recruitment | `VacancyResource` | page | A working record read and written at length. |
+| Recruitment | `VacancyResource` | sheet-view | Read from the list; a long description, edited on its own page. |
 | Support | `TicketCategoryResource` | sheet | Master data: a short form, saved by Filament as it stands. |
-| Support | `TicketResource` | page | A working record read and written at length. |
+| Support | `TicketResource` | sheet-view | Triaged from the queue; worked on at length, on its own page. |
 | Timesheets | `TimesheetEntryResource` | page | A time record people correct with care. |
 | Work | `IntegrationConnectionResource` | page | No edit page: the list is read-only or edits through its own actions. |
 | Work | `WorkItemResource` | page | Has edit-page logic (`summariseAction()`, `suggestEstimateAction()`, `startTimerAction()`…). |
