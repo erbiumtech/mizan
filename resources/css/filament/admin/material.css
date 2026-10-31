@@ -8,10 +8,13 @@
  * geometry theme.css builds (the rail's width, the column offsets, the flyouts' positioning), and it
  * reaches components only through Filament's own classes plus a single hook on the search trigger.
  *
- * Every colour comes from a `--md-sys-color-*` token below. The tokens are the Material 3 scheme
- * generated from the logo green (#3E894A) as the seed; the same seed drives the primary and gray
- * ramps in App\Providers\Filament\AdminPanelProvider, so Filament's own utilities and these tokens
- * agree. To change the seed: regenerate both (docs/material-3-theme.md says how).
+ * Every colour comes from a `--md-sys-color-*` token below. The tokens are Material 3's tonal-spot
+ * scheme generated from an indigo seed (#4355B9) with Google's material-color-utilities — chosen as a
+ * modern, calm palette in its own right, not derived from any logo; the neutrals are the seed's cool
+ * greys. The same seed's tonal palettes drive the primary and gray ramps in
+ * App\Providers\Filament\AdminPanelProvider, so Filament's own utilities and these tokens agree. To
+ * change the seed: regenerate both (docs/material-3-theme.md says how). Success, warning and danger
+ * are semantic and stay green, amber and red whatever the seed.
  *
  * Filament's component styles live in the `components` cascade layer; these rules are unlayered,
  * which is why they win without `!important`.
@@ -20,33 +23,33 @@
 /* ------------------------------------------------------------------ tokens */
 
 :root {
-    --md-sys-color-primary: #2f6a3a;
+    --md-sys-color-primary: #515b92;
     --md-sys-color-on-primary: #ffffff;
-    --md-sys-color-primary-container: #b2f2b6;
-    --md-sys-color-on-primary-container: #002109;
-    --md-sys-color-secondary: #516350;
+    --md-sys-color-primary-container: #dee0ff;
+    --md-sys-color-on-primary-container: #394379;
+    --md-sys-color-secondary: #5b5d72;
     --md-sys-color-on-secondary: #ffffff;
-    --md-sys-color-secondary-container: #d4e8d0;
-    --md-sys-color-on-secondary-container: #0f1f10;
-    --md-sys-color-tertiary: #39656c;
-    --md-sys-color-tertiary-container: #bcebf2;
-    --md-sys-color-on-tertiary-container: #001f24;
+    --md-sys-color-secondary-container: #e0e1f9;
+    --md-sys-color-on-secondary-container: #434659;
+    --md-sys-color-tertiary: #77536d;
+    --md-sys-color-tertiary-container: #ffd7f1;
+    --md-sys-color-on-tertiary-container: #5d3c55;
     --md-sys-color-error: #ba1a1a;
     --md-sys-color-on-error: #ffffff;
     --md-sys-color-error-container: #ffdad6;
-    --md-sys-color-on-error-container: #410002;
-    --md-sys-color-surface: #f7fbf2;
+    --md-sys-color-on-error-container: #93000a;
+    --md-sys-color-surface: #fbf8ff;
     --md-sys-color-surface-container-lowest: #ffffff;
-    --md-sys-color-surface-container-low: #f1f5ec;
-    --md-sys-color-surface-container: #ebefe6;
-    --md-sys-color-surface-container-high: #e6e9e1;
-    --md-sys-color-surface-container-highest: #e0e4db;
-    --md-sys-color-on-surface: #181d17;
-    --md-sys-color-on-surface-variant: #424940;
-    --md-sys-color-outline: #72796f;
-    --md-sys-color-outline-variant: #c2c8bd;
-    --md-sys-color-inverse-surface: #2d322c;
-    --md-sys-color-inverse-on-surface: #eef2e9;
+    --md-sys-color-surface-container-low: #f5f2fa;
+    --md-sys-color-surface-container: #efedf4;
+    --md-sys-color-surface-container-high: #e9e7ef;
+    --md-sys-color-surface-container-highest: #e4e1e9;
+    --md-sys-color-on-surface: #1b1b21;
+    --md-sys-color-on-surface-variant: #46464f;
+    --md-sys-color-outline: #767680;
+    --md-sys-color-outline-variant: #c7c5d0;
+    --md-sys-color-inverse-surface: #303036;
+    --md-sys-color-inverse-on-surface: #f2eff7;
     --md-sys-color-scrim: rgb(0 0 0 / 0.32);
 
     /* Shape — the Material 3 corner scale. */
@@ -71,87 +74,102 @@
 
 :root.dark,
 .dark {
-    --md-sys-color-primary: #96d59b;
-    --md-sys-color-on-primary: #00390f;
-    --md-sys-color-primary-container: #145120;
-    --md-sys-color-on-primary-container: #b2f2b6;
-    --md-sys-color-secondary: #b8ccb4;
-    --md-sys-color-on-secondary: #243424;
-    --md-sys-color-secondary-container: #3a4b39;
-    --md-sys-color-on-secondary-container: #d4e8d0;
-    --md-sys-color-tertiary: #a1ced6;
-    --md-sys-color-tertiary-container: #1f4d54;
-    --md-sys-color-on-tertiary-container: #bcebf2;
+    --md-sys-color-primary: #bac3ff;
+    --md-sys-color-on-primary: #222c61;
+    --md-sys-color-primary-container: #394379;
+    --md-sys-color-on-primary-container: #dee0ff;
+    --md-sys-color-secondary: #c3c5dd;
+    --md-sys-color-on-secondary: #2d2f42;
+    --md-sys-color-secondary-container: #434659;
+    --md-sys-color-on-secondary-container: #e0e1f9;
+    --md-sys-color-tertiary: #e6bad7;
+    --md-sys-color-tertiary-container: #5d3c55;
+    --md-sys-color-on-tertiary-container: #ffd7f1;
     --md-sys-color-error: #ffb4ab;
     --md-sys-color-on-error: #690005;
     --md-sys-color-error-container: #93000a;
     --md-sys-color-on-error-container: #ffdad6;
-    --md-sys-color-surface: #10140f;
-    --md-sys-color-surface-container-lowest: #0b0f0a;
-    --md-sys-color-surface-container-low: #181d17;
-    --md-sys-color-surface-container: #1c211b;
-    --md-sys-color-surface-container-high: #262b25;
-    --md-sys-color-surface-container-highest: #31362f;
-    --md-sys-color-on-surface: #dfe4da;
-    --md-sys-color-on-surface-variant: #c2c8bd;
-    --md-sys-color-outline: #8c9388;
-    --md-sys-color-outline-variant: #424940;
-    --md-sys-color-inverse-surface: #dfe4da;
-    --md-sys-color-inverse-on-surface: #2d322c;
-    --md-sys-color-scrim: rgb(0 0 0 / 0.5);
-}
-
-/*
- * The platform panel shares this stylesheet but is deliberately not green — knowing which panel you
- * are in without reading the URL is the point of it (PlatformPanelProvider). So it gets the Material
- * scheme of its own indigo seed. Set on the body, which Filament classes per panel; every token
- * reference below is inside it, so this is enough.
- */
-.fi-panel-platform {
-    --md-sys-color-primary: #4355b9;
-    --md-sys-color-on-primary: #ffffff;
-    --md-sys-color-primary-container: #dee0ff;
-    --md-sys-color-on-primary-container: #00105c;
-    --md-sys-color-secondary: #5b5d72;
-    --md-sys-color-on-secondary: #ffffff;
-    --md-sys-color-secondary-container: #e0e1f9;
-    --md-sys-color-on-secondary-container: #181a2c;
-    --md-sys-color-surface: #fbf8ff;
-    --md-sys-color-surface-container-lowest: #ffffff;
-    --md-sys-color-surface-container-low: #f5f2fa;
-    --md-sys-color-surface-container: #efedf4;
-    --md-sys-color-surface-container-high: #e9e7ef;
-    --md-sys-color-surface-container-highest: #e4e1e9;
-    --md-sys-color-on-surface: #1b1b21;
-    --md-sys-color-on-surface-variant: #46464f;
-    --md-sys-color-outline: #767680;
-    --md-sys-color-outline-variant: #c6c5d0;
-    --md-sys-color-inverse-surface: #303036;
-    --md-sys-color-inverse-on-surface: #f2eff7;
-}
-
-.dark .fi-panel-platform,
-.fi-panel-platform:where(.dark, .dark *) {
-    --md-sys-color-primary: #bac3ff;
-    --md-sys-color-on-primary: #08218a;
-    --md-sys-color-primary-container: #293ca0;
-    --md-sys-color-on-primary-container: #dee0ff;
-    --md-sys-color-secondary: #c4c5dd;
-    --md-sys-color-on-secondary: #2d2f42;
-    --md-sys-color-secondary-container: #434659;
-    --md-sys-color-on-secondary-container: #e0e1f9;
-    --md-sys-color-surface: #131318;
-    --md-sys-color-surface-container-lowest: #0e0e13;
+    --md-sys-color-surface: #121318;
+    --md-sys-color-surface-container-lowest: #0d0e13;
     --md-sys-color-surface-container-low: #1b1b21;
     --md-sys-color-surface-container: #1f1f25;
-    --md-sys-color-surface-container-high: #2a292f;
-    --md-sys-color-surface-container-highest: #35343a;
+    --md-sys-color-surface-container-high: #29292f;
+    --md-sys-color-surface-container-highest: #34343a;
     --md-sys-color-on-surface: #e4e1e9;
-    --md-sys-color-on-surface-variant: #c6c5d0;
+    --md-sys-color-on-surface-variant: #c7c5d0;
     --md-sys-color-outline: #90909a;
     --md-sys-color-outline-variant: #46464f;
     --md-sys-color-inverse-surface: #e4e1e9;
     --md-sys-color-inverse-on-surface: #303036;
+    --md-sys-color-scrim: rgb(0 0 0 / 0.5);
+}
+
+/*
+ * The platform panel shares this stylesheet but must not look like a company's panel — knowing which
+ * panel you are in without reading the URL is the point of it (PlatformPanelProvider). So it gets the
+ * full tonal-spot scheme of its own teal seed (#006A6A), every role, so nothing falls through to the
+ * admin indigo. Set on the body, which Filament classes per panel; every token reference below is
+ * inside it, so this is enough.
+ */
+.fi-panel-platform {
+    --md-sys-color-primary: #006a6a;
+    --md-sys-color-on-primary: #ffffff;
+    --md-sys-color-primary-container: #9cf1f0;
+    --md-sys-color-on-primary-container: #004f4f;
+    --md-sys-color-secondary: #4a6363;
+    --md-sys-color-on-secondary: #ffffff;
+    --md-sys-color-secondary-container: #cce8e7;
+    --md-sys-color-on-secondary-container: #324b4b;
+    --md-sys-color-tertiary: #4b607c;
+    --md-sys-color-tertiary-container: #d3e4ff;
+    --md-sys-color-on-tertiary-container: #334863;
+    --md-sys-color-error: #ba1a1a;
+    --md-sys-color-on-error: #ffffff;
+    --md-sys-color-error-container: #ffdad6;
+    --md-sys-color-on-error-container: #93000a;
+    --md-sys-color-surface: #f4fbfa;
+    --md-sys-color-surface-container-lowest: #ffffff;
+    --md-sys-color-surface-container-low: #eff5f4;
+    --md-sys-color-surface-container: #e9efee;
+    --md-sys-color-surface-container-high: #e3e9e9;
+    --md-sys-color-surface-container-highest: #dde4e3;
+    --md-sys-color-on-surface: #161d1d;
+    --md-sys-color-on-surface-variant: #3f4948;
+    --md-sys-color-outline: #6f7979;
+    --md-sys-color-outline-variant: #bec9c8;
+    --md-sys-color-inverse-surface: #2b3231;
+    --md-sys-color-inverse-on-surface: #ecf2f1;
+}
+
+.dark .fi-panel-platform,
+.fi-panel-platform:where(.dark, .dark *) {
+    --md-sys-color-primary: #80d5d4;
+    --md-sys-color-on-primary: #003737;
+    --md-sys-color-primary-container: #004f4f;
+    --md-sys-color-on-primary-container: #9cf1f0;
+    --md-sys-color-secondary: #b0cccb;
+    --md-sys-color-on-secondary: #1b3534;
+    --md-sys-color-secondary-container: #324b4b;
+    --md-sys-color-on-secondary-container: #cce8e7;
+    --md-sys-color-tertiary: #b3c8e8;
+    --md-sys-color-tertiary-container: #334863;
+    --md-sys-color-on-tertiary-container: #d3e4ff;
+    --md-sys-color-error: #ffb4ab;
+    --md-sys-color-on-error: #690005;
+    --md-sys-color-error-container: #93000a;
+    --md-sys-color-on-error-container: #ffdad6;
+    --md-sys-color-surface: #0e1514;
+    --md-sys-color-surface-container-lowest: #090f0f;
+    --md-sys-color-surface-container-low: #161d1d;
+    --md-sys-color-surface-container: #1a2121;
+    --md-sys-color-surface-container-high: #252b2b;
+    --md-sys-color-surface-container-highest: #2f3636;
+    --md-sys-color-on-surface: #dde4e3;
+    --md-sys-color-on-surface-variant: #bec9c8;
+    --md-sys-color-outline: #889392;
+    --md-sys-color-outline-variant: #3f4948;
+    --md-sys-color-inverse-surface: #dde4e3;
+    --md-sys-color-inverse-on-surface: #2b3231;
 }
 
 /* -------------------------------------------------------------- page surface */

@@ -70,51 +70,53 @@ class AdminPanelProvider extends PanelProvider
     ];
 
     /**
-     * Material 3's primary tonal palette for the logo green — docs/material-3-theme.md.
+     * Material 3's primary tonal palette — docs/material-3-theme.md.
      *
-     * The seed is BRAND_GREEN; these are the tones Material derives from it, laid on Filament's shade
-     * numbers. Shade 600 is tone 40, Material's light-scheme primary, which is what Filament paints
+     * Seeded from indigo #4355B9 with the tonal-spot scheme of Google's material-color-utilities, a
+     * palette chosen for itself rather than sampled from the logo. The tones are laid on Filament's
+     * shade numbers; shade 600 is tone 40, Material's light-scheme primary, which Filament paints
      * filled buttons and the active state with: white on it is 6.4:1. resources/css/filament/admin/
      * material.css carries the same scheme as `--md-sys-color-*` tokens, so the two agree.
      *
-     * BRAND_GREEN_SHADES above is kept: it is the logo-exact ramp, and the PWA manifest and other
-     * callers name BRAND_GREEN itself.
+     * The BRAND_* constants above no longer colour the panel. They are kept because the PWA manifest's
+     * theme colour, the head's theme-color meta and their tests name BRAND_GREEN.
      *
      * @var array<int, string>
      */
     public const array MATERIAL_PRIMARY = [
-        50 => '#EFFAEC',
-        100 => '#DCF5DB',
-        200 => '#B2F2B6',
-        300 => '#96D59B',
-        400 => '#7BB980',
-        500 => '#619D67',
-        600 => '#2F6A3A',
-        700 => '#145120',
-        800 => '#00390F',
-        900 => '#002D0B',
-        950 => '#002109',
+        50 => '#F4F2FF',
+        100 => '#ECECFF',
+        200 => '#DEE0FF',
+        300 => '#BAC3FF',
+        400 => '#9EA7E5',
+        500 => '#848DC8',
+        600 => '#515B92',
+        700 => '#394379',
+        800 => '#222C61',
+        900 => '#172155',
+        950 => '#0B154B',
     ];
 
     /**
-     * Material 3's neutral palette for the same seed: greys with a trace of the green in them, so the
-     * surfaces, dividers and secondary text sit with the primary rather than against a cold slate.
-     * Shade 500 is tone 50, the outline colour, nudged a step darker (#6E756B) so secondary text clears 4.5:1 on white and on the surface.
+     * The same seed's neutral-variant palette: cool greys with a trace of the indigo, so surfaces,
+     * dividers and secondary text sit with the primary. Shade 500 is tone 45 rather than the outline's
+     * tone 50, so secondary text clears 4.5:1 on white (5.4:1) and on the surface (5.1:1); shade 400,
+     * dark mode's secondary text, is 5.9:1 on the dark surface.
      *
      * @var array<int, string>
      */
     public const array MATERIAL_NEUTRAL = [
-        50 => '#F1F5EC',
-        100 => '#E6E9E1',
-        200 => '#D7DBD2',
-        300 => '#C2C8BD',
-        400 => '#8C9388',
-        500 => '#6E756B',
-        600 => '#5A6157',
-        700 => '#424940',
-        800 => '#2C322B',
-        900 => '#1C211B',
-        950 => '#10140F',
+        50 => '#F4F2FD',
+        100 => '#E9E7F2',
+        200 => '#DAD9E4',
+        300 => '#C7C5D0',
+        400 => '#90909A',
+        500 => '#6A6A73',
+        600 => '#5D5E67',
+        700 => '#46464F',
+        800 => '#2F3038',
+        900 => '#1E1F27',
+        950 => '#12131A',
     ];
 
     /**
@@ -287,12 +289,14 @@ class AdminPanelProvider extends PanelProvider
             // closure for the reason the brand logo above is one: it is resolved per request,
             // after the tenant middleware has run.
             ->favicon(fn (): string => CompanyLetterhead::faviconUrl() ?? asset('images/favicon.png'))
-            // Material 3, seeded from the logo green: the primary and neutral tonal palettes drive
-            // Filament's primary and gray ramps; the mid green and lime stay as accents.
+            // Material 3 from the indigo seed: its primary and neutral tonal palettes drive Filament's
+            // primary and gray ramps. Success, warning and danger stay semantic — green, amber, red —
+            // and are not derived from the seed or the logo.
             ->colors([
                 'primary' => self::MATERIAL_PRIMARY,
-                'success' => Color::hex(self::BRAND_GREEN_MID),
-                'warning' => Color::hex(self::BRAND_LIME),
+                'success' => Color::Green,
+                'warning' => Color::Amber,
+                'danger' => Color::Red,
                 'gray' => self::MATERIAL_NEUTRAL,
             ])
             // Material's typeface. Google's provider because Roboto Flex is served from there.
