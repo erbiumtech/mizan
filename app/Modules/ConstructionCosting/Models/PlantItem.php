@@ -6,6 +6,8 @@ use App\Models\TenantModel as Model;
 use App\Modules\Accounting\Models\FixedAsset;
 use App\Modules\Construction\Models\CostCode;
 use App\Modules\Invoicing\Models\Contact;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -28,9 +30,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * a change or to charge one job differently. If a customer needs either, `construction_plant_rates` in the shape of
  * `construction_labour_rates` is the extension — this is a smaller design on purpose, not an unfinished one.
  */
-class PlantItem extends Model
+class PlantItem extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     /** No invoice exists, so the log is the cost: internal hire, credited to recovery. */
     public const OWNERSHIP_OWNED = 'owned';
@@ -145,5 +147,27 @@ class PlantItem extends Model
     public function displayName(): string
     {
         return "{$this->code} — {$this->name}";
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    /**
+     * Another machine of the same kind: same category, ownership, meter, rates and default cost code.
+     * It needs its own code, and has no registration, no fixed asset and no hire order behind it until
+     * someone links them. Its logs belong to the original and are not copied.
+     */
+    public function replicationUniqueFields(): array
+    {
+        return ['code' => self::suggestCopyOf('code')];
+    }
+
+    public function replicationResets(): array
+    {
+        return [
+            'registration' => null,
+            'fixed_asset_id' => null,
+            'commitment_id' => null,
+            'created_by' => fn (): ?int => auth()->id(),
+        ];
     }
 }

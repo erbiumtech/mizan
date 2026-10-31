@@ -2,6 +2,7 @@
 
 namespace App\Modules\Work\Filament\Resources\WorkWorkflows;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\RecordSheet;
 use App\Modules\Work\Filament\Resources\WorkWorkflows\Pages\EditWorkWorkflow;
@@ -9,6 +10,7 @@ use App\Modules\Work\Filament\Resources\WorkWorkflows\Pages\ListWorkWorkflows;
 use App\Modules\Work\Filament\Resources\WorkWorkflows\RelationManagers\StatusesRelationManager;
 use App\Modules\Work\Models\WorkWorkflow;
 use BackedEnum;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -79,6 +81,7 @@ class WorkWorkflowResource extends Resource
                 TextColumn::make('rules_count')->counts('rules')->label(__('Rules'))->alignEnd(),
                 IconColumn::make('is_default')->boolean()->label(__('Default')),
             ])
+            ->recordActions([EditAction::make(), ReplicateRecordAction::make()])
             ->defaultSort('name');
     }
 

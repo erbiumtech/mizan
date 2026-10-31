@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionQhse\Filament\Resources\Itps\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Filament\Support\HelpAction;
 use App\Modules\ConstructionQhse\Filament\Resources\Itps\ItpResource;
@@ -15,6 +16,6 @@ class EditItp extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [HelpAction::make('construction-itps', 'ITPs and inspections: Help')];
+        return [HelpAction::make('construction-itps', 'ITPs and inspections: Help'), ReplicateRecordAction::make()];
     }
 }

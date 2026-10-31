@@ -6,12 +6,16 @@ use App\Models\Concerns\HasCustomFields;
 use App\Models\Concerns\StoresPlainDates;
 use App\Models\TenantModel as Model;
 use App\Modules\Core\Models\User;
+use App\Modules\Crm\Services\OpportunityService;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Invoicing\Models\Contact;
 use App\Modules\Invoicing\Models\Invoice;
 use App\Modules\Projects\Models\Project;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -38,9 +42,9 @@ use InvalidArgumentException;
  * summed at some rate, and §13 is explicit: anyone who "fixes" this to read today's rate
  * will silently rewrite last quarter's forecast.
  */
-class Opportunity extends Model
+class Opportunity extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
     use HasCustomFields;
     use StoresPlainDates;
 
@@ -269,5 +273,33 @@ class Opportunity extends Model
         $since = $this->stageHistory()->latest('moved_at')->value('moved_at') ?? $this->created_at;
 
         return $since !== null && $since->diffInDays(now()) > $after;
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    /**
+     * Another deal like this one with the same lead or customer: same pipeline, owner, amount, currency
+     * and notes. It starts open in the pipeline's first stage, at that stage's probability, with no
+     * outcome, lost reason, project or invoice, created by whoever copied it. The stage history is the
+     * original's; the copy's begins with its own entry into the first stage.
+     */
+    public function replicationResets(): array
+    {
+        return [
+            'pipeline_stage_id' => fn (self $original): ?int => $original->pipeline?->firstStage()?->getKey(),
+            'probability_pct' => null,
+            'closed_on' => null,
+            'outcome' => null,
+            'lost_reason_id' => null,
+            'project_id' => null,
+            'invoice_id' => null,
+            'created_by' => null,
+        ];
+    }
+
+    /** Opened through the service, which records the entry into the first stage. */
+    public function persistReplica(EloquentModel $original): EloquentModel
+    {
+        return app(OpportunityService::class)->open($this);
     }
 }

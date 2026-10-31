@@ -45,3 +45,5 @@ careful about — move them first, or they are in a status their board has no co
 
 Administrator only. A workflow governs every board in the company, so changing one is not a board
 manager's decision.
+
+**Replicate** makes a new workflow with the same statuses and rules under a name you give it. Its rules and its pull-request status point at its own statuses, so changing the copy never changes this one. No project uses it until someone picks it.

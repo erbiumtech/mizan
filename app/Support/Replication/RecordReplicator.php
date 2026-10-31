@@ -90,9 +90,12 @@ class RecordReplicator
      */
     public static function valueIsTaken(Model $original, string $attribute, mixed $value): bool
     {
-        $query = $original->newQuery()
-            ->withoutGlobalScope(SoftDeletingScope::class)
-            ->where($attribute, $value);
+        $query = $original->newQuery()->withoutGlobalScope(SoftDeletingScope::class);
+
+        // A date column is stored with a time on some drivers, so it is compared as a date.
+        static::isDateAttribute($original, $attribute)
+            ? $query->whereDate($attribute, $value)
+            : $query->where($attribute, $value);
 
         $scopes = $original instanceof Replicable ? ($original->replicationUniqueScopes()[$attribute] ?? []) : [];
 
@@ -101,6 +104,12 @@ class RecordReplicator
         }
 
         return $query->exists();
+    }
+
+    /** Whether the model casts the attribute to a date, so the action asks for it with a date picker. */
+    public static function isDateAttribute(Model $model, string $attribute): bool
+    {
+        return in_array($model->getCasts()[$attribute] ?? null, ['date', 'immutable_date'], true);
     }
 
     /**

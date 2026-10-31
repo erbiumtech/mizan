@@ -55,3 +55,5 @@ disposing require Manager or CEO** — the Accountant records assets but does
 not run these. **Only CEO and Administrator can delete**, and only an asset
 that has never had a journal entry posted against it (buying, depreciating or
 disposing all count). This resource belongs to the **Accounting** module.
+
+**Replicate** registers another asset from the same batch: same account, cost, method and life, with its own tag. It starts with nothing depreciated and no purchase entry.

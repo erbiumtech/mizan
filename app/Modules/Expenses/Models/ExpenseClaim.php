@@ -15,6 +15,8 @@ use App\Modules\Expenses\Services\ExpenseClaimBankPayment;
 use App\Modules\Expenses\Services\ExpenseClaimPosting;
 use App\Modules\Payroll\Models\Payslip;
 use App\Support\Contracts\PayableDocument;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Support\TenantTransaction;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
@@ -32,9 +34,9 @@ use InvalidArgumentException;
  * another subject, and a second way of doing the same thing would be a second thing
  * to get wrong.
  */
-class ExpenseClaim extends Model implements PayableDocument
+class ExpenseClaim extends Model implements PayableDocument, Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     // ─── PayableDocument — paid by bank transfer, docs/bexio-gap-plan.md §3.6 ───
 
@@ -368,5 +370,35 @@ class ExpenseClaim extends Model implements PayableDocument
         if ($submitter && (int) $submitter->status === 1) {
             Notification::send($submitter, new ExpenseClaimDecided($this));
         }
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    /**
+     * A repeat of a claim, such as the same monthly travel: same employee, type, description and lines.
+     * The copy is a draft dated today, so it tells no approver and posts nothing until it is submitted.
+     * It has no submission, decision, approval trail, payslip, payment or accrual, and no receipts:
+     * a receipt is evidence for the original spending, not for this one.
+     */
+    public function replicationResets(): array
+    {
+        return [
+            'status' => self::STATUS_DRAFT,
+            'claimed_on' => fn (): string => now()->toDateString(),
+            'receipt_path' => null,
+            'submitted_by' => fn (): ?int => auth()->id(),
+            'submitted_at' => null,
+            'decided_by' => null,
+            'decided_at' => null,
+            'refusal_reason' => null,
+            'payslip_id' => null,
+            'payment_id' => null,
+            'journal_entry_id' => null,
+        ];
+    }
+
+    public function replicationRelations(): array
+    {
+        return ['lines' => ['receipt_path']];
     }
 }

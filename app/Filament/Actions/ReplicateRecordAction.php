@@ -7,6 +7,7 @@ use App\Support\Replication\Replicable;
 use Closure;
 use Filament\Actions\ReplicateAction;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\TextInput;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Model;
@@ -61,10 +62,11 @@ class ReplicateRecordAction extends ReplicateAction
         $this->modalSubmitActionLabel(__('Replicate'));
 
         $this->schema(fn (Model $record): array => collect(static::uniqueFields($record))
-            ->map(fn (Closure $suggest, string $attribute): TextInput => TextInput::make($attribute)
+            ->map(fn (Closure $suggest, string $attribute): TextInput|DatePicker => (RecordReplicator::isDateAttribute($record, $attribute)
+                ? DatePicker::make($attribute)
+                : TextInput::make($attribute)->maxLength(191))
                 ->label(__($attribute === 'sku' ? 'SKU' : Str::headline($attribute)))
                 ->required()
-                ->maxLength(191)
                 ->rules([
                     fn (): Closure => function (string $field, mixed $value, Closure $fail) use ($record, $attribute): void {
                         if (RecordReplicator::valueIsTaken($record, $attribute, $value)) {

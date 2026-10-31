@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionCosting\Filament\Resources\Commitments\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Filament\Support\HelpAction;
 use App\Modules\ConstructionCosting\Filament\Resources\Commitments\CommitmentResource;
@@ -15,6 +16,6 @@ class EditCommitment extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [HelpAction::make('construction-commitments', 'Orders: Help')];
+        return [HelpAction::make('construction-commitments', 'Orders: Help'), ReplicateRecordAction::make()];
     }
 }

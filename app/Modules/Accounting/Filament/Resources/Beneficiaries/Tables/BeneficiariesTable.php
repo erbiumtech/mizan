@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\Beneficiaries\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Support\CustomFieldsSchema;
 use App\Modules\Accounting\Models\Beneficiary;
 use Filament\Actions\BulkActionGroup;
@@ -56,6 +57,7 @@ class BeneficiariesTable
             ])
             ->recordActions([
                 EditAction::make(),
+                ReplicateRecordAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

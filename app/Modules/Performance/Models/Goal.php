@@ -5,13 +5,15 @@ namespace App\Modules\Performance\Models;
 use App\Models\Concerns\StoresPlainDates;
 use App\Models\TenantModel as Model;
 use App\Modules\Employees\Models\Employee;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Goal extends Model
+class Goal extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
     use StoresPlainDates;
 
     protected array $plainDates = ['due_on'];
@@ -46,5 +48,19 @@ class Goal extends Model
     public function scopeOpen(Builder $query): Builder
     {
         return $query->where('status', self::STATUS_OPEN);
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    /**
+     * The same goal again, for another person or the next cycle: title, metric, target, weight and due
+     * date carry over. It starts open with nothing achieved yet.
+     */
+    public function replicationResets(): array
+    {
+        return [
+            'status' => self::STATUS_OPEN,
+            'actual' => null,
+        ];
     }
 }

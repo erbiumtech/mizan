@@ -6,6 +6,8 @@ use App\Models\TenantModel as Model;
 use App\Modules\Construction\Concerns\HasMaterialisedPath;
 use App\Modules\Inventory\Models\StockLocation;
 use App\Modules\Invoicing\Models\Contact;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use App\Traits\HasComments;
 use Illuminate\Database\Eloquent\Builder;
@@ -22,9 +24,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * Comments and custom fields are polymorphic and free, so an RFI or a job needs no per-module notes table.
  */
-class Job extends Model
+class Job extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
     use HasComments;
     use HasMaterialisedPath;
 
@@ -163,5 +165,33 @@ class Job extends Model
     public function completionDate()
     {
         return $this->revised_completion_date ?? $this->planned_completion_date;
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    /**
+     * A new job set up like this one: same client, nature, contract standard, retention, advance,
+     * liquidated damages and payment terms. It needs its own code. It starts at tender, under the same
+     * parent, with no completion, certificate or closing dates, and is not tied to this job's project or
+     * site store. Budgets, contracts, costs and diaries belong to the original and are not copied.
+     */
+    public function replicationUniqueFields(): array
+    {
+        return ['code' => self::suggestCopyOf('code')];
+    }
+
+    public function replicationResets(): array
+    {
+        return [
+            'path' => null,
+            'status' => self::STATUS_TENDER,
+            'project_id' => null,
+            'stock_location_id' => null,
+            'revised_completion_date' => null,
+            'actual_completion_date' => null,
+            'substantial_completion_date' => null,
+            'final_certificate_date' => null,
+            'closed_at' => null,
+        ];
     }
 }

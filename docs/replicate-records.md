@@ -113,8 +113,8 @@ items, members, time and environments are not copied.
 
 ## Audit of every resource
 
-There are 157 resources. 44 offer Replicate and 113 do not. Rows marked *Decision for you* are
-ones that were excluded because of doubt rather than principle.
+There are 157 resources. 58 offer Replicate and 99 do not. Each "No" gives the reason it must not be
+copied.
 
 | Module | Resource | Replicable | Why | Unique fields asked | Relations copied | State reset |
 |---|---|---|---|---|---|---|
@@ -123,14 +123,14 @@ ones that were excluded because of doubt rather than principle.
 | Accounting | BankStatementLineResource | No | Imported bank data; a copy would be a phantom transaction. | | | |
 | Accounting | BankStatementResource | No | Imported bank data. | | | |
 | Accounting | BankResource | No | Shared bank directory (IBAN/branch codes); one row per real bank. | | | |
-| Accounting | BeneficiaryResource | No | A real payee with bank account and ID numbers; a copy invites paying the wrong person. *Decision for you.* | | | |
+| Accounting | BeneficiaryResource | **Yes** | A payee template: same bank, payment and withholding settings, never the same person. | — | — | `account_no`, `iban`, `id_number`, `email`, `phone`, `address_line_1`, `address_line_2`, `is_petty_cash_custodian`, `engaged_on`, `engagement_ended_on` |
 | Accounting | BudgetResource | **Yes** | A plan; next year's budget starts from this one. | `name` | `lines` | — |
 | Accounting | ChequeBookResource | No | A physical cheque series; numbers are real. | | | |
 | Accounting | ChequeLayoutResource | **Yes** | A print template; the copy is unlinked from the bank account (one layout per account). | — | — | `company_bank_account_id` |
 | Accounting | ChequeResource | No | A physical, numbered document. | | | |
 | Accounting | CompanyBankAccountResource | No | A real bank account with a ledger account behind it. | | | |
 | Accounting | CurrencyResource | No | ISO currencies; there is exactly one of each. | | | |
-| Accounting | FixedAssetResource | No | A physical asset with a depreciation history. *Decision for you* (copying the setup of a batch of identical assets is plausible). | | | |
+| Accounting | FixedAssetResource | **Yes** | Another asset from the same batch; it gets its own `FA-` tag and starts undepreciated. | — | — | `asset_code` (drawn afresh), `accumulated_depreciation`, `status`, `disposed_at`, `journal_entry_id` |
 | Accounting | JournalEntryResource | No | Posted ledger record. | | | |
 | Accounting | JournalEntryLineResource | No | Posted ledger record. | | | |
 | Accounting | LoanResource | No | A real borrowing with a repayment schedule. | | | |
@@ -149,7 +149,7 @@ ones that were excluded because of doubt rather than principle.
 | Campaigns | CampaignResource | **Yes** | Reusing a campaign is the common case; the copy is a draft and has sent nothing. | — | — | `status`, `scheduled_at`, `sent_at`, `created_by` |
 | Campaigns | SegmentResource | **Yes** | An audience definition. | — | — | — |
 | Construction | CostCodeResource | **Yes** | Master data; the copy is a leaf under the same parent. | `code` | — | `path`, `is_leaf` |
-| Construction | JobResource | No | A construction job with contracts, budgets and costs behind it. *Decision for you.* | | | |
+| Construction | JobResource | **Yes** | A new job set up like this one (client, standard, retention, advance, LDs, terms); budgets, contracts and costs stay with the original. | `code` | — | `path`, `status` (tender), `project_id`, `stock_location_id`, `revised_completion_date`, `actual_completion_date`, `substantial_completion_date`, `final_certificate_date`, `closed_at` |
 | ConstructionContracts | BackChargeResource | No | A claim against a specific party for a specific event. | | | |
 | ConstructionContracts | ComplianceDocumentResource | No | A real certificate or policy on file. | | | |
 | ConstructionContracts | ComplianceRequirementResource | No | Unique per contract and kind, so a copy could never be saved. | | | |
@@ -158,18 +158,18 @@ ones that were excluded because of doubt rather than principle.
 | ConstructionContracts | ProgressClaimResource | No | A claim for a specific period. | | | |
 | ConstructionContracts | RetentionMovementResource | No | Posted money movement. | | | |
 | ConstructionContracts | VariationResource | No | An instructed change to a specific contract. | | | |
-| ConstructionCosting | CommitmentResource | No | A purchase commitment against a budget; a copy double-commits. *Decision for you* (as a PO template). | | | |
+| ConstructionCosting | CommitmentResource | **Yes** | A repeat order as a new draft; it commits nothing until approved and issued. | — | `lines` (less `requisition_line_id` and the variance acceptance) | `number` (the year's next for its type), `status`, `contract_id`, `order_date` (today), `required_by`, `supplier_reference`, `approved_*`, `issued_*`, `closed_*`, `close_reason` |
 | ConstructionCosting | ControlAccountResource | No | Unique per purpose and per account and kind: a copy could never be saved. | | | |
 | ConstructionCosting | CostEntryResource | No | Posted cost. | | | |
 | ConstructionCosting | CostPeriodResource | No | A period that opens and closes once. | | | |
 | ConstructionCosting | GoodsReceiptResource | No | A record of goods that arrived. | | | |
-| ConstructionCosting | JobBudgetResource | No | A versioned budget with approval history. *Decision for you.* | | | |
+| ConstructionCosting | JobBudgetResource | **Yes** | The next draft version of the same job's budget with its lines, as BudgetService opens a revision. | — | `lines` | `version_no` (the job's next), `kind` (an original becomes a revision), `status`, `is_baseline`, `is_current`, `effective_from`, `approved_at`, `approved_by` |
 | ConstructionCosting | LabourRateResource | **Yes** | A rate card row. | — | — | `created_by` |
 | ConstructionCosting | LabourRecordResource | No | Hours actually worked. | | | |
 | ConstructionCosting | MaterialIssueResource | No | Stock that actually moved. | | | |
-| ConstructionCosting | PlantItemResource | No | A physical machine. | | | |
+| ConstructionCosting | PlantItemResource | **Yes** | Another machine of the same kind and rates; its logs are not copied. | `code` | — | `registration`, `fixed_asset_id`, `commitment_id`, `created_by` |
 | ConstructionCosting | PlantLogResource | No | Hours a machine actually ran. | | | |
-| ConstructionCosting | RequisitionResource | No | A request with an approval trail. *Decision for you.* | | | |
+| ConstructionCosting | RequisitionResource | **Yes** | A repeat request as a new draft with its lines; nothing on it is ordered. | — | `lines` | `number` (the year's next `REQ-`), `status`, `requested_by`, `requested_on` (today), `required_by`, `approved_*`, `rejection_reason` |
 | ConstructionCosting | TradeResource | **Yes** | Master data. | `code` | — | — |
 | ConstructionCosting | WorkerResource | No | A person (CNIC). | | | |
 | ConstructionField | ActivityResource | No | A scheduled activity tied to a programme and its dependencies. | | | |
@@ -180,7 +180,7 @@ ones that were excluded because of doubt rather than principle.
 | ConstructionField | SubmittalResource | No | A numbered submission with a review trail. | | | |
 | ConstructionQhse | IncidentResource | No | An event that happened. | | | |
 | ConstructionQhse | InspectionResource | No | An inspection that happened. | | | |
-| ConstructionQhse | ItpResource | No | Its activities carry inspection results that would need clearing line by line. *Decision for you.* | | | |
+| ConstructionQhse | ItpResource | **Yes** | A draft plan with the same activities and attending parties; inspections stay with the original's activities. | `reference` (within the job) | `activities` and each one's `parties` (in `afterReplication`) | `status`, `revision`, `issued_on`, `approved_by`, `approved_on`, `created_by` |
 | ConstructionQhse | NcrResource | No | A non-conformance that was raised. | | | |
 | ConstructionQhse | PermitResource | No | A permit issued for specific work. | | | |
 | ConstructionQhse | QhseActionResource | No | A corrective action against a specific finding. | | | |
@@ -191,7 +191,7 @@ ones that were excluded because of doubt rather than principle.
 | Core | CustomFieldResource | **Yes** | A field definition; values are not copied. | `code` | — | — |
 | Core | EmailTemplateResource | No | Keyed by the code that sends it; a copy's key is read by nothing. | | | |
 | Core | FiscalYearResource | No | One per year, with periods and closing state. | | | |
-| Core | HolidayResource | No | Unique per date; the copy would need a different date, which the action does not ask. *Decision for you.* | | | |
+| Core | HolidayResource | **Yes** | The same holiday on another date; the date is asked for with a date picker, suggesting the same day a year on. | `date` | — | — |
 | Core | MessageLogResource | No | A record of a message sent. | | | |
 | Core | OptionValueResource | **Yes** | An entry in an admin-managed list. | `value` | — | — |
 | Core | ReportScheduleResource | **Yes** | A delivery setup; copied inactive and owned by whoever copied it. | — | — | `is_active`, `user_id` |
@@ -207,7 +207,7 @@ ones that were excluded because of doubt rather than principle.
 | Crm | LeadResource | No | A real prospect; a copy is a duplicate lead. | | | |
 | Crm | LostReasonResource | **Yes** | Master data. | `name` | — | — |
 | Crm | NextActionResource | No | A reminder on a specific record. | | | |
-| Crm | OpportunityResource | No | A real deal with stage history. *Decision for you.* | | | |
+| Crm | OpportunityResource | **Yes** | Another deal with the same lead or customer; it opens in the pipeline's first stage through OpportunityService, which records that entry. | — | — | `pipeline_stage_id` (first stage), `probability_pct` (the stage's), `closed_on`, `outcome`, `lost_reason_id`, `project_id`, `invoice_id`, `created_by` |
 | Crm | PipelineResource | **Yes** | A sales pipeline with its stages; never a second default. | — | `stages` | `is_default` |
 | Crm | SalesTargetResource | No | A target per person per period. | | | |
 | Crm | WeeklySalesReportResource | No | A report for a specific week. | | | |
@@ -222,7 +222,7 @@ ones that were excluded because of doubt rather than principle.
 | Employees | LetterRequestResource | No | A request from a person. | | | |
 | Employees | LetterTemplateResource | No | Unique per kind and locale: a copy could never be saved. | | | |
 | Expenses | ExpenseCategoryResource | **Yes** | Master data. | `name` | — | — |
-| Expenses | ExpenseClaimResource | No | A claim for money actually spent. *Decision for you.* | | | |
+| Expenses | ExpenseClaimResource | **Yes** | A repeat claim as a draft dated today; it tells no approver and posts nothing until submitted. Receipts are not copied. | — | `lines` (less `receipt_path`) | `status` (draft), `claimed_on`, `receipt_path`, `submitted_by`, `submitted_at`, `decided_*`, `refusal_reason`, `payslip_id`, `payment_id`, `journal_entry_id` |
 | Inventory | ProductResource | **Yes** | Catalogue item; stock movements are not copied. | `sku` | — | — |
 | Inventory | StockLocationResource | **Yes** | Master data; movements are not copied. | `code` | — | `created_by` |
 | Inventory | StockMovementResource | No | Stock that moved. | | | |
@@ -252,7 +252,7 @@ ones that were excluded because of doubt rather than principle.
 | Payroll | SalaryStructureResource | **Yes** | A template with its lines. | `name` | `lines` | — |
 | Performance | BadgeResource | **Yes** | Master data. | `name` | — | — |
 | Performance | DailyReportResource | No | What one person did on one day. | | | |
-| Performance | GoalResource | No | Per employee and review cycle, with ratings. *Decision for you.* | | | |
+| Performance | GoalResource | **Yes** | The same goal for another person or cycle; it starts open with nothing achieved. | — | — | `status`, `actual` |
 | Performance | MeritEntryResource | No | Points awarded or deducted for an event. | | | |
 | Performance | OneToOneResource | No | A meeting that happened. | | | |
 | Performance | RecurringTaskResource | **Yes** | A standing obligation; copied inactive so nobody is penalised twice. | — | — | `is_active` |
@@ -273,29 +273,34 @@ ones that were excluded because of doubt rather than principle.
 | Work | IntegrationConnectionResource | No | Carries credentials and a webhook secret. | | | |
 | Work | WorkItemResource | **Yes** | A similar bug or task in the same project. | — | `labels` (linked) | `key`, `number`, `work_status_id`, `rank` (from the project), `sprint_id`, `carried_over`, `started_at`, `resolved_at`, `resolution`, `archived_at`, `imported_from`, `ai_summary`, `ai_summary_at`, `assigned_at`, `reporter_user_id` |
 | Work | WorkReleaseResource | No | A release with a ship date and notes. | | | |
-| Work | WorkSprintResource | No | A time box that starts and closes once. | | | |
-| Work | WorkWorkflowResource | No | Its statuses and rules reference each other by id; a correct deep copy is its own piece of work. *Decision for you.* | | | |
+| Work | WorkSprintResource | **Yes** | The next sprint in the same project: planned, no dates, no items. | `name` (within the project) | — | `state`, `starts_on`, `ends_on`, `started_at`, `closed_at` |
+| Work | WorkWorkflowResource | **Yes** | A new workflow with the same statuses and rules; rules and the pull-request status point at the copy's own statuses. | `name` | `statuses`, `rules` (remapped in `afterReplication`) | `is_default`, `review_status_id` (remapped) |
 
-## Decisions left open
+## Decided in the second round
 
-These were excluded because of doubt. Each one is a small change if you want it: implement
-`Replicable`, declare its resets, and add the button.
+The first round left these out because of doubt. Each is now replicable, with the resets in the
+table above: beneficiary, fixed asset, construction job, job budget, commitment, requisition, plant
+item, ITP, holiday, opportunity, expense claim, goal, sprint and work workflow.
 
-- **Beneficiary.** Copying would bring along bank and ID numbers. The value is in templates for
-  payees with similar settings, and the risk is paying the wrong account.
-- **Fixed asset.** Useful for a batch of identical assets. The copy would need its tag, its
-  depreciation history and its disposal cleared.
-- **Construction job, job budget, commitment (as a PO template), requisition.** These have approval
-  and costing state, which needs a careful reset list for each one.
-- **ITP.** Its activities carry inspection results, which would have to be cleared line by line.
-- **Holiday.** The date is unique, so a copy needs a different date. The modal only asks for text
-  fields today.
-- **Opportunity, goal, expense claim.** All three are plausible to copy, but each has a
-  person-specific trail: stage history, ratings, or receipts.
-- **Work workflow.** Its statuses and rules point at each other by id, so a deep copy has to remap
-  them.
+Two copies go deeper than one level of children, so they copy in `afterReplication()`:
 
-Also left open on purpose:
+- **ITP.** Each activity, then the parties who must attend it.
+- **Work workflow.** The statuses first, then the rules and the pull-request status, each pointed at
+  the copy's own statuses through a map of old id to new id. A copy that pointed back at the
+  original's statuses would let one workflow's rule move an item into another workflow's status.
 
-- **Bulk Replicate.** Not offered. One record at a time, with the unique fields asked for each.
+A unique **date** (a holiday) is asked for with a date picker, and its uniqueness is compared as a
+date, because some drivers store a date column with a time.
+
+## Replicate in the side sheet
+
+A list that opens its records in the side sheet (docs/side-sheets.md) keeps Replicate as a row
+action, and the sheet itself offers it in its footer, beside Save or Edit, because the sheet stands in
+for the record's page and that page offers it in its header. `RecordSheetActions` adds it for any
+model that implements `Replicable`; the action's own visibility (create permission,
+`canBeReplicated()`) still decides.
+
+## Still not offered
+
+- **Bulk Replicate.** One record at a time, with the unique fields asked for each.
 - **Custom field values on child rows.** Not copied. No child model currently carries custom fields.

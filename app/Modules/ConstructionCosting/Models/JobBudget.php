@@ -4,6 +4,8 @@ namespace App\Modules\ConstructionCosting\Models;
 
 use App\Models\TenantModel as Model;
 use App\Modules\Construction\Models\Job;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,9 +26,9 @@ use Illuminate\Support\Collection;
  * every time a variation is approved. On a job with no variations they are the same version — the moment one is
  * approved they diverge.
  */
-class JobBudget extends Model
+class JobBudget extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     public const KIND_ESTIMATE = 'estimate';
 
@@ -175,5 +177,31 @@ class JobBudget extends Model
     public function isTimePhased(): bool
     {
         return $this->lines()->whereNotNull('period_start')->exists();
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    /**
+     * A new draft version of the same job's budget with every line, which is what BudgetService does
+     * when it opens a revision. It takes the job's next version number. It is neither current nor
+     * baseline until approved, has no approval, and an original budget's copy is a revision.
+     */
+    public function replicationResets(): array
+    {
+        return [
+            'version_no' => fn (self $original): int => (int) static::query()->where('job_id', $original->job_id)->max('version_no') + 1,
+            'kind' => fn (self $original): string => $original->kind === self::KIND_ORIGINAL ? self::KIND_REVISION : $original->kind,
+            'status' => self::STATUS_DRAFT,
+            'is_baseline' => false,
+            'is_current' => false,
+            'effective_from' => null,
+            'approved_at' => null,
+            'approved_by' => null,
+        ];
+    }
+
+    public function replicationRelations(): array
+    {
+        return ['lines'];
     }
 }

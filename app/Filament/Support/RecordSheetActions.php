@@ -2,6 +2,8 @@
 
 namespace App\Filament\Support;
 
+use App\Filament\Actions\ReplicateRecordAction;
+use App\Support\Replication\Replicable;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
@@ -54,7 +56,15 @@ final class RecordSheetActions
             ->modalHeading(fn (Model $record): HtmlString => self::heading($resource, $record))
             ->modalDescription(fn (Model $record): HtmlString => self::tools($resource, $record, $name));
 
+        // A sheet stands in for the record's page, which offers Replicate in its header, so the sheet
+        // offers it too, beside the way out; the row's own Replicate button stays on the list.
+        $replicate = fn (Model $record): array => is_subclass_of($resource::getModel(), Replicable::class)
+            ? [ReplicateRecordAction::make('replicateFromSheet')->record($record)]
+            : [];
+
         if ($isEdit) {
+            $action->extraModalFooterActions($replicate);
+
             $action
                 ->closeModalByClickingAway(false)
                 ->unsavedChangesAlert()
@@ -79,14 +89,17 @@ final class RecordSheetActions
             : $data);
 
         // Viewing in the sheet with editing on the full page: the way there sits where Save would.
-        if ($sheet === RecordSheet::SheetView && $resource::hasPage('edit')) {
-            $action->extraModalFooterActions(fn (Model $record): array => [
+        $editFullPage = $sheet === RecordSheet::SheetView && $resource::hasPage('edit');
+
+        $action->extraModalFooterActions(fn (Model $record): array => [
+            ...$replicate($record),
+            ...($editFullPage ? [
                 Action::make('editFullPage')
                     ->label(__('Edit'))
                     ->url($resource::getUrl('edit', ['record' => $record]))
                     ->visible($resource::canEdit($record)),
-            ]);
-        }
+            ] : []),
+        ]);
     }
 
     /**

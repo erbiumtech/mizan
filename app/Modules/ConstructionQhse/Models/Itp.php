@@ -5,8 +5,11 @@ namespace App\Modules\ConstructionQhse\Models;
 use App\Models\TenantModel as Model;
 use App\Modules\Construction\Models\Job;
 use App\Modules\Construction\Models\WbsNode;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -20,9 +23,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * The value is entirely in the rows: §17.1's `point_type` distinction between hold, witness and review is "the entire
  * reason an ITP exists", and this table is the folder those rows live in.
  */
-class Itp extends Model
+class Itp extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     public const STATUS_DRAFT = 'draft';
 
@@ -127,5 +130,50 @@ class Itp extends Model
     public function displayName(): string
     {
         return "{$this->reference} — {$this->title}";
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    /**
+     * A new draft plan like this one on the same job: same scope, discipline and activities, each with
+     * the parties who must attend. It needs its own reference within the job, and has no revision, issue
+     * or approval. Inspections are recorded against the original's activities and stay there, so the
+     * copy starts with none.
+     */
+    public function replicationUniqueFields(): array
+    {
+        return ['reference' => self::suggestCopyOf('reference')];
+    }
+
+    public function replicationUniqueScopes(): array
+    {
+        return ['reference' => ['job_id']];
+    }
+
+    public function replicationResets(): array
+    {
+        return [
+            'status' => self::STATUS_DRAFT,
+            'revision' => null,
+            'issued_on' => null,
+            'approved_by' => null,
+            'approved_on' => null,
+            'created_by' => fn (): ?int => auth()->id(),
+        ];
+    }
+
+    /** Two levels, so copied here rather than declared: each activity, then the parties under it. */
+    public function afterReplication(EloquentModel $original): void
+    {
+        /** @var self $original */
+        $original->loadMissing('activities.parties');
+
+        foreach ($original->activities as $activity) {
+            $copy = $this->activities()->save($activity->replicate(['created_at', 'updated_at']));
+
+            foreach ($activity->parties as $party) {
+                $copy->parties()->save($party->replicate(['created_at', 'updated_at']));
+            }
+        }
     }
 }

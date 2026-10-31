@@ -4,15 +4,17 @@ namespace App\Modules\Work\Models;
 
 use App\Models\TenantModel as Model;
 use App\Modules\Projects\Models\Project;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** A fixed stretch of work with a goal — docs/project-management-plan.md §6.2. */
-class WorkSprint extends Model
+class WorkSprint extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     public const FUTURE = 'future';
 
@@ -62,5 +64,33 @@ class WorkSprint extends Model
     public function isClosed(): bool
     {
         return $this->state === self::CLOSED;
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    /**
+     * The next sprint like this one in the same project: same goal, a new name. It is planned, with no
+     * dates and nothing started or closed, and holds no items: items are moved into a sprint, not
+     * copied with it.
+     */
+    public function replicationUniqueFields(): array
+    {
+        return ['name' => self::suggestCopyOf('name')];
+    }
+
+    public function replicationUniqueScopes(): array
+    {
+        return ['name' => ['project_id']];
+    }
+
+    public function replicationResets(): array
+    {
+        return [
+            'state' => self::FUTURE,
+            'starts_on' => null,
+            'ends_on' => null,
+            'started_at' => null,
+            'closed_at' => null,
+        ];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Construction\Filament\Resources\Jobs\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Construction\Filament\Resources\Jobs\JobResource;
 use Filament\Actions\DeleteAction;
@@ -15,6 +16,6 @@ class EditJob extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [DeleteAction::make()];
+        return [DeleteAction::make(), ReplicateRecordAction::make()];
     }
 }

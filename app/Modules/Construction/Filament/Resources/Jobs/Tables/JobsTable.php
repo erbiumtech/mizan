@@ -2,6 +2,7 @@
 
 namespace App\Modules\Construction\Filament\Resources\Jobs\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\Construction\Models\Job;
 use App\Support\CompanyCurrency;
 use Filament\Actions\BulkActionGroup;
@@ -124,7 +125,7 @@ class JobsTable
                     ),
             ])
             ->defaultSort('code')
-            ->recordActions([EditAction::make()])
+            ->recordActions([EditAction::make(), ReplicateRecordAction::make()])
             ->toolbarActions([BulkActionGroup::make([DeleteBulkAction::make()])]);
     }
 }

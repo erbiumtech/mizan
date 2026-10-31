@@ -2,6 +2,7 @@
 
 namespace App\Modules\Work\Filament\Resources\WorkSprints;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\RecordSheet;
 use App\Modules\Projects\Models\Project;
@@ -168,6 +169,7 @@ class WorkSprintResource extends Resource
                             ->body('Unfinished work went '.($target !== null ? 'to '.$target->name : 'back to the backlog').'.')
                             ->send();
                     }),
+                ReplicateRecordAction::make(),
             ]);
     }
 
