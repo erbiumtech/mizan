@@ -54,7 +54,7 @@ class PlanDowngradeTest extends TestCase
     public function test_support_may_move_a_company_down(): void
     {
         $company = Company::factory()->create();
-        $company->forceFill(['plan' => 'business'])->save();
+        $company->forceFill(['plan' => 'business', 'type' => Company::TYPE_BUSINESS])->save();
 
         $company->changePlan('growth', downgrade: true);
 
