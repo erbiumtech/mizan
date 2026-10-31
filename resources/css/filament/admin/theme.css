@@ -3404,37 +3404,1054 @@ body:has(.fi-report-categories) .fi-sidebar-nav-groups {
     color: var(--md-sys-color-on-surface-variant);
 }
 
-/* Material segmented button — the board's List | Board | Timeline, before its header actions. */
-.fi-md-segmented {
-    display: inline-flex;
-    height: 2.5rem;
-    border: 1px solid var(--md-sys-color-outline);
-    border-radius: 9999px;
-    overflow: hidden;
+/*
+ * The board as a project space: tabs over a toolbar over compact columns, and the item panel a card
+ * opens. Tokens only, so light, dark and the platform panel follow without rules of their own.
+ */
+
+.fi-wb-tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin: -0.5rem 0 1rem;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+    overflow-x: auto;
+    scrollbar-width: none;
 }
 
-.fi-md-segment {
+.fi-wb-tab {
     display: inline-flex;
     align-items: center;
+    height: 2.5rem;
+    padding: 0 0.875rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--md-sys-color-on-surface-variant);
+    text-decoration: none;
+    box-shadow: inset 0 -2px 0 transparent;
+
+    &:hover {
+        color: var(--md-sys-color-on-surface);
+        background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 6%, transparent);
+    }
+
+    &.fi-selected {
+        color: var(--md-sys-color-primary);
+        box-shadow: inset 0 -3px 0 var(--md-sys-color-primary);
+    }
+}
+
+.fi-wb-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
     gap: 0.5rem;
-    padding: 0 1rem;
+    margin-bottom: 1rem;
+}
+
+.fi-wb-spacer {
+    flex: 1;
+}
+
+.fi-wb-search {
+    display: inline-flex;
+    flex: 0 1 15rem;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 11rem;
+    height: 2.25rem;
+    padding: 0 0.75rem;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 0.5rem;
+    background-color: var(--md-sys-color-surface-container-lowest);
+    color: var(--md-sys-color-on-surface-variant);
+
+    &:focus-within {
+        border-color: var(--md-sys-color-primary);
+        box-shadow: 0 0 0 1px var(--md-sys-color-primary);
+    }
+
+    & input {
+        flex: 1;
+        min-width: 0;
+        height: 100%;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        font-size: 0.875rem;
+        color: var(--md-sys-color-on-surface);
+        outline: none;
+        box-shadow: none;
+    }
+
+    & input::placeholder {
+        color: var(--md-sys-color-on-surface-variant);
+    }
+}
+
+/* The avatar stack: overlapping rounds, ringed in the page colour; the picked one in primary. */
+.fi-wb-people {
+    display: inline-flex;
+    align-items: center;
+    padding-inline-start: 0.375rem;
+}
+
+.fi-wb-person {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    margin-inline-start: -0.375rem;
+    border: 2px solid var(--md-sys-color-surface);
+    border-radius: 9999px;
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.12s ease;
+
+    &:hover,
+    &:focus-visible {
+        z-index: 1;
+        transform: translateY(-2px);
+    }
+
+    &.fi-on {
+        z-index: 2;
+        border-color: var(--md-sys-color-primary);
+        background-color: var(--md-sys-color-primary);
+        color: var(--md-sys-color-on-primary);
+    }
+}
+
+.fi-wb-menu {
+    position: relative;
+}
+
+.fi-wb-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    height: 2.25rem;
+    padding: 0 0.75rem;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 0.5rem;
+    background-color: transparent;
     font-size: 0.875rem;
     font-weight: 500;
     color: var(--md-sys-color-on-surface);
-    text-decoration: none;
-
-    & + & {
-        border-inline-start: 1px solid var(--md-sys-color-outline);
-    }
+    cursor: pointer;
 
     &:hover {
         background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
     }
 
-    &.fi-selected {
+    &.fi-on {
+        border-color: transparent;
         background-color: var(--md-sys-color-secondary-container);
         color: var(--md-sys-color-on-secondary-container);
     }
+}
+
+.fi-wb-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.125rem;
+    height: 1.125rem;
+    padding: 0 0.25rem;
+    border-radius: 9999px;
+    background-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    font-size: 0.6875rem;
+}
+
+.fi-wb-popover {
+    position: absolute;
+    inset-inline-start: 0;
+    top: calc(100% + 0.25rem);
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    min-width: 12rem;
+    padding: 0.5rem 0;
+    border-radius: 0.75rem;
+    background-color: var(--md-sys-color-surface-container);
+    box-shadow: 0 2px 6px 2px rgb(0 0 0 / 0.15), 0 1px 2px rgb(0 0 0 / 0.3);
+}
+
+.fi-wb-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    height: 2.5rem;
+    padding: 0 1rem;
+    border: 0;
+    background: transparent;
+    font-size: 0.875rem;
+    color: var(--md-sys-color-on-surface);
+    text-align: start;
+    cursor: pointer;
+
+    &:hover {
+        background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+    }
+
+    &.fi-on {
+        font-weight: 500;
+    }
+}
+
+.fi-wb-check {
+    display: inline-flex;
+    width: 1rem;
+    color: var(--md-sys-color-primary);
+}
+
+/* Compact columns: a collapsed one folds to a narrow strip with its name running down it. */
+.fi-wb .fi-board-column {
+    flex-basis: 17.5rem;
+    gap: 0.375rem;
+    padding: 0.5rem;
+    border-radius: 0.75rem;
+    background-color: var(--md-sys-color-surface-container-low);
+
+    &.fi-over {
+        background-color: color-mix(in srgb, var(--md-sys-color-error-container) 45%, var(--md-sys-color-surface-container-low));
+    }
+
+    &.fi-collapsed {
+        flex-basis: 2.75rem;
+
+        & .fi-board-column-head {
+            flex-direction: column;
+            padding: 0.25rem 0;
+        }
+
+        & .fi-board-column-name {
+            writing-mode: vertical-rl;
+        }
+
+        & .fi-board-column-dot {
+            display: none;
+        }
+    }
+}
+
+.fi-board-column-head {
+    min-height: 2rem;
+}
+
+.fi-board-column-name {
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.fi-board-column-body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 0.375rem;
+    min-height: 0;
+}
+
+.fi-board-icon-button {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 0;
+    border-radius: 0.375rem;
+    background: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+
+    &:hover {
+        background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 10%, transparent);
+        color: var(--md-sys-color-on-surface);
+    }
+}
+
+/* The card: title first, label chips, then type + key on the left and priority + person on the right. */
+.fi-board-card {
+    position: relative;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+
+    &:focus-within,
+    &:hover {
+        box-shadow: 0 1px 2px rgb(0 0 0 / 0.12), 0 2px 6px 2px rgb(0 0 0 / 0.06);
+    }
+}
+
+.fi-board-card-actions {
+    position: absolute;
+    top: 0.375rem;
+    inset-inline-end: 0.375rem;
+    display: flex;
+    gap: 0.125rem;
+    padding: 0.125rem;
+    border-radius: 0.5rem;
+    background-color: var(--md-sys-color-surface-container-lowest);
+    opacity: 0;
+    transition: opacity 0.12s ease;
+}
+
+.fi-board-card:hover .fi-board-card-actions,
+.fi-board-card:focus-within .fi-board-card-actions {
+    opacity: 1;
+}
+
+.fi-board-card .fi-board-card-title {
+    display: block;
+    padding: 0;
+    padding-inline-end: 3.75rem;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--md-sys-color-on-surface);
+    text-align: start;
+    cursor: pointer;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+.fi-board-card .fi-board-card-foot {
+    flex-wrap: nowrap;
+    gap: 0.375rem;
+}
+
+.fi-board-label {
+    border: 1px solid var(--md-sys-color-outline-variant);
+    background-color: transparent;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.fi-board-epic {
+    background-color: var(--md-sys-color-tertiary-container);
+    color: var(--md-sys-color-on-tertiary-container);
+}
+
+.fi-board-avatar.fi-empty {
+    border: 1px dashed var(--md-sys-color-outline);
+    background-color: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+/* Type: a filled square glyph in the type's colour — epic tertiary, bug error, story green, task primary. */
+.fi-board-type-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 0.25rem;
+    background-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+
+    &.fi-board-type-epic {
+        background-color: var(--md-sys-color-tertiary);
+        color: var(--md-sys-color-on-primary);
+    }
+
+    &.fi-board-type-bug {
+        background-color: var(--md-sys-color-error);
+        color: var(--md-sys-color-on-error);
+    }
+
+    &.fi-board-type-story {
+        background-color: var(--success-600, var(--md-sys-color-secondary));
+        color: var(--md-sys-color-on-primary);
+    }
+
+    &.fi-board-type-subtask {
+        background-color: var(--md-sys-color-secondary);
+        color: var(--md-sys-color-on-secondary);
+    }
+}
+
+.fi-board-priority-icon {
+    display: inline-flex;
+    flex: none;
+    color: var(--md-sys-color-on-surface-variant);
+
+    &.fi-board-priority-high {
+        color: var(--md-sys-color-error);
+    }
+
+    &.fi-board-priority-medium {
+        color: var(--warning-600, var(--md-sys-color-tertiary));
+    }
+
+    &.fi-board-priority-low {
+        color: var(--md-sys-color-primary);
+    }
+}
+
+/* "+ Create" at a column's foot, and the title line it turns into. */
+.fi-board-add {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    width: 100%;
+    height: 2.25rem;
+    padding: 0 0.5rem;
+    border: 0;
+    border-radius: 0.5rem;
+    background: transparent;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+
+    &:hover {
+        background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+        color: var(--md-sys-color-on-surface);
+    }
+}
+
+.fi-board-add-form input {
+    width: 100%;
+    height: 2.5rem;
+    padding: 0 0.75rem;
+    border: 2px solid var(--md-sys-color-primary);
+    border-radius: 0.5rem;
+    background-color: var(--md-sys-color-surface-container-lowest);
+    font-size: 0.875rem;
+    color: var(--md-sys-color-on-surface);
+    outline: none;
+}
+
+/*
+ * The item panel: a wide dialog over a scrim, two columns that stack on a phone.
+ */
+.fi-wip-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 3rem 1rem 1rem;
+    background-color: color-mix(in srgb, var(--md-sys-color-scrim, #000) 32%, transparent);
+    overflow-y: auto;
+}
+
+.fi-wip {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 72rem;
+    max-height: calc(100vh - 4rem);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 1rem;
+    background-color: var(--md-sys-color-surface-container-lowest);
+    color: var(--md-sys-color-on-surface);
+    box-shadow: 0 4px 8px 3px rgb(0 0 0 / 0.15), 0 1px 3px rgb(0 0 0 / 0.3);
+    overflow: hidden;
+
+    /* Lowest is the page itself in dark; one step up so the dialog reads as raised. */
+    &:where(.dark, .dark *) {
+        background-color: var(--md-sys-color-surface-container-low);
+    }
+}
+
+@media (max-width: 40rem) {
+    .fi-wip-backdrop {
+        padding: 0;
+    }
+
+    .fi-wip {
+        max-height: 100vh;
+        border-radius: 0;
+    }
+
+    .fi-wip-head,
+    .fi-wip-body {
+        padding-inline: 1rem;
+    }
+}
+
+.fi-wip-head {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.75rem 1rem 0.5rem 1.5rem;
+}
+
+.fi-wip-crumbs {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.fi-wip-crumb {
+    padding: 0;
+    white-space: nowrap;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    color: var(--md-sys-color-on-surface-variant);
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover {
+        color: var(--md-sys-color-primary);
+        text-decoration: underline;
+    }
+}
+
+.fi-wip-spacer {
+    flex: 1;
+}
+
+.fi-wip-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    min-width: 2.25rem;
+    height: 2.25rem;
+    padding: 0 0.5rem;
+    border: 0;
+    border-radius: 9999px;
+    background: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+
+    &:hover {
+        background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+        color: var(--md-sys-color-on-surface);
+    }
+
+    &.fi-on {
+        color: var(--md-sys-color-primary);
+    }
+}
+
+.fi-wip-count {
+    font-size: 0.8125rem;
+    font-weight: 500;
+}
+
+.fi-wip-body {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    min-height: 0;
+    padding: 0 1.5rem 1.5rem;
+    overflow-y: auto;
+}
+
+.fi-wip-main {
+    display: flex;
+    flex: 999 1 26rem;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-width: 0;
+}
+
+.fi-wip-side {
+    display: flex;
+    flex: 1 1 18rem;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.fi-wip-title {
+    margin: 0.25rem 0 0;
+    font-size: 1.5rem;
+    font-weight: 500;
+    line-height: 2rem;
+}
+
+.fi-wip-section > summary,
+.fi-wip-card > summary {
+    cursor: pointer;
+    list-style: none;
+
+    &::-webkit-details-marker {
+        display: none;
+    }
+
+    &::before {
+        content: '';
+        display: inline-block;
+        width: 0.5rem;
+        height: 0.5rem;
+        margin-inline-end: 0.625rem;
+        border-inline-end: 2px solid currentColor;
+        border-bottom: 2px solid currentColor;
+        transform: translateY(-2px) rotate(-45deg);
+        transition: transform 0.12s ease;
+    }
+}
+
+.fi-wip-section[open] > summary::before,
+.fi-wip-card[open] > summary::before {
+    transform: translateY(-3px) rotate(45deg);
+}
+
+.fi-wip-section > summary,
+.fi-wip-heading {
+    margin: 0 0 0.25rem;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.fi-wip-label {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin: 1rem 0 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.fi-wip-muted {
+    font-size: 0.8125rem;
+    font-weight: 400;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.fi-wip-description {
+    font-size: 0.875rem;
+    line-height: 1.375rem;
+
+    & p {
+        margin: 0 0 0.5rem;
+    }
+
+    & ul,
+    & ol {
+        margin: 0 0 0.5rem;
+        padding-inline-start: 1.25rem;
+        list-style: revert;
+    }
+
+    & code {
+        padding: 0 0.25rem;
+        border-radius: 0.25rem;
+        background-color: var(--md-sys-color-surface-container-high);
+    }
+
+    & a {
+        color: var(--md-sys-color-primary);
+        text-decoration: underline;
+    }
+}
+
+.fi-wip-progress {
+    height: 0.375rem;
+    margin-bottom: 0.5rem;
+    border-radius: 9999px;
+    background-color: var(--md-sys-color-surface-container-highest);
+    overflow: hidden;
+
+    & span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background-color: var(--success-600, var(--md-sys-color-primary));
+    }
+}
+
+.fi-wip-rows {
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 0.5rem;
+    list-style: none;
+    overflow: hidden;
+
+    & li + li {
+        border-top: 1px solid var(--md-sys-color-outline-variant);
+    }
+}
+
+.fi-wip-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    min-height: 2.5rem;
+    padding: 0.375rem 0.75rem;
+    border: 0;
+    background: transparent;
+    font-size: 0.875rem;
+    color: var(--md-sys-color-on-surface);
+    text-align: start;
+    cursor: pointer;
+
+    &:hover {
+        background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 6%, transparent);
+    }
+}
+
+.fi-wip-row-key {
+    flex: none;
+    font-size: 0.8125rem;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.fi-wip-row-relation {
+    flex: none;
+    font-size: 0.75rem;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.fi-wip-row-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Status lozenge: grey to do, primary in progress, green done. */
+.fi-wip-lozenge {
+    flex: none;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    background-color: var(--md-sys-color-surface-container-highest);
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+
+    &.fi-wip-lozenge-in-progress {
+        background-color: var(--md-sys-color-primary-container);
+        color: var(--md-sys-color-on-primary-container);
+    }
+
+    &.fi-wip-lozenge-done {
+        background-color: var(--success-100, var(--md-sys-color-secondary-container));
+        color: var(--success-800, var(--md-sys-color-on-secondary-container));
+    }
+}
+
+.fi-wip-inline-form {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+
+    & input {
+        flex: 1;
+        min-width: 0;
+        height: 2.25rem;
+        padding: 0 0.75rem;
+        border: 1px solid var(--md-sys-color-outline-variant);
+        border-radius: 0.5rem;
+        background: transparent;
+        font-size: 0.875rem;
+        color: var(--md-sys-color-on-surface);
+    }
+
+    & input:focus {
+        border-color: var(--md-sys-color-primary);
+        outline: none;
+        box-shadow: 0 0 0 1px var(--md-sys-color-primary);
+    }
+}
+
+.fi-wip-text-button,
+.fi-wip-link-button {
+    padding: 0 0.75rem;
+    border: 0;
+    border-radius: 9999px;
+    background: transparent;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--md-sys-color-primary);
+    cursor: pointer;
+
+    &:hover {
+        background-color: color-mix(in srgb, var(--md-sys-color-primary) 8%, transparent);
+    }
+}
+
+.fi-wip-link-button {
+    padding: 0;
+    text-align: start;
+
+    &:hover {
+        background: transparent;
+        text-decoration: underline;
+    }
+}
+
+.fi-wip-filled-button {
+    height: 2.25rem;
+    padding: 0 1.25rem;
+    border: 0;
+    border-radius: 9999px;
+    background-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.fi-wip-tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+    overflow-x: auto;
+}
+
+.fi-wip-tab {
+    flex: none;
+    height: 2rem;
+    white-space: nowrap;
+    padding: 0 0.875rem;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 0.5rem;
+    background: transparent;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+
+    &.fi-selected {
+        border-color: transparent;
+        background-color: var(--md-sys-color-secondary-container);
+        color: var(--md-sys-color-on-secondary-container);
+    }
+}
+
+.fi-wip-comment-form {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.fi-wip-comment-box {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    & textarea {
+        width: 100%;
+        min-height: 2.75rem;
+        padding: 0.625rem 0.75rem;
+        border: 1px solid var(--md-sys-color-outline-variant);
+        border-radius: 0.5rem;
+        background: transparent;
+        font: inherit;
+        font-size: 0.875rem;
+        color: var(--md-sys-color-on-surface);
+        resize: vertical;
+    }
+
+    & textarea:focus {
+        border-color: var(--md-sys-color-primary);
+        outline: none;
+        box-shadow: 0 0 0 1px var(--md-sys-color-primary);
+    }
+}
+
+.fi-wip-comment-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.fi-wip-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.fi-wip-entry {
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+}
+
+.fi-wip-entry-head,
+.fi-wip-entry-body {
+    margin: 0;
+}
+
+.fi-wip-entry-head {
+    line-height: 1.75rem;
+
+    & strong {
+        font-weight: 600;
+    }
+}
+
+.fi-wip-entry-body {
+    line-height: 1.375rem;
+}
+
+/* The status menu: a tonal pill whose colour follows the status category. */
+.fi-wip-status {
+    align-self: flex-start;
+
+    & select {
+        height: 2.25rem;
+        padding: 0 2.25rem 0 1rem;
+        border: 0;
+        border-radius: 0.5rem;
+        background-color: var(--md-sys-color-surface-container-highest);
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--md-sys-color-on-surface);
+        cursor: pointer;
+    }
+
+    &.fi-wip-status-in-progress select {
+        background-color: var(--md-sys-color-primary-container);
+        color: var(--md-sys-color-on-primary-container);
+    }
+
+    &.fi-wip-status-done select {
+        background-color: var(--success-100, var(--md-sys-color-secondary-container));
+        color: var(--success-800, var(--md-sys-color-on-secondary-container));
+    }
+}
+
+.fi-wip-card {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 0.75rem;
+
+    & > .fi-wip-muted {
+        margin: 0.5rem 0 0;
+    }
+}
+
+.fi-wip-card-title {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+}
+
+.fi-wip-facts {
+    display: grid;
+    grid-template-columns: minmax(6rem, 40%) 1fr;
+    gap: 0.75rem 0.75rem;
+    margin: 0.75rem 0 0;
+    font-size: 0.875rem;
+
+    & dt {
+        color: var(--md-sys-color-on-surface-variant);
+        line-height: 1.75rem;
+    }
+
+    & dd {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.375rem;
+        min-width: 0;
+        margin: 0;
+        line-height: 1.75rem;
+    }
+}
+
+.fi-wip-person {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fi-wip-inline-select {
+    height: 1.75rem;
+    padding: 0 1.75rem 0 0.5rem;
+    border: 0;
+    border-radius: 0.375rem;
+    background-color: transparent;
+    font-size: 0.875rem;
+    color: var(--md-sys-color-on-surface);
+    cursor: pointer;
+
+    &:hover {
+        background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+    }
+}
+
+.fi-wip-overdue {
+    color: var(--md-sys-color-error);
+    font-weight: 500;
+}
+
+.fi-wip-dev {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0.75rem 0 0;
+    padding: 0;
+    font-size: 0.875rem;
+    list-style: none;
+
+    & li {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-width: 0;
+    }
+
+    & a {
+        min-width: 0;
+        overflow: hidden;
+        color: var(--md-sys-color-primary);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    & svg {
+        flex: none;
+        color: var(--md-sys-color-on-surface-variant);
+    }
+}
+
+.fi-wip-commit {
+    padding-inline-start: 1.5rem;
+    font-size: 0.8125rem;
+    color: var(--md-sys-color-on-surface-variant);
+
+    & code {
+        font-size: 0.75rem;
+    }
+
+    & span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.fi-wip-stamps {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    margin: 0.25rem 0 0;
+    font-size: 0.75rem;
+    color: var(--md-sys-color-on-surface-variant);
 }
 
 /*

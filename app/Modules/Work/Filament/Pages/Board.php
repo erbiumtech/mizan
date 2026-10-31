@@ -4,13 +4,19 @@ namespace App\Modules\Work\Filament\Pages;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Support\HelpAction;
+use App\Modules\Employees\Models\Employee;
+use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Work\Filament\Resources\WorkItems\WorkItemResource;
+use App\Modules\Work\Filament\Resources\WorkReleases\WorkReleaseResource;
 use App\Modules\Work\Models\WorkBoard;
 use App\Modules\Work\Models\WorkItem;
+use App\Modules\Work\Models\WorkStatus;
 use App\Modules\Work\Models\WorkWorkflow;
 use App\Modules\Work\Services\Boards;
 use App\Modules\Work\Services\BoardSettings;
+use App\Modules\Work\Services\WorkItemPanel;
+use App\Modules\Work\Services\WorkItems;
 use BackedEnum;
 use Closure;
 use Filament\Actions\Action;
@@ -73,6 +79,26 @@ class Board extends Page
     #[Url]
     public ?string $search = null;
 
+    /** One person's cards, picked from the avatar stack in the toolbar — an employee id. */
+    #[Url]
+    public ?int $assignee = null;
+
+    /** The toolbar's Group menu: the lanes for this view only, without changing the board's own setting. */
+    #[Url]
+    public ?string $group = null;
+
+    /**
+     * The item open in the panel — in the address as `item`, so "copy link" on the panel is the
+     * address bar, and a link someone sends opens the board with the item already showing.
+     */
+    #[Url(as: 'item')]
+    public ?int $selected = null;
+
+    /** The panel's comment box and its "add subtask" line. */
+    public string $comment = '';
+
+    public string $subtask = '';
+
     /** Polled when there is no socket to push with — see `pollingInterval()`. */
     public function getTitle(): string|Htmlable
     {
@@ -101,9 +127,8 @@ class Board extends Page
     }
 
     /**
-     * The List | Board | Timeline segmented control beside the header actions — the same project in the
-     * three views it has. Rendered by a page-header render hook (WorkServiceProvider), since Filament
-     * actions cannot draw a joined control. A link is null when its page is not reachable here.
+     * List | Board | Timeline — the same project in three of its views, in that order, and the core of
+     * the space tabs over the board (`tabs()`). A link is null when its page is not reachable here.
      *
      * @return array<int, array{label: string, url: ?string, current: bool}>
      */
@@ -415,7 +440,16 @@ class Board extends Page
     {
         $board = $this->board();
 
-        return $board === null ? [] : app(Boards::class)->columns($board, $this->filters());
+        if ($board === null) {
+            return [];
+        }
+
+        // Grouping from the toolbar is this view's, not the board's: set on the model, never saved.
+        if ($this->group !== null && array_key_exists($this->group, WorkBoard::SWIMLANES)) {
+            $board->swimlane = $this->group;
+        }
+
+        return app(Boards::class)->columns($board, $this->filters());
     }
 
     /** @return array<string, mixed> */
@@ -426,7 +460,7 @@ class Board extends Page
             'unassigned' => $this->unassigned,
             'blocked' => $this->blocked,
             'search' => $this->search,
-        ];
+        ] + ($this->assignee !== null ? ['assignee_employee_id' => $this->assignee] : []);
     }
 
     /** Statuses this board shows nowhere, named on the screen rather than kept quiet — §5.2. */
@@ -472,6 +506,323 @@ class Board extends Page
         } catch (RuntimeException $e) {
             Notification::make()->danger()->title('It stayed where it was')->body($e->getMessage())->send();
         }
+    }
+
+    /**
+     * The avatar stack in the toolbar: who has open cards on this board, most cards first. One query
+     * for the ids and one for the people, whatever the size of the board.
+     *
+     * @return array<int, array{id: int, name: string, initials: string, on: bool}>
+     */
+    public function people(): array
+    {
+        $board = $this->board();
+
+        if ($board === null || $board->project_id === null) {
+            return [];
+        }
+
+        $ids = WorkItem::query()
+            ->where('project_id', $board->project_id)
+            ->whereNull('archived_at')
+            ->whereNotNull('assignee_employee_id')
+            ->selectRaw('assignee_employee_id, count(*) as cards')
+            ->groupBy('assignee_employee_id')
+            ->orderByDesc('cards')
+            ->limit(8)
+            ->pluck('assignee_employee_id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $people = Employee::query()->with('user')->whereKey($ids)->get()->keyBy(fn (Employee $e): int => (int) $e->getKey());
+
+        return collect($ids)
+            ->filter(fn (int $id): bool => $people->has($id))
+            ->map(fn (int $id): array => [
+                'id' => $id,
+                'name' => $people[$id]->fullName(),
+                'initials' => WorkItemPanel::initials($people[$id]->fullName()),
+                'on' => $this->assignee === $id,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /** The avatar stack: pick one person, or the same one again to show everybody. */
+    public function pickAssignee(int $employee): void
+    {
+        $this->assignee = $this->assignee === $employee ? null : $employee;
+    }
+
+    /**
+     * The Group menu's choices — the board's own lane setting is the default.
+     *
+     * @return array<string, string>
+     */
+    public function groupings(): array
+    {
+        return array_map(fn (string $label): string => __($label), WorkBoard::SWIMLANES);
+    }
+
+    public function currentGrouping(): string
+    {
+        return $this->group ?? ($this->board()?->swimlane ?: WorkBoard::SWIMLANE_NONE);
+    }
+
+    /** How many of the Filter menu's choices are on, for the count on its button. */
+    public function activeFilterCount(): int
+    {
+        return count(array_filter([$this->mine, $this->unassigned, $this->blocked]));
+    }
+
+    /**
+     * The space tabs over the board, as the project's own navigation has them: each a page this
+     * reader may open, for the same project. Built on `viewSwitch()` for List, Board and Timeline.
+     *
+     * @return array<int, array{label: string, url: ?string, current: bool}>
+     */
+    public function tabs(): array
+    {
+        $project = $this->currentProject()?->getKey();
+        $byProject = $project !== null ? ['project' => $project] : [];
+        [$list, $board, $timeline] = $this->viewSwitch();
+
+        $tabs = [
+            [
+                'label' => __('Summary'),
+                'url' => $project !== null && ProjectResource::canAccess() ? ProjectResource::getUrl('view', ['record' => $project]) : null,
+                'current' => false,
+            ],
+            ['label' => __('Backlog'), 'url' => Backlog::canAccess() ? Backlog::getUrl($byProject) : null, 'current' => false],
+            $board,
+            $list,
+            $timeline,
+            ['label' => __('Epics'), 'url' => Epics::canAccess() ? Epics::getUrl($byProject) : null, 'current' => false],
+            [
+                'label' => __('Releases'),
+                'url' => WorkReleaseResource::canAccess()
+                    ? WorkReleaseResource::getUrl('index', $project !== null ? ['tableFilters' => ['project_id' => ['value' => $project]]] : [])
+                    : null,
+                'current' => false,
+            ],
+        ];
+
+        return array_values(array_filter($tabs, fn (array $tab): bool => $tab['current'] || filled($tab['url'])));
+    }
+
+    public function projectName(): ?string
+    {
+        return $this->currentProject()?->name;
+    }
+
+    /**
+     * "+ Create" at the foot of a column: a title, and the item starts in that column.
+     *
+     * Made through `WorkItems::create()` like every other item, then moved through `moveTo()` into
+     * the column's first status — so a column the workflow will not allow straight from the start
+     * refuses here exactly as a drag would, and the item stays in the first column, said out loud.
+     */
+    public function quickAdd(int $column, string $title): void
+    {
+        $title = trim($title);
+        $board = $this->board();
+        $project = $this->currentProject();
+
+        if ($title === '' || $board === null || $project === null || $board->project_id === null) {
+            return;
+        }
+
+        if (! (auth()->user()?->can('create', WorkItem::class) ?? false)) {
+            Notification::make()->danger()->title(__('You may read this board but not add to it.'))->send();
+
+            return;
+        }
+
+        $item = app(WorkItems::class)->create($project, ['title' => mb_substr($title, 0, 255)], auth()->user());
+        $statusId = $board->columns[$column]['status_ids'][0] ?? null;
+        $status = $statusId !== null && (int) $statusId !== (int) $item->work_status_id ? WorkStatus::query()->find($statusId) : null;
+
+        if ($status !== null) {
+            try {
+                $item->moveTo($status, auth()->user());
+            } catch (RuntimeException $e) {
+                Notification::make()->warning()->title(__(':key was added to the first column', ['key' => $item->key]))->body($e->getMessage())->send();
+
+                return;
+            }
+        }
+
+        Notification::make()->success()->title(__(':key added', ['key' => $item->key]))->send();
+    }
+
+    /** A card was clicked: the panel opens on it. */
+    public function openItem(int $id): void
+    {
+        $record = WorkItem::query()->find($id);
+
+        if ($record === null || ! (auth()->user()?->can('view', $record) ?? false)) {
+            return;
+        }
+
+        $this->selected = $id;
+        $this->comment = '';
+        $this->subtask = '';
+    }
+
+    public function closeItem(): void
+    {
+        $this->selected = null;
+        $this->comment = '';
+        $this->subtask = '';
+    }
+
+    /**
+     * What the panel draws, or null when nothing is open or the open item is not the reader's to see.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function panel(): ?array
+    {
+        if ($this->selected === null) {
+            return null;
+        }
+
+        $record = app(WorkItemPanel::class)->find($this->selected);
+        $user = auth()->user();
+
+        if ($record === null || $user === null || ! $user->can('view', $record)) {
+            return null;
+        }
+
+        return app(WorkItemPanel::class)->present($record, $user) + [
+            'can_update' => $user->can('update', $record),
+            'can_move' => $user->can('move', $record),
+            'can_create' => $user->can('create', WorkItem::class),
+        ];
+    }
+
+    /** The panel's status menu: the same move a drag makes, and the same refusals. */
+    public function setItemStatus(int $status): void
+    {
+        $record = $this->selectedRecord('move');
+        $target = $record?->workflow()?->statuses()->whereKey($status)->first();
+
+        if ($record === null || $target === null) {
+            return;
+        }
+
+        try {
+            $record->moveTo($target, auth()->user());
+        } catch (RuntimeException $e) {
+            Notification::make()->danger()->title(__('It stayed where it was'))->body($e->getMessage())->send();
+        }
+    }
+
+    public function setItemPriority(string $priority): void
+    {
+        $record = $this->selectedRecord('update');
+
+        if ($record === null || ! array_key_exists($priority, WorkItemPanel::priorities((string) $record->priority))) {
+            return;
+        }
+
+        $record->update(['priority' => $priority]);
+    }
+
+    /** "Assign to me": the reader's own employee record, or a sentence saying there is none. */
+    public function assignToMe(): void
+    {
+        $record = $this->selectedRecord('update');
+
+        if ($record === null) {
+            return;
+        }
+
+        $me = Employee::query()->where('user_id', auth()->id())->value('id');
+
+        if ($me === null) {
+            Notification::make()->warning()->title(__('Your login has no employee record to assign to.'))->send();
+
+            return;
+        }
+
+        $record->update(['assignee_employee_id' => $me]);
+    }
+
+    public function watchItem(): void
+    {
+        $record = $this->selectedRecord('view');
+
+        if ($record !== null && auth()->user() !== null) {
+            $record->watch(auth()->user());
+        }
+    }
+
+    /** The comment box. Commenting needs only reading, as the API has it. */
+    public function addComment(): void
+    {
+        $body = trim($this->comment);
+        $record = $this->selectedRecord('view');
+
+        if ($record === null || $body === '') {
+            return;
+        }
+
+        $record->comments()->create(['user_id' => auth()->id(), 'body' => mb_substr($body, 0, 10000)]);
+        $this->comment = '';
+    }
+
+    /** "Add subtask": a subtask under the open item, in the same project. */
+    public function addSubtask(): void
+    {
+        $title = trim($this->subtask);
+        $record = $this->selectedRecord('view');
+
+        if ($record === null || $title === '' || $record->isOfType(WorkItem::TYPE_SUBTASK)) {
+            return;
+        }
+
+        if (! (auth()->user()?->can('create', WorkItem::class) ?? false)) {
+            Notification::make()->danger()->title(__('You may read this item but not change it.'))->send();
+
+            return;
+        }
+
+        $project = Project::query()->find($record->project_id);
+
+        if ($project === null) {
+            return;
+        }
+
+        app(WorkItems::class)->create($project, [
+            'title' => mb_substr($title, 0, 255),
+            'type' => WorkItem::TYPE_SUBTASK,
+            'parent_id' => $record->getKey(),
+        ], auth()->user());
+
+        $this->subtask = '';
+    }
+
+    /** The open item, if the reader may do `$ability` to it; a sentence saying why not otherwise. */
+    private function selectedRecord(string $ability): ?WorkItem
+    {
+        $record = $this->selected === null ? null : WorkItem::query()->find($this->selected);
+
+        if ($record === null) {
+            return null;
+        }
+
+        if (! (auth()->user()?->can($ability, $record) ?? false)) {
+            Notification::make()->danger()->title(__('You may read this item but not change it.'))->send();
+
+            return null;
+        }
+
+        return $record;
     }
 
     /**
