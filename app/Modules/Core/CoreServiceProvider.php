@@ -87,6 +87,8 @@ class CoreServiceProvider extends ServiceProvider
         \App\Modules\Core\Models\WebhookDelivery::class => \App\Modules\Core\Policies\WebhookDeliveryPolicy::class,
         WorkLocation::class => WorkLocationPolicy::class,
         OptionValue::class => OptionValuePolicy::class,
+        \App\Modules\Core\Models\SitePage::class => \App\Modules\Core\Policies\SitePagePolicy::class,
+        \App\Modules\Core\Models\ContactMessage::class => \App\Modules\Core\Policies\ContactMessagePolicy::class,
         ReportSchedule::class => ReportSchedulePolicy::class,
         TableView::class => TableViewPolicy::class,
         EmailTemplate::class => EmailTemplatePolicy::class,

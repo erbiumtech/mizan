@@ -50,6 +50,9 @@ class ExpensesServiceProvider extends ServiceProvider
 
         // A claim receipt streams only to someone who may view the claim — security audit finding 10.
         TenantFileAccess::registerRecordPrefix('expense-claims/', fn (string $path) => ExpenseClaim::query()->where('receipt_path', $path)->first());
+
+        // The approvals API — docs/desktop-mobile-plan.md A4/M3.
+        $this->loadRoutesFrom(__DIR__.'/routes/api.php');
     }
 
     /**

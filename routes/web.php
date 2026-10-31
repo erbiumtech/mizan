@@ -1,13 +1,36 @@
 <?php
 
+use App\Http\Controllers\Api\DeviceController;
 use App\Http\Controllers\DeliveryTestMediaController;
+use App\Http\Controllers\PwaController;
 use App\Http\Controllers\TenantFileController;
 use App\Support\TenantStorage;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Route;
 
+// The home page of the public site (docs/company-website-plan.md W5), or — with the site switched
+// off for an installation that is not selling — the redirect into the admin panel it always was.
 Route::get('/', function () {
+    if ((bool) config('site.enabled', true)) {
+        return app(\App\Modules\Core\Http\Controllers\Site\SiteController::class)->home();
+    }
+
     return redirect(Filament::getPanel('admin')->getUrl());
+})->name('site.home');
+
+// The panel as an installable app — docs/desktop-mobile-plan.md M1. The manifest wears the company named
+// by ?company= (or by the host, on a custom domain); the worker has to be served from the root to control it.
+Route::get('/manifest.webmanifest', [PwaController::class, 'manifest'])->name('pwa.manifest');
+Route::get('/sw.js', [PwaController::class, 'serviceWorker'])->name('pwa.worker');
+Route::get('/offline', [PwaController::class, 'offline'])->name('pwa.offline');
+
+// The panel subscribing itself to push — docs/desktop-mobile-plan.md M2. The same controller the API
+// clients use, reached with the session instead of a token: a person at the panel has no bearer token and
+// should not need one to switch notifications on for the device in their hand.
+Route::middleware(['web', 'auth'])->prefix('push')->name('push.')->group(function (): void {
+    Route::get('/subscriptions/mine', [DeviceController::class, 'mine'])->name('mine');
+    Route::post('/subscriptions', [DeviceController::class, 'store'])->name('subscribe');
+    Route::delete('/subscriptions', [DeviceController::class, 'destroyByEndpoint'])->name('unsubscribe');
 });
 
 // The public status page lives in app/Modules/Projects/routes/web.php.

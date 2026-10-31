@@ -20,6 +20,21 @@ class ApiRoutes
     public const PREFIXES = ['api', 'api/v1'];
 
     /**
+     * A group that exists on the versioned surface only — docs/desktop-mobile-plan.md A4: "new endpoints
+     * land under /v1 only". Same stack as group(), mounted once, with the same `v1.` name prefix so a
+     * route named here can be found the way a route from group() is.
+     *
+     * @param  array<int, string>  $middleware
+     */
+    public static function versioned(array $middleware, Closure $routes): void
+    {
+        Route::prefix('api/v1')
+            ->name('v1.')
+            ->middleware([\App\Http\Middleware\SetLocale::class.':api', ...$middleware])
+            ->group($routes);
+    }
+
+    /**
      * @param  array<int, string>  $middleware
      */
     public static function group(array $middleware, Closure $routes): void
