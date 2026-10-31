@@ -7,6 +7,7 @@ use App\Modules\Core\Models\User;
 use App\Modules\Employees\Models\Employee;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Throwable;
 
 /**
  * Resolves the set of employees a user is allowed to see under the manager
@@ -57,6 +58,9 @@ class EmployeeAccess
     /** @var array<string, Employee|null> the signed-in person's own record, keyed by tenant+user */
     protected array $ownRecordCache = [];
 
+    /** Whether the employees table is readable here — asked once per request. */
+    private ?bool $employeesReachable = null;
+
     /**
      * The employee record behind a user, or nothing.
      *
@@ -77,7 +81,7 @@ class EmployeeAccess
      */
     public function employeeFor(?User $user): ?Employee
     {
-        if ($user === null) {
+        if ($user === null || ! $this->employeesAreReachable()) {
             return null;
         }
 
@@ -194,6 +198,54 @@ class EmployeeAccess
         }
 
         return collect($subtree)->values();
+    }
+
+    /**
+     * Whether the employees table can be read at all on the current connection.
+     *
+     * **Not every screen that asks about employees has a tenant.** `/admin/profile` carries no
+     * tenant in its URL, so nothing makes a company current, the `tenant` connection is still
+     * pointing at the placeholder database, and `select * from employees` fails with *no such
+     * table* — a 500 on a page every user opens, from a question that had no answer to begin with.
+     * The profile page offers a *Confirm your details* button, and deciding whether to show it is
+     * what asked.
+     *
+     * **The check is the table, not the tenant**, and that distinction was learned the hard way: a
+     * guard on "is a company current" is wrong because it is false in perfectly good contexts — the
+     * unit tests set no tenant at all and query a connection that works — and it would quietly
+     * answer "nobody is an employee" there. What actually went wrong in production was a connection
+     * with nothing in it, which is exactly what this asks about. `TenantDb::hasTable()` is the same
+     * question `EmployeeForm` asks before offering leave groups, for the same reason.
+     *
+     * Memoised per request: `hasTable` is a catalogue read, and this is called from navigation
+     * chrome that runs on every page.
+     */
+    private function employeesAreReachable(): bool
+    {
+        if ($this->employeesReachable !== null) {
+            return $this->employeesReachable;
+        }
+
+        /*
+         * Inside a company, the answer is yes and asking would cost a query on every page.
+         *
+         * `hasTable` is a catalogue read, and this runs while the navigation is built — so an
+         * unconditional one put a statement on every screen in the panel, which is exactly the kind
+         * of thing `PanelPerformanceTest` exists to catch. It caught it. A request that has a tenant
+         * is a request whose connection is a real tenant database, and the only way that lacks the
+         * table is a company whose migrations have not run — an operational fault that should stay
+         * loud rather than be silently swallowed here.
+         */
+        if ((\Filament\Facades\Filament::getTenant() ?? Company::current()) !== null) {
+            return $this->employeesReachable = true;
+        }
+
+        try {
+            return $this->employeesReachable = TenantDb::hasTable('employees');
+        } catch (Throwable) {
+            // A connection that cannot even be inspected is one nobody is an employee on.
+            return $this->employeesReachable = false;
+        }
     }
 
     protected function cacheKey(User $user): string
