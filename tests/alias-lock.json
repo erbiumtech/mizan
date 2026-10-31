@@ -578,6 +578,8 @@
         "App\\Filament\\Widgets\\CashCommittedOverview": "App\\Modules\\Accounting\\Filament\\Widgets\\CashCommittedOverview",
         "App\\Filament\\Widgets\\CashFlowChart": "App\\Modules\\Accounting\\Filament\\Widgets\\CashFlowChart",
         "App\\Filament\\Widgets\\CertificateExpiryTable": "App\\Modules\\Projects\\Filament\\Widgets\\CertificateExpiryTable",
+        "App\\Filament\\Widgets\\CurrentPayrollRun": "App\\Modules\\Payroll\\Filament\\Widgets\\CurrentPayrollRun",
+        "App\\Filament\\Widgets\\DashboardSummaryCards": "App\\Modules\\Core\\Filament\\Widgets\\DashboardSummaryCards",
         "App\\Filament\\Widgets\\DocumentsExpiringOverview": "App\\Modules\\Lifecycle\\Filament\\Widgets\\DocumentsExpiringOverview",
         "App\\Filament\\Widgets\\EnvironmentHealthOverview": "App\\Modules\\Projects\\Filament\\Widgets\\EnvironmentHealthOverview",
         "App\\Filament\\Widgets\\EnvironmentIncidentsTable": "App\\Modules\\Projects\\Filament\\Widgets\\EnvironmentIncidentsTable",
@@ -596,7 +598,8 @@
         "App\\Filament\\Widgets\\SalaryTaxCalculator": "App\\Modules\\Payroll\\Filament\\Widgets\\SalaryTaxCalculator",
         "App\\Filament\\Widgets\\SlaComplianceOverview": "App\\Modules\\Support\\Filament\\Widgets\\SlaComplianceOverview",
         "App\\Filament\\Widgets\\StockOnHandOverview": "App\\Modules\\Inventory\\Filament\\Widgets\\StockOnHandOverview",
-        "App\\Filament\\Widgets\\UnbilledWipOverview": "App\\Modules\\Timesheets\\Filament\\Widgets\\UnbilledWipOverview"
+        "App\\Filament\\Widgets\\UnbilledWipOverview": "App\\Modules\\Timesheets\\Filament\\Widgets\\UnbilledWipOverview",
+        "App\\Filament\\Widgets\\WaitingForYou": "App\\Modules\\Core\\Filament\\Widgets\\WaitingForYou"
     },
     "datasets": {
         "App\\Reporting\\ContactDataset": "App\\Modules\\Invoicing\\Reporting\\ContactDataset",

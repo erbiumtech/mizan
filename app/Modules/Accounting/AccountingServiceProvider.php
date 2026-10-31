@@ -140,6 +140,9 @@ class AccountingServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // The cash card on the Material dashboard.
+        \App\Modules\Accounting\Dashboard\AccountingDashboard::register();
+
         // This module's reports in the Reports hub. Registered rather than listed in Core, which
         // used to name all eighteen — see App\Support\Reporting\ReportCatalogue.
         ReportCatalogue::register('Financial statements', BalanceSheet::class, 'What the company owns, owes and is worth, on a date.');

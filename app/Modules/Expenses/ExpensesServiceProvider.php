@@ -39,6 +39,9 @@ class ExpensesServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Claims waiting on a decision, for the Material dashboard's "Waiting for you" card.
+        \App\Modules\Expenses\Dashboard\ExpensesDashboard::register();
+
         // The approval chain's switch — docs/saas-launch-plan.md §14.3. 63: after the payroll run's.
         \App\Support\SettingsSections::register('expenses.approval-chain', \App\Modules\Expenses\Filament\Settings\ExpenseApprovalSettingsSection::class, 63, 'people');
 

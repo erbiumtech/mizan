@@ -47,6 +47,8 @@ class LeaveServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Who is off today and the requests waiting on a decision, for the Material dashboard.
+        \App\Modules\Leave\Dashboard\LeaveDashboard::register();
 
         /*
          * What leave does about the law — docs/saas-launch-plan.md §14.10.

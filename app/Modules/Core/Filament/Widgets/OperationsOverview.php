@@ -34,8 +34,13 @@ class OperationsOverview extends StatsOverviewWidget
      */
     protected ?string $pollingInterval = null;
 
-    /** The company's own headline figures, assembled from every module's contributions. */
-    protected static ?int $sort = DashboardWidgets::HEADLINE;
+    /**
+     * The company's own headline figures, assembled from every module's contributions.
+     *
+     * HEADLINE + 3: under the Material dashboard's summary row, approvals card and payroll run (+0 to +2),
+     * which lead the page in the design.
+     */
+    protected static ?int $sort = DashboardWidgets::HEADLINE + 3;
 
     /**
      * Visible when anything at all was contributed.

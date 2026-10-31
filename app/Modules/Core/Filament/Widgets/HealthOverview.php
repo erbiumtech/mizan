@@ -36,7 +36,8 @@ class HealthOverview extends StatsOverviewWidget
 
     // In the headline band, right after the company's figures, for the one person who sees it. DashboardWidgetRulesTest
     // keeps every sort inside a band and no two the same, so "first at any cost" (-100) is not available.
-    protected static ?int $sort = DashboardWidgets::HEADLINE + 1;
+    // +4 since the Material dashboard's summary row, approvals and payroll run took +0 to +2.
+    protected static ?int $sort = DashboardWidgets::HEADLINE + 4;
 
     // Lazy like every widget — the dashboard renders and the tile fills in (the rules test's "without exception").
     protected static bool $isLazy = true;

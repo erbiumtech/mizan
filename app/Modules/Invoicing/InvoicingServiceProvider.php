@@ -148,6 +148,8 @@ class InvoicingServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // The overdue invoices card on the Material dashboard.
+        \App\Modules\Invoicing\Dashboard\InvoicingDashboard::register();
 
         /*
          * What invoicing does about the law — docs/saas-launch-plan.md §14.10.
