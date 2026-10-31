@@ -1,6 +1,6 @@
 # Advanced Tables (Saved Views & Table UX) — Implementation Plan
 
-**Status:** Proposed
+**Status:** Built — all six phases in §6 are ticked and held by `TableViewTest`; rolled out per List page through the trait, not a global switch (header corrected 2026-10-30).
 **Created:** 2026-07-25
 **Inspiration:** [Kenneth Sese — Advanced Tables for Filament](https://filamentphp.com/plugins/kenneth-sese-advanced-tables#features)
 
