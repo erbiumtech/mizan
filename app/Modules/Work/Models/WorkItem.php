@@ -194,6 +194,22 @@ class WorkItem extends Model implements Replicable
         return $this->hasMany(WorkItemLink::class, 'to_item_id');
     }
 
+    /** Branches, commits and pull requests that named this item — §8.4, read by the item panel. */
+    public function branches(): HasMany
+    {
+        return $this->hasMany(WorkItemBranch::class);
+    }
+
+    public function commits(): HasMany
+    {
+        return $this->hasMany(WorkItemCommit::class);
+    }
+
+    public function pullRequests(): HasMany
+    {
+        return $this->hasMany(WorkItemPullRequest::class);
+    }
+
     /** The conversation, on the polymorphic comments every other record uses. */
     public function comments(): MorphMany
     {
