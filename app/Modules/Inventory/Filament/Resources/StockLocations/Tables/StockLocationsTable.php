@@ -2,6 +2,7 @@
 
 namespace App\Modules\Inventory\Filament\Resources\StockLocations\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\Inventory\Models\StockLocation;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
@@ -64,6 +65,7 @@ class StockLocationsTable
             ->recordActions([
                 EditAction::make()
                     ->visible(fn (StockLocation $record): bool => auth()->user()?->can('update', $record) ?? false),
+                ReplicateRecordAction::make(),
             ])
             ->emptyStateHeading('No stock locations')
             ->emptyStateDescription('A company keeping stock in one place needs none of these. Add them when stock is in more than one place — a second warehouse, a shop, a van, or a construction site store.');

@@ -4,14 +4,18 @@ namespace App\Modules\Core\Models;
 
 use App\Models\TenantModel as Model;
 use App\Support\ModuleMap;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * A per-tenant custom field definition attached to a domain model type.
  */
-class CustomField extends Model
+class CustomField extends Model implements Replicable
 {
+    use ReplicatesRecords;
+
     public const TYPES = ['text', 'textarea', 'number', 'date', 'boolean', 'select', 'multi_select', 'color', 'rich_text'];
 
     protected $fillable = [
@@ -97,5 +101,17 @@ class CustomField extends Model
         }
 
         return $values;
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['code' => self::suggestCopyOf('code')];
+    }
+
+    public function replicationUniqueScopes(): array
+    {
+        return ['code' => ['model_type']];
     }
 }

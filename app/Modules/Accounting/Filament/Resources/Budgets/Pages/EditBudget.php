@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\Budgets\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Accounting\Filament\Resources\Budgets\BudgetResource;
 use App\Modules\Accounting\Services\BudgetService;
@@ -20,6 +21,7 @@ class EditBudget extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            ReplicateRecordAction::make(),
             DeleteAction::make(),
         ];
     }

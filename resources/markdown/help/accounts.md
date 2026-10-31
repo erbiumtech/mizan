@@ -61,3 +61,6 @@ anyone; the only option at that point is to make it inactive.
 
 This resource belongs to the **Accounting** module — a company without it
 licensed or enabled loses the Chart of Accounts entirely.
+
+**Replicate** copies an account's settings into a new one and asks for the new code, suggesting a
+free one. The copy starts with no balance and no ledger history; the original is untouched.

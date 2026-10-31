@@ -2,6 +2,7 @@
 
 namespace App\Modules\Payroll\Filament\Resources\SalaryStructures\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Payroll\Filament\Resources\SalaryStructures\SalaryStructureResource;
 use Filament\Actions\DeleteAction;
@@ -15,6 +16,6 @@ class EditSalaryStructure extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [DeleteAction::make()];
+        return [DeleteAction::make(), ReplicateRecordAction::make()];
     }
 }

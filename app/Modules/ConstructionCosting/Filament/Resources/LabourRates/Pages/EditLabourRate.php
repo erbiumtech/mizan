@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionCosting\Filament\Resources\LabourRates\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Filament\Support\HelpAction;
 use App\Modules\ConstructionCosting\Filament\Resources\LabourRates\LabourRateResource;
@@ -15,6 +16,6 @@ class EditLabourRate extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [HelpAction::make('construction-labour-rates', 'Labour rates: Help')];
+        return [HelpAction::make('construction-labour-rates', 'Labour rates: Help'), ReplicateRecordAction::make()];
     }
 }

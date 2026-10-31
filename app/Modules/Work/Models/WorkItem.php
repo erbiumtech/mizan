@@ -10,12 +10,17 @@ use App\Modules\Employees\Models\Employee;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Work\Events\WorkItemMoved;
 use App\Modules\Work\Events\WorkItemResolved;
+use App\Modules\Work\Services\WorkItems;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model as EloquentModel;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use RuntimeException;
 
@@ -31,9 +36,9 @@ use RuntimeException;
  * The **type** is what a person reads and the **status category** is what the application reasons
  * about. Those two sentences are most of the design.
  */
-class WorkItem extends Model
+class WorkItem extends Model implements Replicable
 {
-    use Auditable, HasCustomFields;
+    use Auditable, HasCustomFields, ReplicatesRecords;
 
     /** Hierarchy is one level each way: an Epic over stories, a Subtask under one — §3.4. */
     public const TYPE_EPIC = 'epic';
@@ -465,5 +470,47 @@ class WorkItem extends Model
                 throw new RuntimeException('An epic sits at the top; it has no parent.');
             }
         });
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    /**
+     * Back to the start of its workflow, in nobody's sprint, reported by whoever copied it. The key,
+     * number, status and rank are not reset here: {@see persistReplica()} hands the copy to the
+     * service that allocates them under the project's lock.
+     */
+    public function replicationResets(): array
+    {
+        return [
+            'sprint_id' => null,
+            'carried_over' => 0,
+            'started_at' => null,
+            'resolved_at' => null,
+            'resolution' => null,
+            'archived_at' => null,
+            'imported_from' => null,
+            'ai_summary' => null,
+            'ai_summary_at' => null,
+            'assigned_at' => fn (self $original): ?string => $original->assignee_employee_id ? now()->toDateTimeString() : null,
+            'reporter_user_id' => fn (): ?int => auth()->id(),
+        ];
+    }
+
+    /** Labels are shared definitions, so the copy is linked to the same ones. */
+    public function replicationRelations(): array
+    {
+        return ['labels'];
+    }
+
+    /** A new key and number from the project's sequence, and the workflow's first status. */
+    public function persistReplica(EloquentModel $original): EloquentModel
+    {
+        $project = Project::query()->findOrFail($this->project_id);
+
+        return app(WorkItems::class)->create(
+            $project,
+            Arr::except(Arr::only($this->getAttributes(), $this->getFillable()), ['number', 'key', 'work_status_id', 'rank']),
+            auth()->user(),
+        );
     }
 }

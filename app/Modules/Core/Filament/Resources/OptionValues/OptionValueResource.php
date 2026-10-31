@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\OptionValues;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Core\Filament\Resources\OptionValues\Pages\CreateOptionValue;
 use App\Modules\Core\Filament\Resources\OptionValues\Pages\EditOptionValue;
@@ -168,7 +169,7 @@ class OptionValueResource extends Resource
                     )),
             ])
             ->defaultSort(fn (Builder $query): Builder => $query->orderBy('list')->orderBy('sort')->orderBy('label'))
-            ->recordActions([\Filament\Actions\EditAction::make()]);
+            ->recordActions([\Filament\Actions\EditAction::make(), ReplicateRecordAction::make()]);
     }
 
     public static function getPages(): array

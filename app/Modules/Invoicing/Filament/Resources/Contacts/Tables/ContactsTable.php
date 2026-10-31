@@ -2,6 +2,7 @@
 
 namespace App\Modules\Invoicing\Filament\Resources\Contacts\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Support\CustomFieldsSchema;
 use App\Modules\Invoicing\Models\Contact;
 use App\Modules\Invoicing\Services\CustomerStatement;
@@ -117,6 +118,7 @@ class ContactsTable
                             $statements->filename($record, $data['to']),
                         );
                     }),
+                ReplicateRecordAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

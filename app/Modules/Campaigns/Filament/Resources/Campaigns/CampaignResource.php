@@ -2,6 +2,7 @@
 
 namespace App\Modules\Campaigns\Filament\Resources\Campaigns;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Campaigns\Filament\Resources\Campaigns\Pages\CreateCampaign;
 use App\Modules\Campaigns\Filament\Resources\Campaigns\Pages\EditCampaign;
@@ -248,6 +249,7 @@ class CampaignResource extends Resource
                     }),
 
                 \Filament\Actions\EditAction::make(),
+                ReplicateRecordAction::make(),
             ]);
     }
 

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Projects\Filament\Resources\Projects\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use Filament\Actions\DeleteAction;
@@ -18,6 +19,7 @@ class EditProject extends EditRecord
     {
         return [
             ViewAction::make(),
+            ReplicateRecordAction::make(),
             DeleteAction::make(),
         ];
     }

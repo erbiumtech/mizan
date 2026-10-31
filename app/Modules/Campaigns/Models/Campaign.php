@@ -4,6 +4,8 @@ namespace App\Modules\Campaigns\Models;
 
 use App\Models\TenantModel as Model;
 use App\Modules\Core\Models\User;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,9 +21,9 @@ use InvalidArgumentException;
  * the company's number, which is the reputational damage §6 calls this module's distinguishing
  * feature.
  */
-class Campaign extends Model
+class Campaign extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     public const CHANNEL_EMAIL = 'email';
 
@@ -140,5 +142,12 @@ class Campaign extends Model
             'skipped' => $sends->where('status', CampaignSend::STATUS_SKIPPED_NO_CONSENT)->count(),
             'pending' => $sends->where('status', CampaignSend::STATUS_PENDING)->count(),
         ];
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationResets(): array
+    {
+        return ['status' => self::STATUS_DRAFT, 'scheduled_at' => null, 'sent_at' => null, 'created_by' => fn () => auth()->id()];
     }
 }

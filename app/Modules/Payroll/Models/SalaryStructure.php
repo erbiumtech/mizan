@@ -3,6 +3,8 @@
 namespace App\Modules\Payroll\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,9 +14,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * share of gross, a fixed amount, or the balance. A form helper that fills a
  * package from one gross figure; the itemised package stays the payroll input.
  */
-class SalaryStructure extends Model
+class SalaryStructure extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     protected $fillable = ['name', 'description', 'is_active'];
 
@@ -61,5 +63,17 @@ class SalaryStructure extends Model
         }
 
         return $amounts;
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['name' => self::suggestCopyOf('name')];
+    }
+
+    public function replicationRelations(): array
+    {
+        return ['lines'];
     }
 }

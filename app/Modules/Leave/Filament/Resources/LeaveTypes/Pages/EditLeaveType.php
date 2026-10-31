@@ -2,6 +2,7 @@
 
 namespace App\Modules\Leave\Filament\Resources\LeaveTypes\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Leave\Filament\Resources\LeaveTypes\LeaveTypeResource;
 use Filament\Resources\Pages\EditRecord;
@@ -14,6 +15,6 @@ class EditLeaveType extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [\Filament\Actions\DeleteAction::make()];
+        return [\Filament\Actions\DeleteAction::make(), ReplicateRecordAction::make()];
     }
 }

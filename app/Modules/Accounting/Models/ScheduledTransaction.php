@@ -3,6 +3,8 @@
 namespace App\Modules\Accounting\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,9 +20,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * also keeps segregation of duties intact — a schedule that posted directly
  * would be a way to put anything in the books without an approver.
  */
-class ScheduledTransaction extends Model
+class ScheduledTransaction extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     protected $fillable = [
         'name', 'memo', 'reference', 'entry_type', 'interval_months',
@@ -132,5 +134,17 @@ class ScheduledTransaction extends Model
         }
 
         return $dates;
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationResets(): array
+    {
+        return ['is_active' => false];
+    }
+
+    public function replicationRelations(): array
+    {
+        return ['lines'];
     }
 }

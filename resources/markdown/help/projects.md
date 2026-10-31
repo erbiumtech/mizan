@@ -72,3 +72,7 @@ rather than the project.
   issue an outbound request on demand, which is treated as a privileged
   action rather than ordinary project editing.
 - Depends on the Projects module being enabled.
+
+**Replicate** copies a project's settings into a new planned project and asks for its code. The
+copy gets its own work key when its first item is created, and numbers items from one; nothing
+logged against the original — items, time, environments — comes with it.

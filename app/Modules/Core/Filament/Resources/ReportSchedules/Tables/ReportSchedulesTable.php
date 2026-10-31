@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\ReportSchedules\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\Core\Models\ReportSchedule;
 use App\Support\Reporting\RelativePeriod;
 use App\Support\Reporting\ReportDeliveryService;
@@ -87,6 +88,7 @@ class ReportSchedulesTable
                     }),
 
                 DeleteAction::make(),
+                ReplicateRecordAction::make(),
             ])
             ->defaultSort('id', 'desc');
     }

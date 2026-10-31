@@ -6,6 +6,8 @@ use App\Models\TenantModel as Model;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Employees\Rules\Rule;
 use App\Modules\Employees\Rules\RuleEvaluator;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -21,9 +23,9 @@ use Illuminate\Support\Carbon;
  * date; a miss past the grace is a merit debit of `penalty_points`, and
  * `penalty_amount` is the rupee figure `tasks:settle` sums for payroll.
  */
-class RecurringTask extends Model
+class RecurringTask extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     public const ASSIGNEE_ALL = 'all';
 
@@ -140,5 +142,12 @@ class RecurringTask extends Model
             self::ASSIGNEE_RULE => 'By rule',
             default => 'Everyone',
         };
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationResets(): array
+    {
+        return ['is_active' => false];
     }
 }

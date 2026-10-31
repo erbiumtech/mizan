@@ -2,6 +2,7 @@
 
 namespace App\Modules\Support\Filament\Resources\TicketCategories;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Support\Filament\Resources\TicketCategories\Pages\CreateTicketCategory;
 use App\Modules\Support\Filament\Resources\TicketCategories\Pages\EditTicketCategory;
@@ -107,7 +108,7 @@ class TicketCategoryResource extends Resource
                 IconColumn::make('is_active')->label(__('Offered'))->boolean()->sortable(),
             ])
             ->defaultSort('name')
-            ->recordActions([\Filament\Actions\EditAction::make()]);
+            ->recordActions([\Filament\Actions\EditAction::make(), ReplicateRecordAction::make()]);
     }
 
     public static function getPages(): array

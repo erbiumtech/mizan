@@ -2,6 +2,7 @@
 
 namespace App\Modules\Quotations\Filament\Resources\Quotations\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Quotations\Filament\Resources\Quotations\QuotationResource;
 use Filament\Resources\Pages\EditRecord;
@@ -22,6 +23,6 @@ class EditQuotation extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [\Filament\Actions\DeleteAction::make()];
+        return [\Filament\Actions\DeleteAction::make(), ReplicateRecordAction::make()];
     }
 }

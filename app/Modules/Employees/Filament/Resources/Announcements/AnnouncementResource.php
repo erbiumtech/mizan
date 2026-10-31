@@ -2,6 +2,7 @@
 
 namespace App\Modules\Employees\Filament\Resources\Announcements;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Employees\Filament\Resources\Announcements\Pages\CreateAnnouncement;
 use App\Modules\Employees\Filament\Resources\Announcements\Pages\EditAnnouncement;
@@ -228,6 +229,7 @@ class AnnouncementResource extends Resource
                     ->action(fn (Announcement $record) => $record->forceFill(['archived_at' => $record->isArchived() ? null : now()])->save()),
                 EditAction::make(),
                 DeleteAction::make(),
+                ReplicateRecordAction::make(),
             ]);
     }
 

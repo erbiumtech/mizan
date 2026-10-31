@@ -5,6 +5,8 @@ namespace App\Modules\Employees\Models;
 use App\Models\TenantModel as Model;
 use App\Modules\Core\Models\OptionValue;
 use App\Support\OptionLists;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,9 +17,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * `employees.department` still carries the name, so every reader is untouched;
  * the option list it came from is kept in step so `options()` answers the same.
  */
-class Department extends Model
+class Department extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     public const LIST = 'employees.department';
 
@@ -77,5 +79,12 @@ class Department extends Model
     {
         OptionValue::query()->where('list', static::LIST)->where('value', $this->name)->delete();
         OptionLists::flush();
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['name' => self::suggestCopyOf('name')];
     }
 }

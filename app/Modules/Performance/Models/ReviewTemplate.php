@@ -3,6 +3,8 @@
 namespace App\Modules\Performance\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,9 +13,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * What a review asks about — docs/saas-launch-plan.md §14.6: competencies with
  * weights that sum to 100, so a weighted rating means something.
  */
-class ReviewTemplate extends Model
+class ReviewTemplate extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     protected $fillable = ['name', 'description', 'is_default', 'is_active'];
 
@@ -58,5 +60,22 @@ class ReviewTemplate extends Model
     public static function forCycle(): ?self
     {
         return static::query()->active()->where('is_default', true)->first() ?? static::query()->active()->orderBy('id')->first();
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['name' => self::suggestCopyOf('name')];
+    }
+
+    public function replicationResets(): array
+    {
+        return ['is_default' => false];
+    }
+
+    public function replicationRelations(): array
+    {
+        return ['competencies'];
     }
 }

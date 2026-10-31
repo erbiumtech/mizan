@@ -5,6 +5,8 @@ namespace App\Modules\Projects\Models;
 use App\Models\Concerns\HasCustomFields;
 use App\Models\TenantModel as Model;
 use App\Modules\Employees\Models\Employee;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -16,9 +18,9 @@ use InvalidArgumentException;
  * A delivery project: a team of employees with dated stints, a primary and
  * secondary manager, and its deployment environments (prod/qual/dev).
  */
-class Project extends Model
+class Project extends Model implements Replicable
 {
-    use Auditable, HasCustomFields;
+    use Auditable, HasCustomFields, ReplicatesRecords;
 
     public const STATUS_PLANNED = 'planned';
 
@@ -208,5 +210,25 @@ class Project extends Model
         }
 
         return ProjectEnvironment::HEALTH_UNKNOWN;
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['code' => self::suggestCopyOf('code')];
+    }
+
+    /**
+     * A planned project with no work key yet — the key is derived from the new code when the first
+     * item is created — and numbering its items from one.
+     */
+    public function replicationResets(): array
+    {
+        return [
+            'status' => self::STATUS_PLANNED,
+            'key' => null,
+            'next_item_number' => 1,
+        ];
     }
 }

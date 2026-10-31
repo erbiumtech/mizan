@@ -3,6 +3,8 @@
 namespace App\Modules\Leave\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -15,9 +17,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Pakistan are provincial, and this application already takes that position on tax
  * slabs.
  */
-class LeaveType extends Model
+class LeaveType extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     /** Every day of the year's entitlement is credited at the start of the year. */
     public const ACCRUAL_ANNUAL_UPFRONT = 'annual_upfront';
@@ -152,5 +154,12 @@ class LeaveType extends Model
     public function carriesForward(): bool
     {
         return (float) $this->max_carry_forward > 0;
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['code' => self::suggestCopyOf('code')];
     }
 }

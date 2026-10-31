@@ -2,6 +2,7 @@
 
 namespace App\Modules\Crm\Filament\Resources\Pipelines\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Crm\Filament\Resources\Pipelines\PipelineResource;
 use Filament\Resources\Pages\EditRecord;
@@ -14,6 +15,6 @@ class EditPipeline extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [\Filament\Actions\DeleteAction::make()];
+        return [\Filament\Actions\DeleteAction::make(), ReplicateRecordAction::make()];
     }
 }

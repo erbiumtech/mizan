@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\TransactionTypes\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -37,6 +38,7 @@ class TransactionTypesTable
             ])
             ->recordActions([
                 EditAction::make(),
+                ReplicateRecordAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

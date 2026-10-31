@@ -3,14 +3,16 @@
 namespace App\Modules\Lifecycle\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** A reusable onboarding or exit checklist. */
-class ChecklistTemplate extends Model
+class ChecklistTemplate extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     public const KIND_ONBOARDING = 'onboarding';
 
@@ -35,5 +37,12 @@ class ChecklistTemplate extends Model
     public function scopeOfKind(Builder $query, string $kind): Builder
     {
         return $query->where('kind', $kind);
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationRelations(): array
+    {
+        return ['items'];
     }
 }

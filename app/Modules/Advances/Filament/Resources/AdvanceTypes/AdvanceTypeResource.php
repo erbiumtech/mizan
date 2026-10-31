@@ -2,6 +2,7 @@
 
 namespace App\Modules\Advances\Filament\Resources\AdvanceTypes;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Advances\Filament\Resources\AdvanceTypes\Pages\CreateAdvanceType;
 use App\Modules\Advances\Filament\Resources\AdvanceTypes\Pages\EditAdvanceType;
@@ -58,7 +59,7 @@ class AdvanceTypeResource extends Resource
                 TextColumn::make('active_limit')->label(__('Active at once'))->placeholder('—'),
                 IconColumn::make('is_active')->boolean()->label(__('Active')),
             ])
-            ->recordActions([EditAction::make(), DeleteAction::make()]);
+            ->recordActions([EditAction::make(), DeleteAction::make(), ReplicateRecordAction::make()]);
     }
 
     public static function getPages(): array

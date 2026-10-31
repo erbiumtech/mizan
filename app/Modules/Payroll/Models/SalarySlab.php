@@ -4,11 +4,13 @@ namespace App\Modules\Payroll\Models;
 
 use App\Models\TenantModel as Model;
 use App\Modules\Core\Models\FiscalYear;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 
-class SalarySlab extends Model
+class SalarySlab extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     protected $fillable = [
         'fiscal_year_id',

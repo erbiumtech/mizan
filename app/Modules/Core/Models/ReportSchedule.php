@@ -3,6 +3,8 @@
 namespace App\Modules\Core\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Support\Reporting\RelativePeriod;
 use Cron\CronExpression;
 use Illuminate\Database\Eloquent\Builder;
@@ -31,8 +33,10 @@ use Illuminate\Support\Carbon;
  * cosmetic error but a double send". `periodKey()` is what `report_deliveries.period_key` holds, and its unique
  * index is what makes a retried render one email rather than two.
  */
-class ReportSchedule extends Model
+class ReportSchedule extends Model implements Replicable
 {
+    use ReplicatesRecords;
+
     public const FORMAT_PDF = 'pdf';
 
     public const FORMAT_CSV = 'csv';
@@ -220,5 +224,12 @@ class ReportSchedule extends Model
     public function timetable(): string
     {
         return (self::TIMETABLES[$this->cron] ?? $this->cron).' · '.$this->timezone;
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationResets(): array
+    {
+        return ['is_active' => false, 'user_id' => fn () => auth()->id()];
     }
 }

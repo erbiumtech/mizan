@@ -2,6 +2,7 @@
 
 namespace App\Modules\Work\Filament\Resources\WorkItems\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Support\HelpAction;
 use App\Modules\Work\Filament\Resources\WorkItems\WorkItemResource;
 use App\Modules\Work\Models\WorkItem;
@@ -56,6 +57,7 @@ class EditWorkItem extends EditRecord
             $this->suggestEstimateAction(),
             DeleteAction::make(),
             HelpAction::make('work-items', 'Work Items: Help'),
+            ReplicateRecordAction::make(),
         ];
     }
 

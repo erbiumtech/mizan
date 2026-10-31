@@ -2,6 +2,7 @@
 
 namespace App\Modules\Leave\Filament\Resources\LeaveGroups;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Leave\Filament\Resources\LeaveGroups\Pages\CreateLeaveGroup;
 use App\Modules\Leave\Filament\Resources\LeaveGroups\Pages\EditLeaveGroup;
@@ -60,7 +61,7 @@ class LeaveGroupResource extends Resource
                 TextColumn::make('types_count')->counts('types')->label(__('Types')),
                 TextColumn::make('employees_count')->counts('employees')->label(__('People')),
             ])
-            ->recordActions([EditAction::make(), DeleteAction::make()]);
+            ->recordActions([EditAction::make(), DeleteAction::make(), ReplicateRecordAction::make()]);
     }
 
     public static function getPages(): array

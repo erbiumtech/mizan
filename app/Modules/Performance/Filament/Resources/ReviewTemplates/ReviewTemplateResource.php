@@ -2,6 +2,7 @@
 
 namespace App\Modules\Performance\Filament\Resources\ReviewTemplates;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Performance\Filament\Resources\ReviewTemplates\Pages\CreateReviewTemplate;
 use App\Modules\Performance\Filament\Resources\ReviewTemplates\Pages\EditReviewTemplate;
@@ -83,7 +84,7 @@ class ReviewTemplateResource extends Resource
                 IconColumn::make('is_default')->boolean()->label(__('Default')),
                 IconColumn::make('is_active')->boolean()->label(__('Active')),
             ])
-            ->recordActions([EditAction::make(), DeleteAction::make()]);
+            ->recordActions([EditAction::make(), DeleteAction::make(), ReplicateRecordAction::make()]);
     }
 
     public static function getPages(): array

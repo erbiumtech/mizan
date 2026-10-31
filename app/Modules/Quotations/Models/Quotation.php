@@ -9,6 +9,8 @@ use App\Modules\Crm\Models\Lead;
 use App\Modules\Crm\Models\Opportunity;
 use App\Modules\Invoicing\Models\Contact;
 use App\Modules\Invoicing\Models\Invoice;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -27,9 +29,10 @@ use Illuminate\Support\Carbon;
  * has version 1 in their inbox; editing it in place makes this system disagree with that
  * inbox, and there is no way to tell which of the two the customer is looking at.
  */
-class Quotation extends Model
+class Quotation extends Model implements Replicable
 {
     use Auditable;
+    use ReplicatesRecords;
     use StoresPlainDates;
 
     protected array $plainDates = ['issue_date', 'valid_until'];
@@ -218,5 +221,35 @@ class Quotation extends Model
         $next = $last ? ((int) substr($last, strlen($prefix))) + 1 : 1;
 
         return $prefix.str_pad((string) $next, 4, '0', STR_PAD_LEFT);
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    /**
+     * A new draft at version 1, issued today and valid for as long as the original was, answered
+     * by nobody and invoiced by nothing. The number is left empty so the creating hook draws one.
+     */
+    public function replicationResets(): array
+    {
+        return [
+            'number' => null,
+            'status' => self::STATUS_DRAFT,
+            'version' => 1,
+            'supersedes_id' => null,
+            'issue_date' => fn (): string => today()->toDateString(),
+            'valid_until' => fn (self $original): ?string => $original->valid_until && $original->issue_date
+                ? today()->addDays((int) Carbon::parse($original->issue_date)->diffInDays($original->valid_until))->toDateString()
+                : null,
+            'accepted_at' => null,
+            'declined_at' => null,
+            'decline_reason' => null,
+            'invoice_id' => null,
+            'created_by' => fn (): ?int => auth()->id(),
+        ];
+    }
+
+    public function replicationRelations(): array
+    {
+        return ['lines'];
     }
 }

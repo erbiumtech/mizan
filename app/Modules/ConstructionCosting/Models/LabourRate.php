@@ -4,6 +4,8 @@ namespace App\Modules\ConstructionCosting\Models;
 
 use App\Models\TenantModel as Model;
 use App\Modules\Construction\Models\Job;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -24,9 +26,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * never be picked for job 9 — the filtering and the ordering both live in {@see LabourRateService}, deliberately not
  * in an index, because nulls in a unique index are distinct in both MySQL and SQLite.
  */
-class LabourRate extends Model
+class LabourRate extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     /**
      * The tiers of §7.2's ladder, most specific first, with the score each carries.
@@ -136,5 +138,12 @@ class LabourRate extends Model
     public function displayName(): string
     {
         return $this->appliesTo().' from '.$this->effective_from?->format('d M Y');
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationResets(): array
+    {
+        return ['created_by' => fn () => auth()->id()];
     }
 }

@@ -4,6 +4,8 @@ namespace App\Modules\Core\Models;
 
 use App\Models\TenantModel as Model;
 use App\Support\OptionLists;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -11,9 +13,9 @@ use Illuminate\Database\Eloquent\Builder;
  * One entry in one admin-managed dropdown. See the migration for why the table exists,
  * and App\Support\OptionLists for which dropdowns are declared.
  */
-class OptionValue extends Model
+class OptionValue extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     protected $fillable = ['list', 'value', 'label', 'is_active', 'sort'];
 
@@ -47,5 +49,17 @@ class OptionValue extends Model
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['value' => self::suggestCopyOf('value')];
+    }
+
+    public function replicationUniqueScopes(): array
+    {
+        return ['value' => ['list']];
     }
 }

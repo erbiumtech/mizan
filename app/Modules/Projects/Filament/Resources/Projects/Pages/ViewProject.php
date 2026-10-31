@@ -2,6 +2,7 @@
 
 namespace App\Modules\Projects\Filament\Resources\Projects\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use App\Modules\Projects\Filament\Resources\Projects\Schemas\ProjectInfolist;
 use App\Modules\Projects\Filament\Resources\Projects\Widgets\ProjectHealthChart;
@@ -49,6 +50,7 @@ class ViewProject extends ViewRecord
                 ->visible(fn (): bool => auth()->user()?->can('ProjectHealthCheck') ?? false),
 
             EditAction::make(),
+            ReplicateRecordAction::make(),
         ];
     }
 

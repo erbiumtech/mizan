@@ -2,6 +2,7 @@
 
 namespace App\Modules\Invoicing\Filament\Resources\Invoices\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Support\CustomFieldsSchema;
 use App\Modules\Accounting\Models\Account;
 use App\Modules\Accounting\Models\CompanyBankAccount;
@@ -212,6 +213,7 @@ class InvoicesTable
             ->recordActions([
                 EditAction::make(),
                 ...self::invoiceActions(),
+                ReplicateRecordAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

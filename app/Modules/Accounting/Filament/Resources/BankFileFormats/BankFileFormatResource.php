@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\BankFileFormats;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Accounting\Filament\Resources\BankFileFormats\Pages\CreateBankFileFormat;
 use App\Modules\Accounting\Filament\Resources\BankFileFormats\Pages\EditBankFileFormat;
@@ -87,7 +88,7 @@ class BankFileFormatResource extends Resource
                     ->description(fn (BankFileFormat $r): ?string => $r->needsPreview() ? 'changed since — preview before download' : null),
                 IconColumn::make('is_active')->boolean()->label(__('Active')),
             ])
-            ->recordActions([static::previewAction(), EditAction::make(), DeleteAction::make()]);
+            ->recordActions([static::previewAction(), EditAction::make(), DeleteAction::make(), ReplicateRecordAction::make()]);
     }
 
     /** Against the real pending payments — what the bank would receive, before it does. */

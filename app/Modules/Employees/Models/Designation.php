@@ -5,6 +5,8 @@ namespace App\Modules\Employees\Models;
 use App\Models\TenantModel as Model;
 use App\Modules\Core\Models\OptionValue;
 use App\Support\OptionLists;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,9 +15,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * A designation as a row — docs/saas-launch-plan.md §14.2: level and pay grade.
  * The grade is a min–max band that warns, never blocks, when a package falls outside it.
  */
-class Designation extends Model
+class Designation extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     public const LIST = 'employees.designation';
 
@@ -82,5 +84,12 @@ class Designation extends Model
     {
         OptionValue::query()->where('list', static::LIST)->where('value', $this->name)->delete();
         OptionLists::flush();
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['name' => self::suggestCopyOf('name')];
     }
 }

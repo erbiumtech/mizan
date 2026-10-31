@@ -4,6 +4,8 @@ namespace App\Modules\Leave\Models;
 
 use App\Models\TenantModel as Model;
 use App\Modules\Employees\Models\Employee;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,9 +15,9 @@ use Illuminate\Support\Collection;
  * A bundle of leave types assigned to employees — docs/saas-launch-plan.md §14.4.
  * No group, and no default group, means every active type: today's behaviour.
  */
-class LeaveGroup extends Model
+class LeaveGroup extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     protected $fillable = ['name', 'is_default'];
 
@@ -50,5 +52,22 @@ class LeaveGroup extends Model
         }
 
         return $group->types()->where('is_active', true)->orderBy('sort')->get();
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['name' => self::suggestCopyOf('name')];
+    }
+
+    public function replicationResets(): array
+    {
+        return ['is_default' => false];
+    }
+
+    public function replicationRelations(): array
+    {
+        return ['types'];
     }
 }

@@ -4,6 +4,8 @@ namespace App\Modules\Accounting\Models;
 
 use App\Models\TenantModel as Model;
 use App\Modules\Core\Models\FiscalYear;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,9 +21,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * against a full year's budget is the standard way to make an overspend look
  * fine.
  */
-class Budget extends Model
+class Budget extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     protected $fillable = ['fiscal_year_id', 'name', 'notes', 'is_active'];
 
@@ -77,5 +79,22 @@ class Budget extends Model
     public function annualFor(int $accountId): float
     {
         return round((float) $this->lines()->where('account_id', $accountId)->sum('amount'), 2);
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['name' => self::suggestCopyOf('name')];
+    }
+
+    public function replicationUniqueScopes(): array
+    {
+        return ['name' => ['fiscal_year_id']];
+    }
+
+    public function replicationRelations(): array
+    {
+        return ['lines'];
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\TransactionTypes\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Accounting\Filament\Resources\TransactionTypes\TransactionTypeResource;
 use Filament\Actions\DeleteAction;
@@ -16,6 +17,7 @@ class EditTransactionType extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            ReplicateRecordAction::make(),
             DeleteAction::make(),
         ];
     }

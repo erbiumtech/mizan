@@ -5,14 +5,16 @@ namespace App\Modules\Recruitment\Models;
 use App\Models\Concerns\StoresPlainDates;
 use App\Models\TenantModel as Model;
 use App\Modules\Employees\Models\Employee;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Vacancy extends Model
+class Vacancy extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
     use StoresPlainDates;
 
     protected array $plainDates = ['opened_on', 'closed_on'];
@@ -63,5 +65,17 @@ class Vacancy extends Model
     public function remainingOpenings(): int
     {
         return max(0, $this->openings - $this->applications()->where('stage', Application::STAGE_HIRED)->count());
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['code' => self::suggestCopyOf('code')];
+    }
+
+    public function replicationResets(): array
+    {
+        return ['status' => self::STATUS_DRAFT, 'opened_on' => null, 'closed_on' => null];
     }
 }

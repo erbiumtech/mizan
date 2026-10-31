@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\Accounts\Pages;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\RedirectsToIndex;
 use App\Modules\Accounting\Filament\Resources\Accounts\AccountResource;
 use Filament\Actions\DeleteAction;
@@ -16,6 +17,7 @@ class EditAccount extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            ReplicateRecordAction::make(),
             DeleteAction::make(),
         ];
     }

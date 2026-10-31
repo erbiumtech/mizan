@@ -2,6 +2,7 @@
 
 namespace App\Modules\Payroll\Filament\Resources\PayComponents\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\Payroll\Models\PayComponent;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
@@ -68,6 +69,6 @@ class PayComponentsTable
                     PayComponent::KIND_DEDUCTION => 'Deductions',
                 ]),
             ])
-            ->recordActions([EditAction::make()]);
+            ->recordActions([EditAction::make(), ReplicateRecordAction::make()]);
     }
 }

@@ -4,6 +4,8 @@ namespace App\Modules\Inventory\Models;
 
 use App\Models\TenantModel as Model;
 use App\Modules\Accounting\Models\Account;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,9 +25,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * locations is two movements, and without somewhere to be in between, stock that has left one store and not arrived at
  * the other is either at both or at neither.
  */
-class StockLocation extends Model
+class StockLocation extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     public const KIND_WAREHOUSE = 'warehouse';
 
@@ -101,5 +103,17 @@ class StockLocation extends Model
     public function displayName(): string
     {
         return "{$this->code} — {$this->name}";
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['code' => self::suggestCopyOf('code')];
+    }
+
+    public function replicationResets(): array
+    {
+        return ['created_by' => fn () => auth()->id()];
     }
 }

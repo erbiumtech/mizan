@@ -7,6 +7,8 @@ use App\Modules\Core\Models\User;
 use App\Modules\Employees\Notifications\AnnouncementPublished;
 use App\Modules\Employees\Rules\Rule;
 use App\Modules\Employees\Rules\RuleEvaluator;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Carbon;
@@ -22,8 +24,10 @@ use InvalidArgumentException;
  * already has. Employees without a login hear nothing, which is honest — a
  * notice board on the wall is the other channel, and this is not it.
  */
-class Announcement extends Model
+class Announcement extends Model implements Replicable
 {
+    use ReplicatesRecords;
+
     public const AUDIENCE_ALL = 'all';
 
     public const AUDIENCE_DEPARTMENT = 'department';
@@ -264,5 +268,12 @@ class Announcement extends Model
     public function priorityLabel(): string
     {
         return self::PRIORITIES[$this->priority] ?? 'Normal';
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationResets(): array
+    {
+        return ['published_at' => null, 'archived_at' => null, 'pinned' => false, 'created_by' => fn () => auth()->id()];
     }
 }

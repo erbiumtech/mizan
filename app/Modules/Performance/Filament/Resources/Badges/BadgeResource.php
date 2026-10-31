@@ -2,6 +2,7 @@
 
 namespace App\Modules\Performance\Filament\Resources\Badges;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
 use App\Modules\Employees\Rules\RuleForm;
 use App\Modules\Performance\Filament\Resources\Badges\Pages\CreateBadge;
@@ -65,7 +66,7 @@ class BadgeResource extends Resource
                 IconColumn::make('is_active')->boolean(),
             ])
             ->defaultSort('name')
-            ->recordActions([EditAction::make(), DeleteAction::make()]);
+            ->recordActions([EditAction::make(), DeleteAction::make(), ReplicateRecordAction::make()]);
     }
 
     public static function getPages(): array

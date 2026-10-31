@@ -3,15 +3,17 @@
 namespace App\Modules\Advances\Models;
 
 use App\Models\TenantModel as Model;
+use App\Support\Replication\Replicable;
+use App\Support\Replication\ReplicatesRecords;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use InvalidArgumentException;
 
 /** A kind of advance and its limits — docs/saas-launch-plan.md §14.3. */
-class AdvanceType extends Model
+class AdvanceType extends Model implements Replicable
 {
-    use Auditable;
+    use Auditable, ReplicatesRecords;
 
     protected $fillable = ['name', 'max_amount', 'max_instalments', 'interest_rate_pct', 'active_limit', 'is_active'];
 
@@ -58,5 +60,12 @@ class AdvanceType extends Model
                 throw new InvalidArgumentException("{$this->name} allows {$this->active_limit} active advance(s) per person, and this person already has {$active}.");
             }
         }
+    }
+
+    // ─── Replicate — docs/replicate-records.md ───
+
+    public function replicationUniqueFields(): array
+    {
+        return ['name' => self::suggestCopyOf('name')];
     }
 }

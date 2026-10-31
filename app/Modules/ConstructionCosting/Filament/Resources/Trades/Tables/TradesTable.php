@@ -2,6 +2,7 @@
 
 namespace App\Modules\ConstructionCosting\Filament\Resources\Trades\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\ConstructionCosting\Models\Trade;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
@@ -59,6 +60,7 @@ class TradesTable
             ->recordActions([
                 EditAction::make()
                     ->visible(fn (Trade $record): bool => auth()->user()?->can('update', $record) ?? false),
+                ReplicateRecordAction::make(),
             ])
             ->emptyStateHeading('No trades yet')
             ->emptyStateDescription('A trade is what a pair of hands does — steel fixer, mason, carpenter. Labour is booked against one, and what an hour costs is set per trade in Labour Rates.');

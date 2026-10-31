@@ -2,6 +2,7 @@
 
 namespace App\Modules\Payroll\Filament\Resources\SalarySlabs\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Payroll\Models\SalarySlab;
 use Filament\Actions\BulkActionGroup;
@@ -61,6 +62,7 @@ class SalarySlabsTable
             ])
             ->recordActions([
                 EditAction::make(),
+                ReplicateRecordAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

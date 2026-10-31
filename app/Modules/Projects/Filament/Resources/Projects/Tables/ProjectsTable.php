@@ -2,6 +2,7 @@
 
 namespace App\Modules\Projects\Filament\Resources\Projects\Tables;
 
+use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Support\CustomFieldsSchema;
 use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use App\Modules\Projects\Models\Project;
@@ -138,6 +139,7 @@ class ProjectsTable
                     ->icon('heroicon-m-arrow-top-right-on-square')
                     ->button()
                     ->color('gray'),
+                ReplicateRecordAction::make(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
