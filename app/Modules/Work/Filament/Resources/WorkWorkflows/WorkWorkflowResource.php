@@ -56,7 +56,7 @@ class WorkWorkflowResource extends Resource
             // Where a pull request being opened moves an item — docs/project-management-plan.md §8.4.
             // Empty means the status named "In review", if there is one; nothing happens otherwise.
             Select::make('review_status_id')
-                ->label('A pull request moves items to')
+                ->label(__('A pull request moves items to'))
                 ->options(fn (?WorkWorkflow $record): array => $record === null ? [] : $record->statuses()->pluck('name', 'id')->all())
                 ->placeholder('The status named "In review", if any')
                 ->visibleOn('edit')

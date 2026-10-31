@@ -32,21 +32,21 @@ class IdentitiesRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('provider_username')
             ->columns([
-                TextColumn::make('provider_username')->label('Username')->searchable()
+                TextColumn::make('provider_username')->label(__('Username'))->searchable()
                     ->formatStateUsing(fn (string $state): string => '@'.$state),
                 TextColumn::make('email')->placeholder('—'),
                 TextColumn::make('user_id')
-                    ->label('Is')
+                    ->label(__('Is'))
                     ->badge()
                     ->state(fn (IntegrationIdentity $record): string => $record->user()?->name ?? 'Unmatched')
                     ->color(fn (IntegrationIdentity $record): string => $record->isMatched() ? 'success' : 'warning'),
-                TextColumn::make('matched_how')->label('Matched by')->placeholder('—'),
-                TextColumn::make('created_at')->label('First seen')->since(),
+                TextColumn::make('matched_how')->label(__('Matched by'))->placeholder('—'),
+                TextColumn::make('created_at')->label(__('First seen'))->since(),
             ])
             ->defaultSort('user_id')
             ->filters([
                 TernaryFilter::make('matched')
-                    ->label('Matched')
+                    ->label(__('Matched'))
                     ->queries(
                         true: fn ($q) => $q->whereNotNull('user_id'),
                         false: fn ($q) => $q->whereNull('user_id'),
@@ -54,12 +54,12 @@ class IdentitiesRelationManager extends RelationManager
             ])
             ->recordActions([
                 Action::make('assign')
-                    ->label('Assign')
+                    ->label(__('Assign'))
                     ->icon('heroicon-o-user')
                     ->visible(fn (IntegrationIdentity $record): bool => auth()->user()?->can('update', $record) ?? false)
                     ->schema([
                         Select::make('user_id')
-                            ->label('Who this is')
+                            ->label(__('Who this is'))
                             ->options(fn (): array => (Company::current()?->users() ?? User::query())
                                 ->orderBy('name')->pluck('name', 'users.id')->all())
                             ->searchable()
@@ -73,7 +73,7 @@ class IdentitiesRelationManager extends RelationManager
                     }),
 
                 Action::make('claim')
-                    ->label('That is me')
+                    ->label(__('That is me'))
                     ->icon('heroicon-o-hand-raised')
                     ->color('gray')
                     ->visible(fn (IntegrationIdentity $record): bool => ! $record->isMatched() && auth()->check())

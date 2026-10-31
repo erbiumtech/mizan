@@ -61,7 +61,7 @@ class WorkReleaseResource extends Resource
     {
         return $schema->components([
             Select::make('project_id')
-                ->label('Project')
+                ->label(__('Project'))
                 ->options(fn (): array => Project::query()->orderBy('name')->pluck('name', 'id')->all())
                 ->searchable()
                 ->required()
@@ -70,7 +70,7 @@ class WorkReleaseResource extends Resource
             TextInput::make('name')->required()->maxLength(80)->placeholder('2.4.0'),
 
             DatePicker::make('planned_on')
-                ->label('Planned for')
+                ->label(__('Planned for'))
                 ->native(false)
                 ->helperText('When it is meant to go out. Releasing stamps the date it actually did.'),
 
@@ -95,31 +95,31 @@ class WorkReleaseResource extends Resource
                 TextColumn::make('name')->searchable()->sortable()
                     ->description(fn (WorkRelease $record): ?string => $record->description),
 
-                TextColumn::make('project.name')->label('Project')->toggleable(),
+                TextColumn::make('project.name')->label(__('Project'))->toggleable(),
 
                 TextColumn::make('state')
-                    ->label('State')
+                    ->label(__('State'))
                     ->badge()
                     ->state(fn (WorkRelease $record): string => $record->isReleased() ? 'Released' : 'Planned')
                     ->color(fn (WorkRelease $record): string => $record->isReleased() ? 'success' : 'info'),
 
-                TextColumn::make('planned_on')->label('Planned for')->date('d M Y')->sortable()->placeholder('—'),
+                TextColumn::make('planned_on')->label(__('Planned for'))->date('d M Y')->sortable()->placeholder('—'),
 
-                TextColumn::make('released_on')->label('Released on')->date('d M Y')->sortable()->placeholder('—'),
+                TextColumn::make('released_on')->label(__('Released on'))->date('d M Y')->sortable()->placeholder('—'),
 
-                TextColumn::make('items_count')->label('Items')->alignEnd(),
+                TextColumn::make('items_count')->label(__('Items'))->alignEnd(),
 
                 // The number that decides whether this can go out quietly.
                 TextColumn::make('open_items_count')
-                    ->label('Still open')
+                    ->label(__('Still open'))
                     ->alignEnd()
                     ->color(fn (int $state): ?string => $state > 0 ? 'warning' : null),
             ])
             ->defaultSort('planned_on', 'desc')
             ->filters([
-                SelectFilter::make('project_id')->label('Project')->relationship('project', 'name'),
+                SelectFilter::make('project_id')->label(__('Project'))->relationship('project', 'name'),
                 TernaryFilter::make('released')
-                    ->label('Released')
+                    ->label(__('Released'))
                     ->queries(
                         true: fn (Builder $q) => $q->whereNotNull('released_on'),
                         false: fn (Builder $q) => $q->whereNull('released_on'),
@@ -136,7 +136,7 @@ class WorkReleaseResource extends Resource
                  * that lists a bug as fixed when it is not is the mistake a customer finds first.
                  */
                 Action::make('release')
-                    ->label('Release')
+                    ->label(__('Release'))
                     ->icon('heroicon-o-rocket-launch')
                     ->color('success')
                     ->visible(fn (WorkRelease $record): bool => ! $record->isReleased()
@@ -173,7 +173,7 @@ class WorkReleaseResource extends Resource
                  * for a version that has not shipped is a changelog ahead of the code.
                  */
                 Action::make('publish')
-                    ->label('GitHub release')
+                    ->label(__('GitHub release'))
                     ->icon('heroicon-o-arrow-up-on-square')
                     ->color('gray')
                     ->visible(fn (WorkRelease $record): bool => $record->isReleased()
@@ -194,7 +194,7 @@ class WorkReleaseResource extends Resource
                     }),
 
                 Action::make('notes')
-                    ->label('Notes')
+                    ->label(__('Notes'))
                     ->icon('heroicon-o-document-text')
                     ->color('gray')
                     ->modalHeading(fn (WorkRelease $record): string => $record->name.': release notes')
@@ -232,7 +232,7 @@ class WorkReleaseResource extends Resource
                 ->live(),
 
             Select::make('move_to')
-                ->label('Which release')
+                ->label(__('Which release'))
                 ->options(fn (): array => WorkRelease::query()
                     ->where('project_id', $record->project_id)
                     ->unreleased()

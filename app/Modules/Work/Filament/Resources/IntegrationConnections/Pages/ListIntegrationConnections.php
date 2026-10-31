@@ -14,7 +14,7 @@ class ListIntegrationConnections extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make()->label('Connect'),
+            CreateAction::make()->label(__('Connect')),
             HelpAction::make('work-integrations', 'Integrations: Help'),
         ];
     }

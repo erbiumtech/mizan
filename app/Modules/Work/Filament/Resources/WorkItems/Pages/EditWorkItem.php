@@ -43,7 +43,7 @@ class EditWorkItem extends EditRecord
                 $this->openPullRequestAction(),
                 $this->linkPullRequestAction(),
             ])
-                ->label('Development')
+                ->label(__('Development'))
                 ->icon('heroicon-o-code-bracket')
                 ->button()
                 ->color('gray')
@@ -92,7 +92,7 @@ class EditWorkItem extends EditRecord
     private function suggestEstimateAction(): Action
     {
         return Action::make('suggestEstimate')
-            ->label('Suggest estimate')
+            ->label(__('Suggest estimate'))
             ->icon('heroicon-o-light-bulb')
             ->color('gray')
             ->visible(fn (): bool => app(WorkAssists::class)->isAvailable()
@@ -130,7 +130,7 @@ class EditWorkItem extends EditRecord
     private function startTimerAction(): Action
     {
         return Action::make('startTimer')
-            ->label('Start timer')
+            ->label(__('Start timer'))
             ->icon('heroicon-o-play')
             ->color('success')
             ->visible(fn (): bool => app(Timers::class)->timerAvailable($this->getRecord(), auth()->user())
@@ -177,11 +177,11 @@ class EditWorkItem extends EditRecord
     private function createBranchAction(): Action
     {
         return Action::make('createBranch')
-            ->label('Create branch')
+            ->label(__('Create branch'))
             ->icon('heroicon-o-arrow-turn-down-right')
             ->schema(fn (): array => [
                 Select::make('repository_id')
-                    ->label('Repository')
+                    ->label(__('Repository'))
                     ->options(fn (): array => app(CodeHosts::class)->repositoriesFor($this->getRecord())->pluck('full_name', 'id')->all())
                     ->default(fn (): ?int => app(CodeHosts::class)->repositoriesFor($this->getRecord())->first()?->getKey())
                     ->required()
@@ -206,12 +206,12 @@ class EditWorkItem extends EditRecord
     private function openPullRequestAction(): Action
     {
         return Action::make('openPullRequest')
-            ->label('Open pull request')
+            ->label(__('Open pull request'))
             ->icon('heroicon-o-arrow-up-on-square')
             ->visible(fn (): bool => WorkItemBranch::query()->where('work_item_id', $this->getRecord()->getKey())->live()->exists())
             ->schema(fn (): array => [
                 Select::make('branch_id')
-                    ->label('From branch')
+                    ->label(__('From branch'))
                     ->options(fn (): array => WorkItemBranch::query()->where('work_item_id', $this->getRecord()->getKey())->live()->pluck('name', 'id')->all())
                     ->required(),
                 TextInput::make('title')->default(fn (): string => $this->getRecord()->display_label)->required()->maxLength(250),
@@ -236,10 +236,10 @@ class EditWorkItem extends EditRecord
     private function linkPullRequestAction(): Action
     {
         return Action::make('linkPullRequest')
-            ->label('Link existing pull request')
+            ->label(__('Link existing pull request'))
             ->icon('heroicon-o-link')
             ->schema([
-                TextInput::make('url')->label('Pull request URL')->url()->required()->placeholder('https://github.com/org/repo/pull/42'),
+                TextInput::make('url')->label(__('Pull request URL'))->url()->required()->placeholder('https://github.com/org/repo/pull/42'),
             ])
             ->action(function (array $data): void {
                 try {
@@ -265,7 +265,7 @@ class EditWorkItem extends EditRecord
     private function logTimeAction(): Action
     {
         return Action::make('logTime')
-            ->label('Log time')
+            ->label(__('Log time'))
             ->icon('heroicon-o-clock')
             ->color('gray')
             // Absent in Clockify mode on an item with a task, for a user who has the timer — so no
@@ -276,7 +276,7 @@ class EditWorkItem extends EditRecord
             ->modalHeading(fn (): string => 'Log time on '.$this->getRecord()->key)
             ->schema([
                 TextInput::make('minutes')
-                    ->label('Minutes')
+                    ->label(__('Minutes'))
                     ->numeric()
                     ->minValue(1)
                     ->maxValue(1440)
@@ -286,10 +286,10 @@ class EditWorkItem extends EditRecord
                 DatePicker::make('date')->native(false)->required()->default(today()),
 
                 Toggle::make('is_billable')
-                    ->label('Billable')
+                    ->label(__('Billable'))
                     ->default(true),
 
-                Textarea::make('description')->label('Note')->rows(2),
+                Textarea::make('description')->label(__('Note'))->rows(2),
             ])
             ->action(function (array $data): void {
                 /** @var WorkItem $item */
