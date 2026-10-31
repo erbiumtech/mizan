@@ -87,8 +87,12 @@ class SelfClockInTest extends TestCase
 
     public function test_a_third_punch_is_refused_and_points_at_regularization(): void
     {
+        // Hours apart, as a real day is: punches within a minute of the check-in are one tap
+        // (AttendanceRecorder::punch()), so three at the same frozen instant would be one punch.
         $this->recorder()->clock($this->employee);
+        Carbon::setTestNow('2026-10-28 18:02:00');
         $this->recorder()->clock($this->employee);
+        Carbon::setTestNow('2026-10-28 19:30:00');
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('regularization');
@@ -106,6 +110,7 @@ class SelfClockInTest extends TestCase
         $this->assertNull($day->accuracy_m);
 
         // A reading that arrives at clock-out fills a day that had none.
+        Carbon::setTestNow('2026-10-28 18:02:00');
         $day = $this->recorder()->clock($this->employee, ['latitude' => 24.86, 'longitude' => 67.01]);
         $this->assertSame(24.86, (float) $day->latitude);
         $this->assertNull($day->accuracy_m);
@@ -127,6 +132,7 @@ class SelfClockInTest extends TestCase
             ->assertJsonPath('data.source', AttendanceDay::SOURCE_SELF_SERVICE)
             ->assertJsonPath('data.latitude', 31.5204);
 
+        Carbon::setTestNow('2026-10-28 18:02:00');
         $this->postJson('/api/v1/my-attendance/clock')
             ->assertOk()
             ->assertJsonPath('data.date', '2026-10-28');
