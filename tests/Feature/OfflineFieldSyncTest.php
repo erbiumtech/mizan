@@ -74,16 +74,18 @@ class OfflineFieldSyncTest extends AccountingTestCase
     /** @return array{id: string, payload: array<string, mixed>, captured_at: string} */
     private function line(string $at, array $extra = []): array
     {
+        // array_replace, not `+`: a union keeps the left-hand key, so `['job_id' => 99999]` was ignored and
+        // the "job elsewhere" lines were written to this job and applied.
         return [
             'id' => (string) Str::ulid(),
-            'payload' => [
+            'payload' => array_replace([
                 'type' => 'entry',
                 'job_id' => $this->job->getKey(),
                 'log_date' => substr($at, 0, 10),
                 'kind' => 'delay',
                 'description' => 'Concrete pump late',
                 'started_at' => substr($at, 11, 5),
-            ] + $extra,
+            ], $extra),
             'captured_at' => $at,
         ];
     }
