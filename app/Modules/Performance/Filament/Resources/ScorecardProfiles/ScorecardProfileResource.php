@@ -48,14 +48,14 @@ class ScorecardProfileResource extends Resource
     {
         return $schema->components([
             Select::make('designation')
-                ->label('Designation')
+                ->label(__('Designation'))
                 ->options(fn (?ScorecardProfile $record): array => options('employees.designation', $record?->designation))
                 ->searchable()
                 ->required()
                 ->unique(ignoreRecord: true)
                 ->helperText('One profile per designation. A designation with none counts everything once.'),
 
-            Toggle::make('is_active')->label('In use')->default(true),
+            Toggle::make('is_active')->label(__('In use'))->default(true),
 
             Section::make('Weights')
                 ->description('What each kind of merit entry is worth to this job. One means "as the ledger '
@@ -84,12 +84,12 @@ class ScorecardProfileResource extends Resource
             ->columns([
                 TextColumn::make('designation')->searchable()->sortable(),
                 TextColumn::make('weights')
-                    ->label('Weights')
+                    ->label(__('Weights'))
                     ->state(fn (ScorecardProfile $record): string => collect(ScorecardProfile::SOURCES)
                         ->map(fn (string $label, string $source): string => $label.' ×'.$record->weightFor($source))
                         ->implode(' · '))
                     ->wrap(),
-                IconColumn::make('is_active')->label('In use')->boolean(),
+                IconColumn::make('is_active')->label(__('In use'))->boolean(),
             ])
             ->defaultSort('designation')
             ->recordActions([EditAction::make(), DeleteAction::make()]);

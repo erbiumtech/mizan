@@ -20,21 +20,21 @@ class CommentsTable
             ->columns([
                 // Nova: MorphTo `commentable` (On), types [Payslip], exceptOnForms.
                 TextColumn::make('commentable')
-                    ->label('On')
+                    ->label(__('On'))
                     ->state(fn (Comment $record): string => class_basename($record->commentable_type).' #'.$record->commentable_id),
 
                 // Nova: BelongsTo `user` (By) → User, exceptOnForms.
                 TextColumn::make('user.name')
-                    ->label('By'),
+                    ->label(__('By')),
 
                 TextColumn::make('body')
-                    ->label('Comment')
+                    ->label(__('Comment'))
                     ->searchable()
                     ->wrap(),
 
                 // Nova: Badge "Status" — computed open/resolved.
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->badge()
                     ->state(fn (Comment $record): string => $record->isResolved() ? 'resolved' : 'open')
                     ->color(fn (string $state): string => match ($state) {
@@ -45,7 +45,7 @@ class CommentsTable
 
                 // Nova: DateTime `created_at` (Created) — exceptOnForms, sortable.
                 TextColumn::make('created_at')
-                    ->label('Created')
+                    ->label(__('Created'))
                     ->dateTime()
                     ->sortable(),
             ])
@@ -57,7 +57,7 @@ class CommentsTable
                 // Nova action: ResolveComment ("Mark Resolved"), showInline,
                 // canRun can('resolve', $comment) -> policy resolve() = CommentResolve permission.
                 Action::make('resolveComment')
-                    ->label('Mark Resolved')
+                    ->label(__('Mark Resolved'))
                     ->icon('heroicon-o-check-circle')
                     ->requiresConfirmation()
                     ->visible(fn (Comment $record): bool => ! $record->isResolved()
@@ -68,7 +68,7 @@ class CommentsTable
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                     BulkAction::make('resolveCommentBulk')
-                        ->label('Mark Resolved')
+                        ->label(__('Mark Resolved'))
                         ->icon('heroicon-o-check-circle')
                         ->requiresConfirmation()
                         ->visible(fn (): bool => auth()->user()?->can('CommentResolve') ?? false)

@@ -370,7 +370,7 @@ class Dashboard extends BaseDashboard
     private function arrangeAction(): Action
     {
         return Action::make('arrange')
-            ->label('Arrange')
+            ->label(__('Arrange'))
             ->icon('heroicon-m-squares-2x2')
             ->color('gray')
             ->action(fn (): bool => $this->arranging = true);
@@ -389,7 +389,7 @@ class Dashboard extends BaseDashboard
 
         return [
             Action::make('doneArranging')
-                ->label('Done')
+                ->label(__('Done'))
                 ->icon('heroicon-m-check')
                 ->action(fn (): bool => $this->arranging = false),
 
@@ -416,7 +416,7 @@ class Dashboard extends BaseDashboard
     private function resetArrangementAction(): Action
     {
         return Action::make('resetArrangement')
-            ->label('Reset to the company default')
+            ->label(__('Reset to the company default'))
             ->icon('heroicon-m-arrow-uturn-left')
             ->color('gray')
             ->requiresConfirmation()
@@ -445,7 +445,7 @@ class Dashboard extends BaseDashboard
     private function setCompanyDefaultAction(): Action
     {
         return Action::make('setCompanyDefault')
-            ->label('Make this the company default')
+            ->label(__('Make this the company default'))
             ->icon('heroicon-m-building-office-2')
             ->color('gray')
             ->action(function (): void {
@@ -474,7 +474,7 @@ class Dashboard extends BaseDashboard
     private function applyToEveryoneAction(): Action
     {
         return Action::make('applyToEveryone')
-            ->label('Apply the default to everybody')
+            ->label(__('Apply the default to everybody'))
             ->icon('heroicon-m-users')
             ->color('danger')
             ->requiresConfirmation()
@@ -539,8 +539,8 @@ class Dashboard extends BaseDashboard
             ->modalSubmitActionLabel('Show')
             ->fillForm(fn (): array => $this->range())
             ->schema([
-                DatePicker::make('from')->label('From')->native(false)->required(),
-                DatePicker::make('to')->label('To')->native(false)->required(),
+                DatePicker::make('from')->label(__('From'))->native(false)->required(),
+                DatePicker::make('to')->label(__('To'))->native(false)->required(),
             ])
             ->action(function (array $data): void {
                 $this->period = DashboardPeriod::CUSTOM;

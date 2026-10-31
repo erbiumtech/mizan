@@ -21,12 +21,12 @@ class JournalEntriesRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('entry_number')
-                    ->label('Entry Number')
+                    ->label(__('Entry Number'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('entry_date')
-                    ->label('Date')
+                    ->label(__('Date'))
                     ->date()
                     ->sortable(),
 

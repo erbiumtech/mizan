@@ -62,19 +62,19 @@ class EmployeeProjectsRelationManager extends RelationManager
                     }),
 
                 TextColumn::make('pivot.role')
-                    ->label('Project role')
+                    ->label(__('Project role'))
                     ->placeholder('—'),
 
                 TextColumn::make('pivot.allocation_pct')
-                    ->label('Allocation')
+                    ->label(__('Allocation'))
                     ->formatStateUsing(fn ($state): string => $state === null ? '—' : rtrim(rtrim(number_format((float) $state, 2), '0'), '.').'%'),
 
-                TextColumn::make('pivot.from_date')->label('From')->date(),
+                TextColumn::make('pivot.from_date')->label(__('From'))->date(),
 
-                TextColumn::make('pivot.to_date')->label('To')->date()->placeholder('open'),
+                TextColumn::make('pivot.to_date')->label(__('To'))->date()->placeholder('open'),
 
                 TextColumn::make('stint_status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->badge()
                     ->state(fn (Project $record): string => self::isCurrent($record) ? 'current' : 'ended')
                     ->color(fn (string $state): string => $state === 'current' ? 'success' : 'gray'),

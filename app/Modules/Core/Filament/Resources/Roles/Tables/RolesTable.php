@@ -26,16 +26,16 @@ class RolesTable
                     ->sortable(),
 
                 TextColumn::make('guard_name')
-                    ->label('Guard')
+                    ->label(__('Guard'))
                     ->sortable(),
 
                 TextColumn::make('permissions_count')
-                    ->label('Permissions')
+                    ->label(__('Permissions'))
                     ->counts('permissions')
                     ->badge(),
 
                 TextColumn::make('users_count')
-                    ->label('Users')
+                    ->label(__('Users'))
                     ->counts('users')
                     ->badge(),
 
@@ -57,7 +57,7 @@ class RolesTable
                  * new name, so the seeder will not find it and will not grant to it.
                  */
                 Action::make('duplicate')
-                    ->label('Duplicate')
+                    ->label(__('Duplicate'))
                     ->icon('heroicon-o-document-duplicate')
                     ->color('gray')
                     ->requiresConfirmation()

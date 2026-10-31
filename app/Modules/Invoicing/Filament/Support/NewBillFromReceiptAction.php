@@ -22,7 +22,7 @@ class NewBillFromReceiptAction
     public static function make(): Action
     {
         return Action::make('newBillFromReceipt')
-            ->label('New bill from receipt')
+            ->label(__('New bill from receipt'))
             ->icon('heroicon-o-camera')
             ->color('gray')
             ->visible(fn (): bool => (bool) config('ai.enabled')
@@ -34,7 +34,7 @@ class NewBillFromReceiptAction
             ->modalSubmitActionLabel('Read it')
             ->schema([
                 FileUpload::make('receipt')
-                    ->label('Receipt')
+                    ->label(__('Receipt'))
                     ->disk('public')
                     ->directory('invoice-attachments')
                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'])

@@ -34,7 +34,7 @@ class PaymentCertificateForm
                     ->columns(2)
                     ->schema([
                         Select::make('contract_id')
-                            ->label('Contract')
+                            ->label(__('Contract'))
                             ->options(fn (): array => Contract::query()
                                 ->whereNot('status', Contract::STATUS_DRAFT)
                                 ->with('job')
@@ -50,7 +50,7 @@ class PaymentCertificateForm
                             ->dehydrated(),
 
                         Select::make('progress_claim_id')
-                            ->label('Answers claim')
+                            ->label(__('Answers claim'))
                             ->options(fn (callable $get): array => ProgressClaim::query()
                                 ->where('contract_id', $get('contract_id'))
                                 ->orderByDesc('period_end')
@@ -64,12 +64,12 @@ class PaymentCertificateForm
                             ->helperText('Optional: clause 14.6 lets the certifier issue without a conforming statement.'),
 
                         DatePicker::make('period_end')
-                            ->label('Valuation date')
+                            ->label(__('Valuation date'))
                             ->required()
                             ->helperText('Every figure on the certificate is "to" this date.'),
 
                         DatePicker::make('period_start')
-                            ->label('Period from'),
+                            ->label(__('Period from')),
 
                         Textarea::make('notes')
                             ->rows(2)
@@ -106,7 +106,7 @@ class PaymentCertificateForm
                         || static::siteRecord($get) !== null)
                     ->schema([
                         Placeholder::make('materials_on_site')
-                            ->label('Held in the store, at cost')
+                            ->label(__('Held in the store, at cost'))
                             ->visible(fn (callable $get): bool => static::materialsOnSite($get) !== null)
                             ->content(fn (callable $get): string => static::materialsOnSite($get) ?? ''),
 

@@ -37,7 +37,7 @@ class UserAccessSettingsSection implements SettingsSection
                 ->description('Accounts made on the Users page.')
                 ->schema([
                     Toggle::make('users_new_active')
-                        ->label('New accounts can sign in straight away')
+                        ->label(__('New accounts can sign in straight away'))
                         ->helperText('On, an account made on the Users page is active and can sign in with the password typed there. '
                             .'Off, it starts deactivated until somebody presses Activate on the Users list. Either way the '
                             .'Active switch on the form decides for that one account. Invitations are not affected: an '

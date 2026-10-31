@@ -101,14 +101,14 @@ class OpportunityResource extends Resource
                     TextInput::make('title')->required()->maxLength(255)->placeholder('Warehouse system, phase 1'),
 
                     Select::make('pipeline_id')
-                        ->label('Pipeline')
+                        ->label(__('Pipeline'))
                         ->options(fn (): array => Pipeline::query()->active()->pluck('name', 'id')->all())
                         ->default(fn (): ?int => Pipeline::default()?->getKey())
                         ->required()
                         ->live(),
 
                     Select::make('pipeline_stage_id')
-                        ->label('Stage')
+                        ->label(__('Stage'))
                         ->options(fn (Get $get): array => $get('pipeline_id')
                             ? PipelineStage::where('pipeline_id', $get('pipeline_id'))->orderBy('sort')->pluck('name', 'id')->all()
                             : [])
@@ -116,7 +116,7 @@ class OpportunityResource extends Resource
                         ->required(),
 
                     Select::make('owner_employee_id')
-                        ->label('Owner')
+                        ->label(__('Owner'))
                         ->options(fn (): array => Employee::query()
                             ->where('is_active', true)
                             ->get()
@@ -133,7 +133,7 @@ class OpportunityResource extends Resource
                 ->description('A lead or a customer, not both — unless the lead has already become that customer.')
                 ->schema([
                     Select::make('lead_id')
-                        ->label('Lead')
+                        ->label(__('Lead'))
                         ->options(fn (): array => Lead::query()
                             ->orderByDesc('id')
                             ->limit(200)
@@ -146,7 +146,7 @@ class OpportunityResource extends Resource
                     // Absent entirely without Invoicing: there are no customers to pick, and
                     // §1's whole point is that CRM works without it.
                     Select::make('contact_id')
-                        ->label('Customer')
+                        ->label(__('Customer'))
                         ->options(fn (): array => Contact::query()->orderBy('name')->pluck('name', 'id')->all())
                         ->searchable()
                         ->visible(fn (): bool => modules()->enabled('invoicing'))
@@ -158,16 +158,16 @@ class OpportunityResource extends Resource
                 ->schema([
                     TextInput::make('amount')->numeric()->minValue(0)->default(0)->required(),
 
-                    TextInput::make('currency_code')->label('Currency')->maxLength(3)->placeholder(CompanyCurrency::code())
+                    TextInput::make('currency_code')->label(__('Currency'))->maxLength(3)->placeholder(CompanyCurrency::code())
                         ->helperText('Blank means the company\'s own currency.'),
 
                     TextInput::make('exchange_rate')
-                        ->label('Rate used')
+                        ->label(__('Rate used'))
                         ->numeric()
                         ->helperText('Stored with the deal on purpose. A forecast that read today\'s rate would rewrite last quarter every morning.'),
 
                     TextInput::make('probability_pct')
-                        ->label('Likely to close (%)')
+                        ->label(__('Likely to close (%)'))
                         ->numeric()
                         ->minValue(0)
                         ->maxValue(100)
@@ -194,7 +194,7 @@ class OpportunityResource extends Resource
                     ->description(fn (Opportunity $record): string => $record->partyLabel()),
 
                 TextColumn::make('stage.name')
-                    ->label('Stage')
+                    ->label(__('Stage'))
                     ->badge()
                     ->color(fn (Opportunity $record): string => match (true) {
                         $record->isWon() => 'success',
@@ -214,17 +214,17 @@ class OpportunityResource extends Resource
                     ->sortable(),
 
                 TextColumn::make('owner.display_label')
-                    ->label('Owner')
+                    ->label(__('Owner'))
                     ->placeholder('—')
                     ->visible(fn (): bool => modules()->enabled('employees'))
                     ->toggleable(),
 
-                TextColumn::make('expected_close_on')->label('Expected')->date('d M Y')->placeholder('—')->sortable(),
+                TextColumn::make('expected_close_on')->label(__('Expected'))->date('d M Y')->placeholder('—')->sortable(),
 
                 // The one column that tells somebody to do something. An open deal with
                 // nothing planned is the problem §3 says to surface, and this is where.
                 TextColumn::make('next_action')
-                    ->label('Next')
+                    ->label(__('Next'))
                     ->state(fn (Opportunity $record): string => $record->isOpen()
                         ? ($record->nextActions()->open()->orderBy('due_on')->value('title') ?? 'nothing planned')
                         : '—')
@@ -236,32 +236,32 @@ class OpportunityResource extends Resource
             ->defaultSort('expected_close_on')
             ->filters([
                 SelectFilter::make('pipeline_id')
-                    ->label('Pipeline')
+                    ->label(__('Pipeline'))
                     ->options(fn (): array => Pipeline::pluck('name', 'id')->all()),
 
                 SelectFilter::make('pipeline_stage_id')
-                    ->label('Stage')
+                    ->label(__('Stage'))
                     ->options(fn (): array => PipelineStage::orderBy('sort')->pluck('name', 'id')->all()),
 
                 Filter::make('open')
-                    ->label('Open')
+                    ->label(__('Open'))
                     ->default()
                     ->query(fn (Builder $query): Builder => $query->open()),
 
                 Filter::make('unplanned')
-                    ->label('Nothing planned')
+                    ->label(__('Nothing planned'))
                     ->query(fn (Builder $query): Builder => $query->open()
                         ->whereDoesntHave('nextActions', fn (Builder $actions) => $actions->open())),
             ])
             ->recordActions([
                 Action::make('move')
-                    ->label('Move')
+                    ->label(__('Move'))
                     ->icon('heroicon-o-arrow-right')
                     ->color('info')
                     ->visible(fn (Opportunity $record): bool => auth()->user()?->can('move', $record) ?? false)
                     ->schema([
                         Select::make('pipeline_stage_id')
-                            ->label('To stage')
+                            ->label(__('To stage'))
                             ->options(fn (Opportunity $record): array => PipelineStage::query()
                                 ->where('pipeline_id', $record->pipeline_id)
                                 ->orderBy('sort')
@@ -287,7 +287,7 @@ class OpportunityResource extends Resource
                     }),
 
                 Action::make('logActivity')
-                    ->label('Log a call')
+                    ->label(__('Log a call'))
                     ->icon('heroicon-o-phone')
                     ->color('gray')
                     ->visible(fn (Opportunity $record): bool => auth()->user()?->can('update', $record) ?? false)
@@ -300,7 +300,7 @@ class OpportunityResource extends Resource
                     }),
 
                 Action::make('planNext')
-                    ->label('Plan the next step')
+                    ->label(__('Plan the next step'))
                     ->icon('heroicon-o-bell-alert')
                     ->color('warning')
                     ->visible(fn (Opportunity $record): bool => $record->isOpen()
@@ -316,7 +316,7 @@ class OpportunityResource extends Resource
                     }),
 
                 Action::make('win')
-                    ->label('Won')
+                    ->label(__('Won'))
                     ->icon('heroicon-o-trophy')
                     ->color('success')
                     ->requiresConfirmation()
@@ -332,13 +332,13 @@ class OpportunityResource extends Resource
                     }),
 
                 Action::make('lose')
-                    ->label('Lost')
+                    ->label(__('Lost'))
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->visible(fn (Opportunity $record): bool => auth()->user()?->can('close', $record) ?? false)
                     ->schema([
                         Select::make('lost_reason_id')
-                            ->label('Why')
+                            ->label(__('Why'))
                             ->options(fn (): array => LostReason::query()->active()->orderBy('sort')->pluck('name', 'id')->all())
                             ->required()
                             ->helperText('From the list rather than free text: win rate by reason is the report worth having, and three spellings of "too expensive" produce three rates.'),

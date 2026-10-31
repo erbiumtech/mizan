@@ -59,7 +59,7 @@ class AnnouncementResource extends Resource
                 ->rows(8)
                 ->helperText('Plain text. A blank line starts a new paragraph in the email.'),
             Select::make('audience_kind')
-                ->label('Who it is for')
+                ->label(__('Who it is for'))
                 ->options([
                     Announcement::AUDIENCE_ALL => 'Everyone',
                     Announcement::AUDIENCE_DEPARTMENT => 'One department',
@@ -73,24 +73,24 @@ class AnnouncementResource extends Resource
                 ->required()
                 ->live(),
             Select::make('audience_value')
-                ->label('Department')
+                ->label(__('Department'))
                 ->options(fn (?Announcement $record): array => options('employees.department', $record?->audience_value))
                 ->visible(fn (Get $get): bool => $get('audience_kind') === Announcement::AUDIENCE_DEPARTMENT)
                 ->required(fn (Get $get): bool => $get('audience_kind') === Announcement::AUDIENCE_DEPARTMENT),
             Select::make('audience_value')
-                ->label('Location')
+                ->label(__('Location'))
                 ->options(fn (): array => \App\Modules\Core\Models\WorkLocation::options())
                 ->visible(fn (Get $get): bool => $get('audience_kind') === Announcement::AUDIENCE_LOCATION)
                 ->required(fn (Get $get): bool => $get('audience_kind') === Announcement::AUDIENCE_LOCATION),
             Select::make('audience_value')
-                ->label('Role')
+                ->label(__('Role'))
                 ->options(fn (): array => \Spatie\Permission\Models\Role::query()
                     ->where(config('permission.column_names.team_foreign_key', 'company_id'), \Filament\Facades\Filament::getTenant()?->getKey())
                     ->orderBy('name')->pluck('name', 'name')->all())
                 ->visible(fn (Get $get): bool => $get('audience_kind') === Announcement::AUDIENCE_ROLE)
                 ->required(fn (Get $get): bool => $get('audience_kind') === Announcement::AUDIENCE_ROLE),
             Select::make('audience_value')
-                ->label('Person')
+                ->label(__('Person'))
                 ->options(fn (): array => \App\Modules\Employees\Models\Employee::query()->where('is_active', true)->with('user')
                     ->orderBy('employee_id')->get()
                     ->mapWithKeys(fn ($employee): array => [(string) $employee->getKey() => $employee->display_label])->all())
@@ -103,11 +103,11 @@ class AnnouncementResource extends Resource
                 ->columnSpanFull(),
             // docs/saas-launch-plan.md §14.10: what kind of notice, and how loudly.
             Select::make('category')
-                ->label('Category')
+                ->label(__('Category'))
                 ->options(fn (?Announcement $record): array => options('employees.announcement_category', $record?->category))
                 ->placeholder('None'),
             Select::make('priority')
-                ->label('Priority')
+                ->label(__('Priority'))
                 ->options(Announcement::PRIORITIES)
                 ->default('normal')
                 ->required(),
@@ -121,13 +121,13 @@ class AnnouncementResource extends Resource
              * audience on the first run after the date.
              */
             DateTimePicker::make('published_at')
-                ->label('Publish at')
+                ->label(__('Publish at'))
                 ->native(false)
                 ->seconds(false)
                 ->helperText('Leave blank to publish by hand. A date in the future publishes then, and the '
                     .'audience is told that morning.'),
             DatePicker::make('expires_at')
-                ->label('Show until')
+                ->label(__('Show until'))
                 ->native(false)
                 ->helperText('Leave blank to show it until it is archived.'),
         ]);
@@ -138,7 +138,7 @@ class AnnouncementResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('title')->searchable()->sortable()->limit(50),
-                TextColumn::make('audience')->label('For')->state(fn (Announcement $record): string => $record->audienceLabel()),
+                TextColumn::make('audience')->label(__('For'))->state(fn (Announcement $record): string => $record->audienceLabel()),
                 TextColumn::make('category')->badge()->color('gray')->placeholder('—')->toggleable(),
                 TextColumn::make('priority')
                     ->badge()
@@ -148,12 +148,12 @@ class AnnouncementResource extends Resource
                     }),
                 IconColumn::make('pinned')->boolean(),
                 TextColumn::make('published_at')->dateTime()->placeholder('Draft')->sortable(),
-                TextColumn::make('expires_at')->label('Until')->date()->placeholder('—')->sortable(),
+                TextColumn::make('expires_at')->label(__('Until'))->date()->placeholder('—')->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
                 TernaryFilter::make('published_at')
-                    ->label('Published')
+                    ->label(__('Published'))
                     ->nullable()
                     ->trueLabel('Published')
                     ->falseLabel('Drafts'),
@@ -172,7 +172,7 @@ class AnnouncementResource extends Resource
                  * is one click away rather than unreachable.
                  */
                 TernaryFilter::make('archived_at')
-                    ->label('Archived')
+                    ->label(__('Archived'))
                     ->nullable()
                     ->trueLabel('Archived only')
                     ->falseLabel('Not archived')

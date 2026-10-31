@@ -52,20 +52,20 @@ class MeritEntryResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('occurred_on')->date('d M Y')->sortable(),
-                TextColumn::make('employee.display_label')->label('Employee'),
+                TextColumn::make('employee.display_label')->label(__('Employee')),
                 TextColumn::make('points')
                     ->alignEnd()
                     ->color(fn (MeritEntry $record): string => $record->points > 0 ? 'success' : 'danger')
                     ->formatStateUsing(fn (int $state): string => ($state > 0 ? '+' : '').$state),
                 TextColumn::make('reason')->limit(60)->searchable(),
-                TextColumn::make('source_type')->label('Source')->badge()->placeholder('by hand'),
-                TextColumn::make('recordedBy.name')->label('Recorded by')->placeholder('system'),
-                TextColumn::make('reverses_entry_id')->label('Reverses')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('source_type')->label(__('Source'))->badge()->placeholder('by hand'),
+                TextColumn::make('recordedBy.name')->label(__('Recorded by'))->placeholder('system'),
+                TextColumn::make('reverses_entry_id')->label(__('Reverses'))->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('occurred_on', 'desc')
             ->filters([
-                Filter::make('credits')->label('Credits only')->query(fn (Builder $q): Builder => $q->where('points', '>', 0)),
-                Filter::make('debits')->label('Debits only')->query(fn (Builder $q): Builder => $q->where('points', '<', 0)),
+                Filter::make('credits')->label(__('Credits only'))->query(fn (Builder $q): Builder => $q->where('points', '>', 0)),
+                Filter::make('debits')->label(__('Debits only'))->query(fn (Builder $q): Builder => $q->where('points', '<', 0)),
             ]);
     }
 

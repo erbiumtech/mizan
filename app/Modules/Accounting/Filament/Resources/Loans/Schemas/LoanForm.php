@@ -33,7 +33,7 @@ class LoanForm
                             ->nullable(),
 
                         TextInput::make('principal')
-                            ->label('Amount borrowed')
+                            ->label(__('Amount borrowed'))
                             ->numeric()
                             ->minValue(1)
                             ->required()
@@ -41,7 +41,7 @@ class LoanForm
                             ->live(onBlur: true),
 
                         TextInput::make('annual_rate')
-                            ->label('Interest rate')
+                            ->label(__('Interest rate'))
                             ->numeric()
                             ->minValue(0)
                             ->maxValue(200)
@@ -52,7 +52,7 @@ class LoanForm
                             ->helperText('Nominal annual rate, divided by twelve for each month. Zero for an interest-free arrangement.'),
 
                         TextInput::make('term_months')
-                            ->label('Term')
+                            ->label(__('Term'))
                             ->numeric()
                             ->minValue(1)
                             ->maxValue(600)
@@ -61,7 +61,7 @@ class LoanForm
                             ->live(onBlur: true),
 
                         DatePicker::make('starts_on')
-                            ->label('First instalment due')
+                            ->label(__('First instalment due'))
                             ->native(false)
                             ->default(now()->startOfMonth()->addMonth())
                             ->required()
@@ -69,7 +69,7 @@ class LoanForm
                             ->helperText('A day too late for a short month uses that month\'s last day.'),
 
                         Toggle::make('is_active')
-                            ->label('Active')
+                            ->label(__('Active'))
                             ->default(true),
 
                         Textarea::make('notes')->rows(2)->nullable()->columnSpanFull(),
@@ -78,7 +78,7 @@ class LoanForm
                         // number somebody is deciding on — being told it only
                         // after committing to the loan is the wrong order.
                         Placeholder::make('preview')
-                            ->label('What this works out at')
+                            ->label(__('What this works out at'))
                             ->content(function (Get $get): string {
                                 $principal = (float) $get('principal');
                                 $months = (int) $get('term_months');
@@ -113,21 +113,21 @@ class LoanForm
                     ->description('A repayment is a three-sided entry: it reduces what is owed, records the interest as a cost, and takes the money from somewhere.')
                     ->schema([
                         Select::make('liability_account_id')
-                            ->label('Loan account')
+                            ->label(__('Loan account'))
                             ->options(fn (): array => static::accountsOfType(['liability']))
                             ->searchable()
                             ->required()
                             ->helperText('The liability carrying what is still owed.'),
 
                         Select::make('interest_account_id')
-                            ->label('Interest account')
+                            ->label(__('Interest account'))
                             ->options(fn (): array => static::accountsOfType(['expense']))
                             ->searchable()
                             ->required()
                             ->helperText('Where the cost of borrowing is charged.'),
 
                         Select::make('payment_account_id')
-                            ->label('Paid from')
+                            ->label(__('Paid from'))
                             ->options(fn (): array => static::accountsOfType(['asset']))
                             ->searchable()
                             ->required()

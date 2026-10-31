@@ -28,7 +28,7 @@ class ListOptionValues extends ListRecords
              * accounts for every dropdown in the application, not only its own.
              */
             Action::make('elsewhere')
-                ->label('Other dropdowns')
+                ->label(__('Other dropdowns'))
                 ->icon('heroicon-o-arrow-top-right-on-square')
                 ->color('gray')
                 ->slideOver()

@@ -31,7 +31,7 @@ class PlantItemForm
                     ->columns(2)
                     ->schema([
                         TextInput::make('code')
-                            ->label('Plant number')
+                            ->label(__('Plant number'))
                             ->required()
                             ->maxLength(32)
                             ->helperText('What the site calls it: EXC-04, CRN-01. Unique.'),
@@ -54,7 +54,7 @@ class PlantItemForm
                             ->helperText('Registration or serial, for the ones that have one.'),
 
                         Select::make('ownership')
-                            ->label('How it is held')
+                            ->label(__('How it is held'))
                             ->options(PlantItem::OWNERSHIPS)
                             ->default(PlantItem::OWNERSHIP_OWNED)
                             ->selectablePlaceholder(false)
@@ -63,7 +63,7 @@ class PlantItemForm
                             ->helperText('Owned plant charges jobs internal hire. Hired plant does not — its supplier invoice is the cost, and its logs are the check against that invoice.'),
 
                         Select::make('meter_unit')
-                            ->label('Meter reads in')
+                            ->label(__('Meter reads in'))
                             ->options([
                                 PlantItem::METER_HOURS => 'Hours',
                                 PlantItem::METER_KILOMETRES => 'Kilometres',
@@ -77,7 +77,7 @@ class PlantItemForm
                     ->visible(fn (callable $get): bool => $get('ownership') === PlantItem::OWNERSHIP_OWNED)
                     ->schema([
                         Select::make('fixed_asset_id')
-                            ->label('Fixed asset')
+                            ->label(__('Fixed asset'))
                             ->options(fn (): array => FixedAsset::query()->orderBy('name')->pluck('name', 'id')->all())
                             ->searchable()
                             ->helperText('Optional, and worth filling in: without it the recovery account has nothing to be measured against.'),
@@ -89,7 +89,7 @@ class PlantItemForm
                     ->columns(2)
                     ->schema([
                         Select::make('supplier_contact_id')
-                            ->label('Hired from')
+                            ->label(__('Hired from'))
                             ->options(fn (): array => Contact::query()->orderBy('name')->pluck('name', 'id')->all())
                             ->searchable()
                             // Absent without Invoicing, which owns Contacts (§18.1). The column stays null and the
@@ -97,7 +97,7 @@ class PlantItemForm
                             ->visible(fn (): bool => modules()->enabled('invoicing')),
 
                         Select::make('commitment_id')
-                            ->label('Hire order')
+                            ->label(__('Hire order'))
                             ->options(fn (): array => Commitment::query()
                                 ->where('type', Commitment::TYPE_PLANT_HIRE)
                                 ->orderByDesc('id')->get()
@@ -114,22 +114,22 @@ class PlantItemForm
                     ->columns(3)
                     ->schema([
                         TextInput::make('working_rate')
-                            ->label('Working')
+                            ->label(__('Working'))
                             ->numeric()
                             ->helperText('Per hour or per kilometre, as the meter reads.'),
 
                         TextInput::make('idle_rate')
-                            ->label('Idle')
+                            ->label(__('Idle'))
                             ->numeric()
                             ->helperText('On site, available, not working. Blank means not charged.'),
 
                         TextInput::make('standby_rate')
-                            ->label('Standby')
+                            ->label(__('Standby'))
                             ->numeric()
                             ->helperText('Usually a reduced rate. Blank means not charged.'),
 
                         Select::make('default_cost_code_id')
-                            ->label('Usual cost code')
+                            ->label(__('Usual cost code'))
                             ->options(fn (): array => CostCode::query()
                                 ->where('is_leaf', true)->where('is_active', true)
                                 ->orderBy('code')->get()
@@ -142,7 +142,7 @@ class PlantItemForm
                 Section::make('Notes')
                     ->schema([
                         Toggle::make('is_active')
-                            ->label('In the fleet')
+                            ->label(__('In the fleet'))
                             ->default(true)
                             ->helperText('Switching a machine off takes it out of the pickers. There is no delete: a machine with cost against it is a row somebody will ask about.'),
 

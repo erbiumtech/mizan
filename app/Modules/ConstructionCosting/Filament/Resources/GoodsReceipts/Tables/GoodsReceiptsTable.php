@@ -35,19 +35,19 @@ class GoodsReceiptsTable
                     ->sortable(),
 
                 TextColumn::make('received_on')
-                    ->label('Received')
+                    ->label(__('Received'))
                     ->date()
                     ->sortable(),
 
                 TextColumn::make('commitment.number')
-                    ->label('Order')
+                    ->label(__('Order'))
                     // "Unordered" rather than an em dash: it is a fact about the delivery, not a missing field.
                     ->placeholder('Unordered')
                     ->searchable()
                     ->toggleable(),
 
                 TextColumn::make('delivery_note_reference')
-                    ->label('Delivery note')
+                    ->label(__('Delivery note'))
                     ->placeholder('—')
                     ->searchable(),
 
@@ -60,20 +60,20 @@ class GoodsReceiptsTable
                     }),
 
                 TextColumn::make('total')
-                    ->label('Value')
+                    ->label(__('Value'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->state(fn (GoodsReceipt $record): float => $record->total())
                     ->tooltip('At order rate. The invoice may disagree, and the three-way match is where that is somebody\'s decision.'),
 
                 TextColumn::make('lines_count')
-                    ->label('Lines')
+                    ->label(__('Lines'))
                     ->counts('lines')
                     ->alignEnd()
                     ->toggleable(),
 
                 TextColumn::make('reversal_reason')
-                    ->label('Reversed because')
+                    ->label(__('Reversed because'))
                     ->wrap()
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -87,7 +87,7 @@ class GoodsReceiptsTable
                     ]),
 
                 SelectFilter::make('commitment_id')
-                    ->label('Order')
+                    ->label(__('Order'))
                     ->relationship('commitment', 'number')
                     ->searchable(),
             ])
@@ -97,7 +97,7 @@ class GoodsReceiptsTable
                     ->visible(fn (GoodsReceipt $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('post')
-                    ->label('Post')
+                    ->label(__('Post'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
@@ -111,14 +111,14 @@ class GoodsReceiptsTable
                     )),
 
                 Action::make('reverse')
-                    ->label('Reverse')
+                    ->label(__('Reverse'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('danger')
                     ->modalHeading('Reverse this delivery')
                     ->modalDescription('Puts the commitment back and reverses the accrued cost. Both stay on the record as rows — this is a correction, not a deletion.')
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Why')
+                            ->label(__('Why'))
                             ->rows(2)
                             ->required()
                             ->helperText('It takes cost off a job and commitment back onto an order. Somebody will ask why.'),

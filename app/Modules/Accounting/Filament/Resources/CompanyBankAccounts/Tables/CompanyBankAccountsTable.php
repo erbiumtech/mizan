@@ -16,33 +16,33 @@ class CompanyBankAccountsTable
         return $table
             ->columns([
                 TextColumn::make('title')
-                    ->label('Title')
+                    ->label(__('Title'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('bank.bank_name')
-                    ->label('Bank')
+                    ->label(__('Bank'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('account_no')
-                    ->label('Account No')
+                    ->label(__('Account No'))
                     ->formatStateUsing(fn (?string $state): ?string => $state
                         ? str_repeat('•', max(strlen($state) - 4, 0)).substr($state, -4)
                         : null)
                     ->searchable(),
 
                 TextColumn::make('account.name')
-                    ->label('Ledger account')
+                    ->label(__('Ledger account'))
                     ->placeholder('Cash / Bank (not set)')
                     ->toggleable(),
 
                 IconColumn::make('is_default')
-                    ->label('Default for its type')
+                    ->label(__('Default for its type'))
                     ->boolean(),
 
                 IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->boolean()
                     ->sortable(),
 

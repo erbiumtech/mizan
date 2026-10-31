@@ -29,7 +29,7 @@ class WorkerForm
             ->columns(2)
             ->components([
                 TextInput::make('code')
-                    ->label('Number')
+                    ->label(__('Number'))
                     ->required()
                     ->maxLength(32)
                     ->helperText('The number the site sheet and the gang leader use. Unique — two people on one number is how a week\'s hours land on the wrong person.'),
@@ -39,7 +39,7 @@ class WorkerForm
                     ->maxLength(255),
 
                 Select::make('engagement')
-                    ->label('Engaged as')
+                    ->label(__('Engaged as'))
                     ->options(Worker::ENGAGEMENTS)
                     ->default(Worker::ENGAGEMENT_DIRECT)
                     ->selectablePlaceholder(false)
@@ -49,7 +49,7 @@ class WorkerForm
                     ->helperText('Most hands on a site are not on the payroll. That is what this register is for.'),
 
                 Select::make('trade_id')
-                    ->label('Trade')
+                    ->label(__('Trade'))
                     ->options(fn (): array => Trade::query()->active()->orderBy('sort')->orderBy('code')->get()
                         ->mapWithKeys(fn (Trade $trade): array => [$trade->getKey() => $trade->displayName()])
                         ->all())
@@ -57,7 +57,7 @@ class WorkerForm
                     ->helperText('What decides the rate when nothing more specific is set.'),
 
                 Select::make('employee_id')
-                    ->label('Employee record')
+                    ->label(__('Employee record'))
                     ->searchable()
                     ->getSearchResultsUsing(fn (string $search): array => EmployeeOptions::search($search))
                     ->getOptionLabelUsing(fn ($value): ?string => EmployeeOptions::labelFor($value))
@@ -66,7 +66,7 @@ class WorkerForm
                     ->helperText('Links this person to the payroll, so what the job was charged can be compared with what was actually paid.'),
 
                 Select::make('subcontractor_contact_id')
-                    ->label('Supplied by')
+                    ->label(__('Supplied by'))
                     ->options(fn (): array => Contact::query()->orderBy('name')->pluck('name', 'id')->all())
                     ->searchable()
                     ->visible(fn (callable $get): bool => modules()->enabled('invoicing')
@@ -75,25 +75,25 @@ class WorkerForm
                     ->helperText('The gang leader or agency who supplies this person, and who is the one that gets paid.'),
 
                 TextInput::make('national_id')
-                    ->label('ID number')
+                    ->label(__('ID number'))
                     ->maxLength(64),
 
                 TextInput::make('phone')
                     ->maxLength(32),
 
                 DatePicker::make('started_on')
-                    ->label('Started')
+                    ->label(__('Started'))
                     ->native(false)
                     // Dates rather than the flag alone: "was he on site in March" is asked at the moment somebody
                     // disputes a week's hours, and a flag only ever answers about today.
                     ->helperText('Used to answer "was this person engaged then", which the In-use flag cannot.'),
 
                 DatePicker::make('ended_on')
-                    ->label('Left')
+                    ->label(__('Left'))
                     ->native(false),
 
                 Toggle::make('is_active')
-                    ->label('In use')
+                    ->label(__('In use'))
                     ->default(true)
                     ->helperText('Switching somebody off takes them out of the pickers. There is no delete: a worker with cost against their name is a row somebody will ask about.'),
 

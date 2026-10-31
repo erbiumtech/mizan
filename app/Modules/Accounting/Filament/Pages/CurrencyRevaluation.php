@@ -60,7 +60,7 @@ class CurrencyRevaluation extends Page
         return $schema
             ->components([
                 DatePicker::make('as_of')
-                    ->label('As at')
+                    ->label(__('As at'))
                     ->required()
                     ->live()
                     ->helperText('Month end, normally. The rate in force on this date is the one used.'),
@@ -80,7 +80,7 @@ class CurrencyRevaluation extends Page
             HelpAction::make('currency-revaluation', 'Currency Revaluation: Help'),
 
             Action::make('revalue')
-                ->label('Post revaluation')
+                ->label(__('Post revaluation'))
                 ->icon('heroicon-o-check-circle')
                 ->requiresConfirmation()
                 ->modalDescription('This posts an adjusting entry dated as at the date above. Running it again '

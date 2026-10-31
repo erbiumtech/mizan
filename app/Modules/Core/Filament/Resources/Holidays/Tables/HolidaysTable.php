@@ -23,7 +23,7 @@ class HolidaysTable
             ->defaultSort('date', 'desc')
             ->columns([
                 TextColumn::make('date')
-                    ->label('Date')
+                    ->label(__('Date'))
                     ->date('d M Y')
                     // The weekday, because a holiday that already falls on a
                     // non-working day is the one somebody wants to spot.
@@ -31,28 +31,28 @@ class HolidaysTable
                     ->sortable(),
 
                 TextColumn::make('name')
-                    ->label('Name')
+                    ->label(__('Name'))
                     ->searchable(),
 
                 TextColumn::make('location.name')
-                    ->label('Location')
+                    ->label(__('Location'))
                     ->placeholder('Company-wide')
                     ->sortable(),
 
                 IconColumn::make('is_recurring')
-                    ->label('Recurring')
+                    ->label(__('Recurring'))
                     ->boolean(),
 
                 TextColumn::make('notes')
-                    ->label('Notes')
+                    ->label(__('Notes'))
                     ->limit(60)
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 TernaryFilter::make('is_recurring')
-                    ->label('Recurring'),
+                    ->label(__('Recurring')),
                 SelectFilter::make('location_id')
-                    ->label('Location')
+                    ->label(__('Location'))
                     ->options(fn (): array => WorkLocation::options()),
             ])
             ->recordActions([

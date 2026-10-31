@@ -61,7 +61,7 @@ class ListPayslips extends ListRecords
         $employee = fn (): ?Employee => app(EmployeeAccess::class)->employeeFor(auth()->user());
 
         return Action::make('myWithholdingCertificate')
-            ->label('My withholding certificate')
+            ->label(__('My withholding certificate'))
             ->icon('heroicon-o-document-check')
             ->color('gray')
             ->visible(fn (): bool => ($me = $employee()) !== null
@@ -72,7 +72,7 @@ class ListPayslips extends ListRecords
             ->modalSubmitActionLabel('Download')
             ->schema([
                 Select::make('fiscal_year_id')
-                    ->label('Tax year')
+                    ->label(__('Tax year'))
                     ->required()
                     ->native(false)
                     // Only years in which tax was actually deducted from this person.
@@ -161,14 +161,14 @@ class ListPayslips extends ListRecords
             ])
             ->schema([
                 Select::make('month')
-                    ->label('Month')
+                    ->label(__('Month'))
                     ->options(self::months())
                     ->required()
                     ->live()
                     ->afterStateUpdated(fn (Get $get, Set $set) => $set('employees', self::dueRows($get('month'), $get('fiscal_year_id')))),
 
                 Select::make('fiscal_year_id')
-                    ->label('Fiscal Year')
+                    ->label(__('Fiscal Year'))
                     ->options(fn (): array => FiscalYear::query()->where('is_active', true)->pluck('name', 'id')->all())
                     ->required()
                     ->live()
@@ -177,10 +177,10 @@ class ListPayslips extends ListRecords
                 // The pre-flight — docs/saas-launch-plan.md §14.1. Blockers refuse the run; warnings are
                 // read and acknowledged, so a day nobody marked is never charged without saying so.
                 Placeholder::make('preflight')
-                    ->label('Before raising')
+                    ->label(__('Before raising'))
                     ->content(fn (Get $get): HtmlString => self::preflightSummary($get('month'), $get('fiscal_year_id'))),
                 Checkbox::make('acknowledge')
-                    ->label('I have read the warnings and want the payslips raised anyway')
+                    ->label(__('I have read the warnings and want the payslips raised anyway'))
                     ->visible(fn (Get $get): bool => self::preflight($get('month'), $get('fiscal_year_id'))['warnings'] !== [])
                     ->required(fn (Get $get): bool => self::preflight($get('month'), $get('fiscal_year_id'))['warnings'] !== [])
                     ->accepted(fn (Get $get): bool => self::preflight($get('month'), $get('fiscal_year_id'))['warnings'] !== []),
@@ -201,7 +201,7 @@ class ListPayslips extends ListRecords
                  * paginated or filtered to a department first.
                  */
                 Repeater::make('employees')
-                    ->label('Employees due a payslip')
+                    ->label(__('Employees due a payslip'))
                     ->addable(false)
                     ->deletable(false)
                     ->reorderable(false)
@@ -212,13 +212,13 @@ class ListPayslips extends ListRecords
                         Hidden::make('name'),
 
                         TextInput::make('petrol_allowance')
-                            ->label('Petrol / fuel allowance')
+                            ->label(__('Petrol / fuel allowance'))
                             ->numeric()
                             ->minValue(0)
                             ->helperText('Paid as part of this month\'s earnings.'),
 
                         TextInput::make('meal_deduction')
-                            ->label('Meal deduction')
+                            ->label(__('Meal deduction'))
                             ->numeric()
                             ->minValue(0)
                             ->helperText('Taken off this month\'s pay.'),

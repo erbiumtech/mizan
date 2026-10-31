@@ -31,7 +31,7 @@ class PunchListForm
                     ->columns(2)
                     ->schema([
                         Select::make('job_id')
-                            ->label('Job')
+                            ->label(__('Job'))
                             ->options(fn (): array => Job::query()->orderBy('code')->get()
                                 ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                                 ->all())
@@ -42,7 +42,7 @@ class PunchListForm
                             ->dehydrated(),
 
                         Select::make('contract_id')
-                            ->label('Under contract')
+                            ->label(__('Under contract'))
                             ->options(fn (callable $get): array => static::contracts($get('job_id')))
                             ->searchable()
                             ->visible(fn (): bool => modules()->enabled('construction_contracts'))
@@ -61,19 +61,19 @@ class PunchListForm
                             ->helperText('An internal sweep is yours. A client list is the employer\'s and can be quoted back at you — keep them apart.'),
 
                         Select::make('location_id')
-                            ->label('Where')
+                            ->label(__('Where'))
                             ->options(fn (callable $get): array => static::locations($get('job_id')))
                             ->searchable()
                             ->helperText('The area this walk covered, from the job\'s location tree. Items carry their own place as well.'),
 
                         DatePicker::make('opened_on')
-                            ->label('Walked on')
+                            ->label(__('Walked on'))
                             ->native(false)
                             ->default(now())
                             ->required(),
 
                         DatePicker::make('target_completion_date')
-                            ->label('To be cleared by')
+                            ->label(__('To be cleared by'))
                             ->native(false),
 
                         Textarea::make('notes')->rows(2)->columnSpanFull(),

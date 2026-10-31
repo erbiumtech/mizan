@@ -34,16 +34,16 @@ class PaymentForm
                             ->titleAttribute('name'),
                     ])
                     ->searchable()
-                    ->label('Payable — Employee (salary) or Beneficiary (rent, food…)'),
+                    ->label(__('Payable — Employee (salary) or Beneficiary (rent, food…)')),
 
                 Select::make('transaction_type_id')
-                    ->label('Transaction Type')
+                    ->label(__('Transaction Type'))
                     ->relationship('transactionType', 'name')
                     ->searchable()
                     ->preload(),
 
                 Select::make('company_bank_account_id')
-                    ->label('Debit Account')
+                    ->label(__('Debit Account'))
                     ->relationship('companyBankAccount', 'title')
                     ->searchable()
                     ->preload()
@@ -58,7 +58,7 @@ class PaymentForm
                     ->prefix(CompanyCurrency::code()),
 
                 TextInput::make('details')
-                    ->label('Details')
+                    ->label(__('Details'))
                     ->required()
                     ->maxLength(140)
                     ->helperText('Payment Details in the bank file, e.g. "Office Rent July 2026"'),
@@ -68,11 +68,11 @@ class PaymentForm
                     ->maxLength(255),
 
                 DatePicker::make('value_date')
-                    ->label('Value Date')
+                    ->label(__('Value Date'))
                     ->nullable(),
 
                 Select::make('payment_type')
-                    ->label('Payment Type')
+                    ->label(__('Payment Type'))
                     ->options(array_combine(['IBFT', 'BT', 'ACH', 'RTGS', 'LBC'], ['IBFT', 'BT', 'ACH', 'RTGS', 'LBC']))
                     ->nullable()
                     // readonly when the record exists and is no longer a draft (parity with Nova readonly closure)

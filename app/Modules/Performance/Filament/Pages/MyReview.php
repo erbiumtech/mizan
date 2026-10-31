@@ -90,21 +90,21 @@ class MyReview extends Page implements HasTable
             ->emptyStateHeading($review === null ? 'Nothing to review' : 'No competencies on this review')
             ->emptyStateDescription($review === null ? null : 'Give yourself an overall rating under Comments.')
             ->columns([
-                TextColumn::make('competency.name')->label('Competency')->description(fn (ReviewRating $r): ?string => $r->competency?->description),
-                TextColumn::make('competency.weight')->label('Weight')->suffix('%')->alignEnd(),
-                TextColumn::make('self_rating')->label('Your rating')
+                TextColumn::make('competency.name')->label(__('Competency'))->description(fn (ReviewRating $r): ?string => $r->competency?->description),
+                TextColumn::make('competency.weight')->label(__('Weight'))->suffix('%')->alignEnd(),
+                TextColumn::make('self_rating')->label(__('Your rating'))
                     ->formatStateUsing(fn (?int $state): string => $state === null ? '' : (ReviewTemplates::scaleOptions()[$state] ?? (string) $state))
                     ->placeholder('not yet')
                     ->description(fn (ReviewRating $r): ?string => $r->self_note),
             ])
             ->recordActions([
                 Action::make('rate')
-                    ->label('Rate')
+                    ->label(__('Rate'))
                     ->icon('heroicon-o-star')
                     ->fillForm(fn (ReviewRating $record): array => ['self_rating' => $record->self_rating, 'self_note' => $record->self_note])
                     ->schema([
-                        Select::make('self_rating')->label('Your rating')->options(ReviewTemplates::scaleOptions())->required(),
-                        Textarea::make('self_note')->label('Why')->rows(3)->maxLength(250)
+                        Select::make('self_rating')->label(__('Your rating'))->options(ReviewTemplates::scaleOptions())->required(),
+                        Textarea::make('self_note')->label(__('Why'))->rows(3)->maxLength(250)
                             ->helperText('What you did that shows it. Your reviewer reads this beside their own note.'),
                     ])
                     ->action(function (ReviewRating $record, array $data): void {
@@ -127,17 +127,17 @@ class MyReview extends Page implements HasTable
             HelpAction::make('my-review', 'My Review: Help'),
 
             Action::make('comments')
-                ->label('Comments')
+                ->label(__('Comments'))
                 ->icon('heroicon-o-chat-bubble-left-ellipsis')
                 ->color('gray')
                 ->visible(fn (): bool => $this->review() !== null)
                 ->fillForm(fn (): array => ['self_comments' => $this->review()?->self_comments, 'self_rating' => $this->review()?->self_rating])
                 ->schema([
-                    Select::make('self_rating')->label('Overall rating')->options(ReviewTemplates::scaleOptions())
+                    Select::make('self_rating')->label(__('Overall rating'))->options(ReviewTemplates::scaleOptions())
                         ->visible(fn (): bool => ! ($this->review()?->ratings()->exists() ?? false))
                         ->required(fn (): bool => ! ($this->review()?->ratings()->exists() ?? false))
                         ->helperText('This review has no competencies, so you rate the period as a whole.'),
-                    Textarea::make('self_comments')->label('Your comments')->rows(6)->maxLength(4000)
+                    Textarea::make('self_comments')->label(__('Your comments'))->rows(6)->maxLength(4000)
                         ->helperText('The period in your words: what went well, what got in the way, what you want next.'),
                 ])
                 ->action(function (array $data): void {
@@ -153,7 +153,7 @@ class MyReview extends Page implements HasTable
                 }),
 
             Action::make('submit')
-                ->label('Submit my self-review')
+                ->label(__('Submit my self-review'))
                 ->icon('heroicon-o-paper-airplane')
                 ->visible(fn (): bool => $this->review() !== null)
                 ->requiresConfirmation()

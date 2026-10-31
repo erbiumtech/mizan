@@ -56,14 +56,14 @@ class PayslipInfolist
                 ->columns(3)
                 ->schema([
                     TextEntry::make('employee.employee_id')
-                        ->label('Employee')
+                        ->label(__('Employee'))
                         ->formatStateUsing(fn ($state, Payslip $record): string => $record->employee?->display_label ?? (string) $state),
                     TextEntry::make('month'),
-                    TextEntry::make('fiscalYear.name')->label('Fiscal year'),
+                    TextEntry::make('fiscalYear.name')->label(__('Fiscal year')),
 
-                    TextEntry::make('paid_days')->label('Paid days'),
-                    TextEntry::make('lop_days')->label('Unpaid days'),
-                    TextEntry::make('leaves_taken')->label('Leave taken'),
+                    TextEntry::make('paid_days')->label(__('Paid days')),
+                    TextEntry::make('lop_days')->label(__('Unpaid days')),
+                    TextEntry::make('leaves_taken')->label(__('Leave taken')),
                 ]),
 
             Section::make('Pay')
@@ -74,7 +74,7 @@ class PayslipInfolist
                     TextEntry::make('net_salary')->money('PKR')->weight('bold'),
                     // The employer's contributions on top of pay: not deducted from the employee, and not in net.
                     TextEntry::make('employer_cost')
-                        ->label('Employer contributions')
+                        ->label(__('Employer contributions'))
                         ->state(fn (Payslip $record): float => $record->employerCost())
                         ->money(fn (): string => \App\Support\CompanyCurrency::code())
                         ->helperText('Paid by the employer on top of this pay — not deducted from it.')
@@ -85,7 +85,7 @@ class PayslipInfolist
                 ->columns(3)
                 ->schema([
                     TextEntry::make('employee_review')
-                        ->label('Review')
+                        ->label(__('Review'))
                         ->badge()
                         ->formatStateUsing(fn (?string $state): string => match ($state) {
                             Payslip::REVIEW_OVERRIDDEN => 'Rejected, answered',
@@ -98,8 +98,8 @@ class PayslipInfolist
                             Payslip::REVIEW_OVERRIDDEN => 'info',
                             default => 'warning',
                         }),
-                    TextEntry::make('employee_reviewed_at')->label('Reviewed')->dateTime()->placeholder('—'),
-                    TextEntry::make('sent_at')->label('Sent')->dateTime()->placeholder('not sent yet'),
+                    TextEntry::make('employee_reviewed_at')->label(__('Reviewed'))->dateTime()->placeholder('—'),
+                    TextEntry::make('sent_at')->label(__('Sent'))->dateTime()->placeholder('not sent yet'),
                 ]),
         ]);
     }

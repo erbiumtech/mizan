@@ -39,13 +39,13 @@ class SitePersonnelTable
 
                 TextColumn::make('trade')->placeholder('—')->toggleable(),
 
-                TextColumn::make('job.code')->label('Job')->sortable()->toggleable(),
+                TextColumn::make('job.code')->label(__('Job'))->sortable()->toggleable(),
 
                 /*
                  * **The column the register is for.**
                  */
                 TextColumn::make('cleared')
-                    ->label('Cleared')
+                    ->label(__('Cleared'))
                     ->badge()
                     ->getStateUsing(function (Person $record): string {
                         if ($record->inducted_on === null) {
@@ -66,7 +66,7 @@ class SitePersonnelTable
                     ->tooltip('Inducted, and no mandatory ticket lapsed. A gateman\'s question.'),
 
                 TextColumn::make('induction_valid_to')
-                    ->label('Induction to')
+                    ->label(__('Induction to'))
                     ->date('d M Y')
                     // Named rather than blank: an induction with no end is a claim about this site's policy.
                     ->placeholder(fn (Person $record): string => $record->inducted_on === null ? '—' : 'no expiry set')
@@ -74,33 +74,33 @@ class SitePersonnelTable
                     ->sortable(),
 
                 TextColumn::make('competencies_count')
-                    ->label('Tickets')
+                    ->label(__('Tickets'))
                     ->getStateUsing(fn (Person $record): int => $record->competencies->count())
                     ->alignEnd()
                     ->toggleable(),
 
                 TextColumn::make('is_active')
-                    ->label('On site')
+                    ->label(__('On site'))
                     ->badge()
                     ->getStateUsing(fn (Person $record): string => $record->is_active ? 'yes' : 'left')
                     ->color(fn (Person $record): string => $record->is_active ? 'success' : 'gray'),
             ])
             ->filters([
-                SelectFilter::make('job_id')->label('Job')->relationship('job', 'code')->searchable(),
+                SelectFilter::make('job_id')->label(__('Job'))->relationship('job', 'code')->searchable(),
 
                 Filter::make('active')
-                    ->label('Currently on site')
+                    ->label(__('Currently on site'))
                     ->query(fn (Builder $query): Builder => $query->active())
                     ->default()
                     ->toggle(),
 
                 Filter::make('never_inducted')
-                    ->label('Never inducted')
+                    ->label(__('Never inducted'))
                     ->query(fn (Builder $query): Builder => $query->neverInducted())
                     ->toggle(),
 
                 Filter::make('induction_lapsed')
-                    ->label('Induction lapsed')
+                    ->label(__('Induction lapsed'))
                     ->query(fn (Builder $query): Builder => $query->inductionLapsed())
                     ->toggle(),
             ])
@@ -110,15 +110,15 @@ class SitePersonnelTable
                     ->visible(fn (Person $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('induct')
-                    ->label('Induct')
+                    ->label(__('Induct'))
                     ->icon('heroicon-o-academic-cap')
                     ->color('success')
                     ->modalHeading('Record an induction')
                     ->modalDescription('The end date matters as much as the start: an induction is not a permanent state, and a register that treated it as one would report full coverage on a site with none.')
                     ->schema([
-                        DatePicker::make('on')->label('Inducted on')->native(false)->default(now())->required(),
+                        DatePicker::make('on')->label(__('Inducted on'))->native(false)->default(now())->required(),
                         DatePicker::make('valid_to')
-                            ->label('Valid to')
+                            ->label(__('Valid to'))
                             ->native(false)
                             ->helperText('This site\'s induction policy — twelve months on one job, the contract duration on another.'),
                     ])
@@ -134,7 +134,7 @@ class SitePersonnelTable
                     )),
 
                 Action::make('deactivate')
-                    ->label('Left site')
+                    ->label(__('Left site'))
                     ->icon('heroicon-o-arrow-right-on-rectangle')
                     ->color('gray')
                     ->modalDescription('Taking somebody off the register is what makes a lapsed ticket historical rather than urgent. The row stays.')

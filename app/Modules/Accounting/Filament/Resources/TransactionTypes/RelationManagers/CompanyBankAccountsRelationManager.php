@@ -22,19 +22,19 @@ class CompanyBankAccountsRelationManager extends RelationManager
                     ->searchable(),
 
                 TextColumn::make('account_no')
-                    ->label('Account No')
+                    ->label(__('Account No'))
                     ->searchable(),
 
                 TextColumn::make('iban')
-                    ->label('IBAN')
+                    ->label(__('IBAN'))
                     ->searchable(),
 
                 IconColumn::make('is_default')
-                    ->label('Default')
+                    ->label(__('Default'))
                     ->boolean(),
 
                 IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->boolean(),
             ]);
     }

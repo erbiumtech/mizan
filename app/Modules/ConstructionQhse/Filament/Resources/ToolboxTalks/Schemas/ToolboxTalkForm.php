@@ -33,7 +33,7 @@ class ToolboxTalkForm
                     ->columns(2)
                     ->schema([
                         Select::make('job_id')
-                            ->label('Job')
+                            ->label(__('Job'))
                             ->options(fn (): array => Job::query()->orderBy('code')->get()
                                 ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                                 ->all())
@@ -49,25 +49,25 @@ class ToolboxTalkForm
                             ->helperText('What was actually covered. "Toolbox talk" against a date proves a meeting happened and nothing else.'),
 
                         DateTimePicker::make('delivered_at')
-                            ->label('Given at')
+                            ->label(__('Given at'))
                             ->seconds(false)
                             ->default(now())
                             ->required()
                             ->helperText('The time matters: one before the shift and one at four in the afternoon are different facts about a site.'),
 
                         TextInput::make('presenter_label')
-                            ->label('Given by')
+                            ->label(__('Given by'))
                             ->maxLength(255),
 
                         Select::make('location_id')
-                            ->label('Where')
+                            ->label(__('Where'))
                             ->options(fn (callable $get): array => static::locations($get('job_id')))
                             ->searchable(),
 
-                        TextInput::make('duration_minutes')->label('Minutes')->numeric(),
+                        TextInput::make('duration_minutes')->label(__('Minutes'))->numeric(),
 
                         Textarea::make('content_summary')
-                            ->label('What was said')
+                            ->label(__('What was said'))
                             ->rows(3)
                             ->columnSpanFull(),
                     ]),
@@ -81,7 +81,7 @@ class ToolboxTalkForm
                             ->helperText('A near miss, a client observation, a high-risk operation starting tomorrow.'),
 
                         Select::make('incident_id')
-                            ->label('The incident behind it')
+                            ->label(__('The incident behind it'))
                             ->options(fn (callable $get): array => static::incidents($get('job_id')))
                             ->searchable()
                             ->placeholder('None'),

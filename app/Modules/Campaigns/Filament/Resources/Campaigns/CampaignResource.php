@@ -68,19 +68,19 @@ class CampaignResource extends Resource
                 ->live(),
 
             Select::make('segment_id')
-                ->label('Send to')
+                ->label(__('Send to'))
                 ->options(fn (): array => Segment::query()->active()->pluck('name', 'id')->all())
                 ->required()
                 ->helperText('Resolved when you send, not when you save — so a campaign reaches everybody who matches then, not last month\'s list.'),
 
             TextInput::make('subject')
-                ->label('Subject line')
+                ->label(__('Subject line'))
                 ->maxLength(255)
                 ->required(fn (Get $get): bool => $get('channel') === Campaign::CHANNEL_EMAIL)
                 ->visible(fn (Get $get): bool => $get('channel') === Campaign::CHANNEL_EMAIL),
 
             TextInput::make('template_name')
-                ->label('Approved template')
+                ->label(__('Approved template'))
                 ->maxLength(255)
                 ->required(fn (Get $get): bool => $get('channel') === Campaign::CHANNEL_WHATSAPP)
                 ->visible(fn (Get $get): bool => $get('channel') === Campaign::CHANNEL_WHATSAPP)
@@ -110,7 +110,7 @@ class CampaignResource extends Resource
                         ? 'template: '.$record->template_name
                         : null),
 
-                TextColumn::make('segment.name')->label('To')->placeholder('—'),
+                TextColumn::make('segment.name')->label(__('To'))->placeholder('—'),
 
                 TextColumn::make('status')
                     ->badge()
@@ -126,7 +126,7 @@ class CampaignResource extends Resource
                 // failures: a skip is the system working correctly, and burying it in a failure
                 // count would make somebody try to "fix" it.
                 TextColumn::make('outcome')
-                    ->label('Result')
+                    ->label(__('Result'))
                     ->state(function (Campaign $record): string {
                         $outcome = $record->outcome();
 
@@ -140,7 +140,7 @@ class CampaignResource extends Resource
                     })
                     ->wrap(),
 
-                TextColumn::make('sent_at')->label('Sent')->dateTime('d M Y H:i')->placeholder('—')->sortable(),
+                TextColumn::make('sent_at')->label(__('Sent'))->dateTime('d M Y H:i')->placeholder('—')->sortable(),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
@@ -167,7 +167,7 @@ class CampaignResource extends Resource
                  * building is not a nicety.
                  */
                 Action::make('prepare')
-                    ->label('Check the audience')
+                    ->label(__('Check the audience'))
                     ->icon('heroicon-o-users')
                     ->color('gray')
                     ->visible(fn (Campaign $record): bool => $record->isSendable()
@@ -225,7 +225,7 @@ class CampaignResource extends Resource
                     }),
 
                 Action::make('retryFailed')
-                    ->label('Retry failed')
+                    ->label(__('Retry failed'))
                     ->icon('heroicon-o-arrow-path')
                     ->color('warning')
                     ->requiresConfirmation()

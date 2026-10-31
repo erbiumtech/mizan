@@ -75,7 +75,7 @@ class EventsRelationManager extends RelationManager
                     ->helperText('The figure a claim is made of. Zero where nothing was lost.'),
 
                 TextInput::make('raised_with')
-                    ->label('Told to')
+                    ->label(__('Told to'))
                     ->maxLength(255)
                     ->helperText('Who on the other side was told, on the day.'),
 
@@ -109,16 +109,16 @@ class EventsRelationManager extends RelationManager
                     ->formatStateUsing(fn (string $state): string => ucfirst($state)),
 
                 TextColumn::make('hours_lost')
-                    ->label('Hours lost')
+                    ->label(__('Hours lost'))
                     ->alignEnd()
-                    ->summarize(Sum::make()->label('Lost')),
+                    ->summarize(Sum::make()->label(__('Lost'))),
 
                 /*
                  * **The column the tab exists for.** Not a dash when unnotified: a blank cell reads as "nothing to do",
                  * and this is the one that costs money.
                  */
                 TextColumn::make('notified')
-                    ->label('Notified')
+                    ->label(__('Notified'))
                     ->badge()
                     ->getStateUsing(fn (DailyLogEvent $record): string => $record->isNotified()
                         ? ($record->delayEvent?->reference ?? 'Yes')
@@ -136,7 +136,7 @@ class EventsRelationManager extends RelationManager
                 EditAction::make()->visible(fn (): bool => auth()->user()?->can('update', $this->log()) ?? false),
 
                 Action::make('raiseDelayEvent')
-                    ->label('Raise delay event')
+                    ->label(__('Raise delay event'))
                     ->icon('heroicon-o-megaphone')
                     ->color('warning')
                     ->requiresConfirmation()
@@ -144,7 +144,7 @@ class EventsRelationManager extends RelationManager
                     ->modalDescription('Raises a delay event dated the day this happened, not today — the notice period runs from the event. The diary line then points at it, so the register stops reporting it as unnotified.')
                     ->schema([
                         Select::make('cause_category')
-                            ->label('Cause')
+                            ->label(__('Cause'))
                             ->options(DelayEvent::CAUSES)
                             ->required()
                             ->searchable(),

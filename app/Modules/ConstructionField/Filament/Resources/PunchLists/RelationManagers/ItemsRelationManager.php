@@ -72,7 +72,7 @@ class ItemsRelationManager extends RelationManager
                     ->helperText('"Snag" against a room number is a line the trade cannot price and the inspector cannot check.'),
 
                 Select::make('trade_id')
-                    ->label('Trade')
+                    ->label(__('Trade'))
                     ->options(fn (): array => static::trades())
                     ->searchable()
                     ->visible(fn (): bool => modules()->enabled('construction_costing'))
@@ -84,17 +84,17 @@ class ItemsRelationManager extends RelationManager
                     }),
 
                 TextInput::make('trade_label')
-                    ->label('Trade, in words')
+                    ->label(__('Trade, in words'))
                     ->maxLength(255),
 
                 Select::make('location_id')
-                    ->label('Where')
+                    ->label(__('Where'))
                     ->options(fn (): array => static::locations($this->list()->job_id))
                     ->searchable()
                     ->helperText('From the job\'s location tree, so "every open item in this room" stays answerable.'),
 
                 TextInput::make('grid_reference')
-                    ->label('Grid reference')
+                    ->label(__('Grid reference'))
                     ->maxLength(255)
                     ->helperText('Where in the room — how a structural defect is described on a drawing.'),
 
@@ -104,18 +104,18 @@ class ItemsRelationManager extends RelationManager
                     ->required(),
 
                 DatePicker::make('due_on')
-                    ->label('To be done by')
+                    ->label(__('To be done by'))
                     ->native(false),
 
                 Select::make('responsible_contact_id')
-                    ->label('Who puts it right')
+                    ->label(__('Who puts it right'))
                     ->relationship('responsible', 'name')
                     ->searchable()
                     ->preload()
                     ->visible(fn (): bool => modules()->enabled('invoicing')),
 
                 TextInput::make('responsible_label')
-                    ->label('Who puts it right, in words')
+                    ->label(__('Who puts it right, in words'))
                     ->maxLength(255),
 
                 /*
@@ -123,17 +123,17 @@ class ItemsRelationManager extends RelationManager
                  * changes what a certificate releases.
                  */
                 Toggle::make('affects_practical_completion')
-                    ->label('Stops the employer taking the building over')
+                    ->label(__('Stops the employer taking the building over'))
                     ->columnSpanFull()
                     ->helperText('Retention is held back against the cost of rectifying these. Leave it off for paint and sealant — a list where everything is ticked holds back a figure nobody believes.'),
 
                 TextInput::make('cost_to_rectify')
-                    ->label('Cost to rectify')
+                    ->label(__('Cost to rectify'))
                     ->numeric()
                     ->helperText('An estimate, and it stays one: the holdback needs a figure before anybody has done the work.'),
 
                 FileUpload::make('before_photo_path')
-                    ->label('Before')
+                    ->label(__('Before'))
                     ->image()
                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                     ->disk('public')
@@ -141,7 +141,7 @@ class ItemsRelationManager extends RelationManager
                     ->maxSize(12288),
 
                 FileUpload::make('after_photo_path')
-                    ->label('After')
+                    ->label(__('After'))
                     ->image()
                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
                     ->disk('public')
@@ -200,7 +200,7 @@ class ItemsRelationManager extends RelationManager
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['location', 'responsible', 'inspections']))
             ->defaultSort('reference')
             ->columns([
-                TextColumn::make('reference')->label('No.')->sortable(),
+                TextColumn::make('reference')->label(__('No.'))->sortable(),
 
                 TextColumn::make('description')
                     ->wrap()
@@ -208,10 +208,10 @@ class ItemsRelationManager extends RelationManager
                     ->searchable()
                     ->description(fn (PunchItem $record): ?string => $record->where()),
 
-                TextColumn::make('trade_label')->label('Trade')->placeholder('—')->toggleable(),
+                TextColumn::make('trade_label')->label(__('Trade'))->placeholder('—')->toggleable(),
 
                 TextColumn::make('responsible_label')
-                    ->label('Who')
+                    ->label(__('Who'))
                     ->getStateUsing(fn (PunchItem $record): string => $record->responsibleName())
                     ->toggleable(),
 
@@ -225,13 +225,13 @@ class ItemsRelationManager extends RelationManager
                     }),
 
                 TextColumn::make('due_on')
-                    ->label('Due')
+                    ->label(__('Due'))
                     ->date('d M Y')
                     ->placeholder('—')
                     ->color(fn (PunchItem $record): string => $record->isOverdue() ? 'danger' : 'gray'),
 
                 TextColumn::make('affects_practical_completion')
-                    ->label('Blocks PC')
+                    ->label(__('Blocks PC'))
                     ->badge()
                     ->getStateUsing(fn (PunchItem $record): ?string => $record->affects_practical_completion
                         ? 'yes'
@@ -241,7 +241,7 @@ class ItemsRelationManager extends RelationManager
                     ->tooltip('Retention is held back against the cost of rectifying this.'),
 
                 TextColumn::make('cost_to_rectify')
-                    ->label('To rectify')
+                    ->label(__('To rectify'))
                     ->numeric(2)
                     ->alignEnd()
                     // Named, because a blocking item with no estimate is why a holdback is "at least" rather than
@@ -256,7 +256,7 @@ class ItemsRelationManager extends RelationManager
                  * planned and the evidence behind a back charge.
                  */
                 TextColumn::make('visits')
-                    ->label('Visits')
+                    ->label(__('Visits'))
                     ->badge()
                     ->getStateUsing(fn (PunchItem $record): string => (string) $record->attemptsMade())
                     ->color(fn (PunchItem $record): string => $record->neededMoreThanOneVisit() ? 'warning' : 'gray')
@@ -277,17 +277,17 @@ class ItemsRelationManager extends RelationManager
                 SelectFilter::make('priority')->options(PunchItem::PRIORITIES),
 
                 Filter::make('blocking')
-                    ->label('Blocks practical completion')
+                    ->label(__('Blocks practical completion'))
                     ->query(fn (Builder $query): Builder => $query->blockingCompletion())
                     ->toggle(),
 
                 Filter::make('overdue')
-                    ->label('Overdue')
+                    ->label(__('Overdue'))
                     ->query(fn (Builder $query): Builder => $query->overdue())
                     ->toggle(),
 
                 Filter::make('repeat_visits')
-                    ->label('Needed more than one visit')
+                    ->label(__('Needed more than one visit'))
                     // `has()` rather than a HAVING on a `withCount` alias, which SQLite refuses as a non-aggregate.
                     ->query(fn (Builder $query): Builder => $query->has('inspections', '>', 1))
                     ->toggle(),
@@ -305,14 +305,14 @@ class ItemsRelationManager extends RelationManager
                  * and the visit is counted. The status is not settable on the form at all — see the class docblock.
                  */
                 Action::make('inspect')
-                    ->label('Inspect')
+                    ->label(__('Inspect'))
                     ->icon('heroicon-o-magnifying-glass')
                     ->color('success')
                     ->modalHeading('Record a re-inspection')
                     ->modalDescription('A pass closes the item. Partly done and failed both leave it open and count the visit — which is the fact a status column cannot hold.')
                     ->schema([
                         Select::make('result')->options(PunchInspection::RESULTS)->required(),
-                        DatePicker::make('inspected_on')->label('Looked at on')->native(false)->default(now())->required(),
+                        DatePicker::make('inspected_on')->label(__('Looked at on'))->native(false)->default(now())->required(),
                         Textarea::make('notes')->rows(2),
                     ])
                     ->visible(fn (PunchItem $record): bool => auth()->user()?->can('inspect', $record) ?? false)
@@ -323,13 +323,13 @@ class ItemsRelationManager extends RelationManager
                     )),
 
                 Action::make('reject')
-                    ->label('Not a defect')
+                    ->label(__('Not a defect'))
                     ->icon('heroicon-o-x-circle')
                     ->color('gray')
                     ->modalHeading('Agree this is not a defect')
                     ->modalDescription('Kept as a row with the reason rather than deleted — "we agreed this was not a defect on the 14th" is the answer to a question somebody asks again in month nine.')
                     ->schema([
-                        Textarea::make('reason')->label('Why not')->rows(2)->required(),
+                        Textarea::make('reason')->label(__('Why not'))->rows(2)->required(),
                     ])
                     ->visible(fn (PunchItem $record): bool => auth()->user()?->can('reject', $record) ?? false)
                     ->action(fn (PunchItem $record, array $data) => static::run(

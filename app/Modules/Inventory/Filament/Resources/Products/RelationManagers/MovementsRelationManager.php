@@ -34,24 +34,24 @@ class MovementsRelationManager extends RelationManager
                     ->sortable(),
 
                 TextColumn::make('unit_cost')
-                    ->label('Unit Cost')
+                    ->label(__('Unit Cost'))
                     ->money(CompanyCurrency::code()),
 
                 TextColumn::make('unit_price')
-                    ->label('Unit Price')
+                    ->label(__('Unit Price'))
                     ->money(CompanyCurrency::code()),
 
                 TextColumn::make('total_cost')
-                    ->label('COGS')
+                    ->label(__('COGS'))
                     ->money(CompanyCurrency::code()),
 
                 TextColumn::make('remaining_quantity')
-                    ->label('Lot Remaining')
+                    ->label(__('Lot Remaining'))
                     ->numeric()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('movement_date')
-                    ->label('Date')
+                    ->label(__('Date'))
                     ->date()
                     ->sortable(),
 
@@ -59,7 +59,7 @@ class MovementsRelationManager extends RelationManager
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('journalEntry.entry_number')
-                    ->label('Journal Entry')
+                    ->label(__('Journal Entry'))
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('movement_date', 'desc');

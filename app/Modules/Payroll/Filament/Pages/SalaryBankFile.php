@@ -84,7 +84,7 @@ class SalaryBankFile extends Page
                 $this->fiscalYearSelect(),
                 $this->monthSelect(),
                 DatePicker::make('value_date')
-                    ->label('Payment/value date')
+                    ->label(__('Payment/value date'))
                     ->native(false)
                     ->default(now())
                     ->live(),
@@ -159,7 +159,7 @@ class SalaryBankFile extends Page
         return [
             HelpAction::make('salary-bank-file', 'Salary Bank File: Help'),
             Action::make('csv')
-                ->label('Download CSV')
+                ->label(__('Download CSV'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->visible(fn (): bool => filled($this->data['month'] ?? null) && count($this->getReleasablePayments()) > 0)
                 ->requiresConfirmation()

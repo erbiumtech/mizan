@@ -44,7 +44,7 @@ class EmployeeSettingComponentsRelationManager extends RelationManager
     {
         return $schema->components([
             Select::make('pay_component_id')
-                ->label('Component')
+                ->label(__('Component'))
                 ->options(fn (): array => PayComponent::active()
                     ->dataDriven()
                     ->orderBy('sort')
@@ -70,10 +70,10 @@ class EmployeeSettingComponentsRelationManager extends RelationManager
         return $table
             ->recordTitleAttribute('id')
             ->columns([
-                TextColumn::make('component.label')->label('Component')->sortable(),
+                TextColumn::make('component.label')->label(__('Component'))->sortable(),
 
                 TextColumn::make('component.kind')
-                    ->label('Kind')
+                    ->label(__('Kind'))
                     ->badge()
                     ->formatStateUsing(fn (string $state, $record): string => $record->component?->isEmployerPaid() ? 'employer cost' : $state)
                     ->color(fn (string $state, $record): string => $record->component?->isEmployerPaid()
@@ -83,7 +83,7 @@ class EmployeeSettingComponentsRelationManager extends RelationManager
                 TextColumn::make('amount')->money('PKR')->alignEnd(),
 
                 TextColumn::make('component.is_taxable')
-                    ->label('Taxable')
+                    ->label(__('Taxable'))
                     ->state(fn ($record): string => $record->component?->isEarning()
                         ? ($record->component->is_taxable ? 'yes' : 'no')
                         : '—'),

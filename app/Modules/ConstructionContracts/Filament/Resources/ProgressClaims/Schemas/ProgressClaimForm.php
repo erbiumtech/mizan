@@ -24,7 +24,7 @@ class ProgressClaimForm
             ->columns(2)
             ->components([
                 Select::make('contract_id')
-                    ->label('Contract')
+                    ->label(__('Contract'))
                     ->options(fn (): array => Contract::query()
                         ->whereNot('status', Contract::STATUS_DRAFT)
                         ->with('job')
@@ -39,15 +39,15 @@ class ProgressClaimForm
                     ->dehydrated(),
 
                 TextInput::make('claim_number')
-                    ->label('Number')
+                    ->label(__('Number'))
                     ->maxLength(255)
                     ->helperText('Left blank, the next in this contract\'s series.'),
 
                 DatePicker::make('period_start')
-                    ->label('Period from'),
+                    ->label(__('Period from')),
 
                 DatePicker::make('period_end')
-                    ->label('Valuation date')
+                    ->label(__('Valuation date'))
                     ->required()
                     ->helperText('Every figure on this claim is "to" this date.'),
 

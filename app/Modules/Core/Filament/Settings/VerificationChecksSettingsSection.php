@@ -43,7 +43,7 @@ class VerificationChecksSettingsSection implements SettingsSection
                         .'they finish it.')
                 ->schema($offered === [] ? [] : [
                     CheckboxList::make('verification_required')
-                        ->label('Required of every employee')
+                        ->label(__('Required of every employee'))
                         ->options($offered)
                         ->descriptions(array_intersect_key(VerificationChecks::help(), $offered))
                         ->columns(1),

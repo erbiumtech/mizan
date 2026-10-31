@@ -39,8 +39,8 @@ class DesignationResource extends Resource
             TextInput::make('name')->required()->maxLength(80)->unique(ignoreRecord: true)->helperText('Renaming follows the employees who hold it.'),
             TextInput::make('code')->maxLength(20),
             TextInput::make('level')->numeric()->minValue(1)->maxValue(99)->helperText('1 is the top. Orders the dropdown.'),
-            TextInput::make('pay_grade_min')->label('Pay grade from')->numeric()->minValue(0)->helperText('Monthly basic. A package outside the band warns and never blocks.'),
-            TextInput::make('pay_grade_max')->label('Pay grade to')->numeric()->minValue(0)->gte('pay_grade_min'),
+            TextInput::make('pay_grade_min')->label(__('Pay grade from'))->numeric()->minValue(0)->helperText('Monthly basic. A package outside the band warns and never blocks.'),
+            TextInput::make('pay_grade_max')->label(__('Pay grade to'))->numeric()->minValue(0)->gte('pay_grade_min'),
             Toggle::make('is_active')->default(true),
         ]);
     }
@@ -52,11 +52,11 @@ class DesignationResource extends Resource
                 TextColumn::make('name')->sortable()->searchable(),
                 TextColumn::make('code')->placeholder('—'),
                 TextColumn::make('level')->placeholder('—')->sortable(),
-                TextColumn::make('grade')->label('Pay grade')->state(fn (Designation $r): string => $r->hasPayGrade()
+                TextColumn::make('grade')->label(__('Pay grade'))->state(fn (Designation $r): string => $r->hasPayGrade()
                     ? number_format((float) $r->pay_grade_min).' – '.($r->pay_grade_max !== null ? number_format((float) $r->pay_grade_max) : '∞')
                     : '—'),
-                TextColumn::make('employees_count')->counts('employees')->label('People'),
-                IconColumn::make('is_active')->boolean()->label('Active'),
+                TextColumn::make('employees_count')->counts('employees')->label(__('People')),
+                IconColumn::make('is_active')->boolean()->label(__('Active')),
             ])
             ->defaultSort('level')
             ->recordActions([EditAction::make(), DeleteAction::make()]);

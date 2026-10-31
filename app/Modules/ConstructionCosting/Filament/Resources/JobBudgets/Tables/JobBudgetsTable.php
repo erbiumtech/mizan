@@ -34,13 +34,13 @@ class JobBudgetsTable
         return $table
             ->columns([
                 TextColumn::make('job.code')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->description(fn (JobBudget $record): ?string => $record->job?->name)
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('version_no')
-                    ->label('#')
+                    ->label(__('#'))
                     ->sortable(),
 
                 TextColumn::make('name')
@@ -60,17 +60,17 @@ class JobBudgetsTable
                     }),
 
                 IconColumn::make('is_current')
-                    ->label('Current')
+                    ->label(__('Current'))
                     ->boolean()
                     ->tooltip('What the cost report compares actuals to.'),
 
                 IconColumn::make('is_baseline')
-                    ->label('Baseline')
+                    ->label(__('Baseline'))
                     ->boolean()
                     ->tooltip('What earned value is measured against. Does not move once work has been measured.'),
 
                 IconColumn::make('phased_lines_count')
-                    ->label('Phased')
+                    ->label(__('Phased'))
                     ->boolean()
                     ->state(fn (JobBudget $record): bool => (int) $record->phased_lines_count > 0)
                     // The sentence the cost report would otherwise show without an explanation.
@@ -80,25 +80,25 @@ class JobBudgetsTable
                     ->toggleable(),
 
                 TextColumn::make('lines_count')
-                    ->label('Lines')
+                    ->label(__('Lines'))
                     ->alignEnd()
                     ->sortable(),
 
                 TextColumn::make('lines_sum_amount')
-                    ->label('Budget')
+                    ->label(__('Budget'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('—'),
 
                 TextColumn::make('approved_at')
-                    ->label('Approved')
+                    ->label(__('Approved'))
                     ->dateTime()
                     ->placeholder('—')
                     ->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('job_id')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->relationship('job', 'code')
                     ->searchable(),
 
@@ -115,7 +115,7 @@ class JobBudgetsTable
                     ->visible(fn (JobBudget $record): bool => $record->status === JobBudget::STATUS_DRAFT),
 
                 Action::make('approve')
-                    ->label('Approve')
+                    ->label(__('Approve'))
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
                     ->requiresConfirmation()
@@ -130,7 +130,7 @@ class JobBudgetsTable
                     )),
 
                 Action::make('setBaseline')
-                    ->label('Set baseline')
+                    ->label(__('Set baseline'))
                     ->icon('heroicon-o-flag')
                     ->color('warning')
                     ->requiresConfirmation()
@@ -145,13 +145,13 @@ class JobBudgetsTable
                     )),
 
                 Action::make('revise')
-                    ->label('Revise')
+                    ->label(__('Revise'))
                     ->icon('heroicon-o-document-duplicate')
                     ->modalHeading('Open a revision')
                     ->modalDescription('A new draft copying this version\'s lines. The baseline stays where it is, which is what keeps earned value comparable across the job.')
                     ->schema([
                         TextInput::make('name')
-                            ->label('Version name')
+                            ->label(__('Version name'))
                             ->required()
                             ->helperText('Rev 3 post VO-12, and so on.'),
                     ])

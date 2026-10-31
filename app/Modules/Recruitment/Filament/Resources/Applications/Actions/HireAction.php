@@ -27,19 +27,19 @@ class HireAction
     public static function make(): Action
     {
         return Action::make('hire')
-            ->label('Accept and hire')
+            ->label(__('Accept and hire'))
             ->icon('heroicon-o-user-plus')
             ->color('success')
             ->visible(fn (Application $record): bool => $record->offer
                 && (auth()->user()?->can('hire', $record->offer) ?? false))
             ->schema([
                 TextInput::make('employee_code')
-                    ->label('Employee code')
+                    ->label(__('Employee code'))
                     ->maxLength(50)
                     ->helperText('Leave blank for the next in sequence. Companies have their own conventions.'),
 
                 Checkbox::make('with_login')
-                    ->label('Create a login as well')
+                    ->label(__('Create a login as well'))
                     ->helperText('Needs an email address. A factory floor usually does not get accounts — employees without a login are supported.'),
             ])
             ->modalDescription('This creates the employee, their salary package from the offer, and optionally a login — all or nothing.')

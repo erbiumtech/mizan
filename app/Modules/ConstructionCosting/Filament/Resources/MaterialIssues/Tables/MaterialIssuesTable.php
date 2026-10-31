@@ -32,22 +32,22 @@ class MaterialIssuesTable
         return $table
             ->columns([
                 TextColumn::make('number')
-                    ->label('Docket')
+                    ->label(__('Docket'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('issued_on')
-                    ->label('Issued')
+                    ->label(__('Issued'))
                     ->date()
                     ->sortable(),
 
                 TextColumn::make('store.code')
-                    ->label('Out of')
+                    ->label(__('Out of'))
                     ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('lines_count')
-                    ->label('Lines')
+                    ->label(__('Lines'))
                     ->counts('lines')
                     ->alignEnd()
                     ->toggleable(),
@@ -60,14 +60,14 @@ class MaterialIssuesTable
                 // query fails outright. Phase 6c's `OrdersRelationManager` records the same finding. The total belongs
                 // on the lines, where `amount` is a column, and it is there.
                 TextColumn::make('value')
-                    ->label('Value moved')
+                    ->label(__('Value moved'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->getStateUsing(fn (MaterialIssue $record): float => $record->totalValue())
                     ->description('reclassified, not added'),
 
                 TextColumn::make('received_by')
-                    ->label('Received by')
+                    ->label(__('Received by'))
                     ->getStateUsing(fn (MaterialIssue $record): ?string => $record->receivedBy())
                     ->placeholder('unsigned')
                     ->toggleable(),
@@ -84,7 +84,7 @@ class MaterialIssuesTable
             ])
             ->filters([
                 SelectFilter::make('stock_location_id')
-                    ->label('Store')
+                    ->label(__('Store'))
                     ->relationship('store', 'name')
                     ->searchable(),
 
@@ -97,7 +97,7 @@ class MaterialIssuesTable
 
                 // A draft docket is material that has physically gone with the stock still showing it in the store.
                 Filter::make('unposted')
-                    ->label('Not posted — stock still shows it')
+                    ->label(__('Not posted — stock still shows it'))
                     ->query(fn (Builder $query) => $query->draft())
                     ->toggle(),
             ])
@@ -107,7 +107,7 @@ class MaterialIssuesTable
                     ->visible(fn (MaterialIssue $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('post')
-                    ->label('Post')
+                    ->label(__('Post'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
@@ -121,13 +121,13 @@ class MaterialIssuesTable
                     )),
 
                 Action::make('reverse')
-                    ->label('Reverse')
+                    ->label(__('Reverse'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('danger')
                     ->modalHeading('Put this docket back')
                     ->modalDescription('The material goes back on the store at the cost it left at, and the reclassification is unwound. The rows stay — somebody signed the paper.')
                     ->schema([
-                        Textarea::make('reason')->label('Why')->rows(2)->required(),
+                        Textarea::make('reason')->label(__('Why'))->rows(2)->required(),
                     ])
                     ->visible(fn (MaterialIssue $record): bool => auth()->user()?->can('reverse', $record) ?? false)
                     ->action(fn (MaterialIssue $record, array $data) => static::run(

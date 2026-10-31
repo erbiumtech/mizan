@@ -29,7 +29,7 @@ class ReturnForReviewAction
     public static function make(): Action
     {
         return Action::make('returnForReview')
-            ->label('Send back for review')
+            ->label(__('Send back for review'))
             ->icon('heroicon-o-arrow-uturn-left')
             ->color('warning')
             ->visible(fn (Payslip $record): bool => ($record->isRejected() || $record->isReviewOverridden())
@@ -42,7 +42,7 @@ class ReturnForReviewAction
             ->modalSubmitActionLabel('Send it back')
             ->schema([
                 Textarea::make('note')
-                    ->label('What changed')
+                    ->label(__('What changed'))
                     ->required()
                     ->maxLength(500)
                     ->rows(3)

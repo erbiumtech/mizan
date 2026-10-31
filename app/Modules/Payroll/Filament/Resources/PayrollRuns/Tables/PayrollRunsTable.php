@@ -21,19 +21,19 @@ class PayrollRunsTable
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with('fiscalYear'))
             ->columns([
                 TextColumn::make('month')
-                    ->label('Period')
+                    ->label(__('Period'))
                     ->state(fn (PayrollRun $record): string => $record->periodLabel())
                     ->sortable(),
 
                 TextColumn::make('payslips_count')
-                    ->label('Payslips')
+                    ->label(__('Payslips'))
                     ->counts('payslips')
                     ->alignEnd(),
 
                 // How much of the month the employees have actually agreed to, which
                 // is the question worth answering before signing it off.
                 TextColumn::make('accepted')
-                    ->label('Accepted')
+                    ->label(__('Accepted'))
                     // One call, not two: totals() is five aggregates, and asking twice per row doubled
                     // them. It is memoised on the model now, but reading it once here says so.
                     ->state(function (PayrollRun $record): string {
@@ -44,19 +44,19 @@ class PayrollRunsTable
                     ->alignEnd(),
 
                 TextColumn::make('gross')
-                    ->label('Gross')
+                    ->label(__('Gross'))
                     ->state(fn (PayrollRun $record): string => number_format($record->totals()['gross'], 2))
                     ->alignEnd(),
 
                 TextColumn::make('net')
-                    ->label('Net')
+                    ->label(__('Net'))
                     ->state(fn (PayrollRun $record): string => number_format($record->totals()['net'], 2))
                     ->weight('bold')
                     ->alignEnd(),
 
                 // The employer's contributions on top of the month — what the run costs beyond net and deductions.
                 TextColumn::make('employer_cost')
-                    ->label('Employer cost')
+                    ->label(__('Employer cost'))
                     ->state(fn (PayrollRun $record): string => number_format($record->totals()['employer_cost'], 2))
                     ->alignEnd()
                     ->toggleable(),
@@ -79,7 +79,7 @@ class PayrollRunsTable
                 // Inputs newer than the run last read — docs/saas-launch-plan.md §14.1. Named, so the
                 // reader knows what moved; a locked run is not judged, because its figures are history.
                 TextColumn::make('inputs')
-                    ->label('Inputs')
+                    ->label(__('Inputs'))
                     ->badge()
                     ->state(fn (PayrollRun $record): string => $record->isLocked() ? 'frozen' : ($record->isStale() ? 'changed' : 'current'))
                     ->color(fn (string $state): string => match ($state) {
@@ -92,12 +92,12 @@ class PayrollRunsTable
                         : 'Changed since the run read them: '.collect($stale)->map(fn ($at, $what): string => "{$what} ({$at->format('d M H:i')})")->join(', '))),
 
                 TextColumn::make('pay_day')
-                    ->label('Pay day')
+                    ->label(__('Pay day'))
                     ->state(fn (PayrollRun $record): ?string => $record->payDay()?->format('d M Y'))
                     ->placeholder('—')
                     ->toggleable(),
 
-                TextColumn::make('locker.name')->label('Signed off by')->placeholder('—')->toggleable(),
+                TextColumn::make('locker.name')->label(__('Signed off by'))->placeholder('—')->toggleable(),
             ])
             ->defaultSort('id', 'desc')
             ->filters([
@@ -111,7 +111,7 @@ class PayrollRunsTable
                 // Approve and send back — docs/saas-launch-plan.md §14.1. A second pair of eyes between
                 // raising a month and freezing it; whether signing off needs it is a company switch.
                 Action::make('approve')
-                    ->label('Approve')
+                    ->label(__('Approve'))
                     ->icon('heroicon-o-check-badge')
                     ->color('info')
                     ->requiresConfirmation()
@@ -133,14 +133,14 @@ class PayrollRunsTable
                     }),
 
                 Action::make('sendBack')
-                    ->label('Send back')
+                    ->label(__('Send back'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('warning')
                     ->visible(fn (PayrollRun $record): bool => $record->isApproved()
                         && (auth()->user()?->can('approve', $record) ?? false))
                     ->schema([
                         Textarea::make('reason')
-                            ->label('What needs fixing?')
+                            ->label(__('What needs fixing?'))
                             ->required()
                             ->rows(3)
                             ->helperText('Kept on the run, where the clerk reads it.'),
@@ -158,7 +158,7 @@ class PayrollRunsTable
                     }),
 
                 Action::make('lock')
-                    ->label('Sign off')
+                    ->label(__('Sign off'))
                     ->icon('heroicon-o-lock-closed')
                     ->color('success')
                     ->requiresConfirmation()
@@ -181,14 +181,14 @@ class PayrollRunsTable
                     }),
 
                 Action::make('reopen')
-                    ->label('Reopen')
+                    ->label(__('Reopen'))
                     ->icon('heroicon-o-lock-open')
                     ->color('danger')
                     ->visible(fn (PayrollRun $record): bool => $record->isLocked()
                         && (auth()->user()?->can(PayrollRun::LOCK_PERMISSION) ?? false))
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Why is a signed-off month being changed?')
+                            ->label(__('Why is a signed-off month being changed?'))
                             ->required()
                             ->rows(3)
                             ->helperText('Kept on the run. This is the question an auditor asks about a month that was agreed and then changed.'),

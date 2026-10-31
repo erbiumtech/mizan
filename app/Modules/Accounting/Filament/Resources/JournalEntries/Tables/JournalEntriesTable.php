@@ -32,21 +32,21 @@ class JournalEntriesTable
             ->deferLoading()
             ->columns([
                 TextColumn::make('entry_number')
-                    ->label('Entry Number')
+                    ->label(__('Entry Number'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('entry_date')
-                    ->label('Entry Date')
+                    ->label(__('Entry Date'))
                     ->date()
                     ->sortable(),
 
                 TextColumn::make('entry_type')
-                    ->label('Entry Type')
+                    ->label(__('Entry Type'))
                     ->formatStateUsing(fn (string $state): string => ucfirst($state)),
 
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'draft' => 'info',
@@ -59,18 +59,18 @@ class JournalEntriesTable
                     ->sortable(),
 
                 TextColumn::make('reference')
-                    ->label('Reference')
+                    ->label(__('Reference'))
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('memo')
-                    ->label('Memo')
+                    ->label(__('Memo'))
                     ->toggleable(),
 
                 TextColumn::make('fiscalYear.name')
-                    ->label('Fiscal Year'),
+                    ->label(__('Fiscal Year')),
 
                 TextColumn::make('creator.name')
-                    ->label('Created By'),
+                    ->label(__('Created By')),
             ])
             ->filters([
                 //
@@ -96,34 +96,34 @@ class JournalEntriesTable
     {
         return [
             Action::make('submit')
-                ->label('Submit for Approval')
+                ->label(__('Submit for Approval'))
                 ->visible(fn (JournalEntry $record): bool => auth()->user()?->can('submit', $record) ?? false)
                 ->requiresConfirmation()
                 ->action(fn (JournalEntry $record) => self::run(fn (JournalEntryService $s) => $s->submitForApproval($record), 'Submitted for approval.')),
 
             Action::make('approve')
-                ->label('Approve')
+                ->label(__('Approve'))
                 ->visible(fn (JournalEntry $record): bool => auth()->user()?->can('approve', $record) ?? false)
                 ->requiresConfirmation()
                 ->action(fn (JournalEntry $record) => self::run(fn (JournalEntryService $s) => $s->approve($record, auth()->user()), 'Journal entry approved.')),
 
             Action::make('reject')
-                ->label('Reject')
+                ->label(__('Reject'))
                 ->visible(fn (JournalEntry $record): bool => auth()->user()?->can('reject', $record) ?? false)
                 ->schema([
-                    Textarea::make('reason')->label('Reason')->required(),
+                    Textarea::make('reason')->label(__('Reason'))->required(),
                 ])
                 ->action(fn (array $data, JournalEntry $record) => self::run(fn (JournalEntryService $s) => $s->reject($record, auth()->user(), $data['reason']), 'Journal entry rejected.')),
 
             Action::make('post')
-                ->label('Post Entry')
+                ->label(__('Post Entry'))
                 ->visible(fn (JournalEntry $record): bool => auth()->user()?->can('post', $record) ?? false)
                 ->requiresConfirmation()
                 ->modalDescription('Posting will update account balances. This cannot be undone (only reversed). Continue?')
                 ->action(fn (JournalEntry $record) => self::run(fn (JournalEntryService $s) => $s->post($record), 'Journal entry posted to the ledger.')),
 
             Action::make('reverse')
-                ->label('Reverse Entry')
+                ->label(__('Reverse Entry'))
                 ->visible(fn (JournalEntry $record): bool => auth()->user()?->can('reverse', $record) ?? false)
                 ->requiresConfirmation()
                 ->modalDescription('This will create and post a mirrored reversing entry. Continue?')
@@ -140,34 +140,34 @@ class JournalEntriesTable
     {
         return [
             BulkAction::make('submitBulk')
-                ->label('Submit for Approval')
+                ->label(__('Submit for Approval'))
                 ->visible(fn (): bool => auth()->user()?->can('JournalEntrySubmit') ?? false)
                 ->requiresConfirmation()
                 ->action(fn (Collection $records) => self::runBulk($records, fn (JournalEntryService $s, JournalEntry $e) => $s->submitForApproval($e), 'Submitted for approval.')),
 
             BulkAction::make('approveBulk')
-                ->label('Approve')
+                ->label(__('Approve'))
                 ->visible(fn (): bool => auth()->user()?->can('JournalEntryApprove') ?? false)
                 ->requiresConfirmation()
                 ->action(fn (Collection $records) => self::runBulk($records, fn (JournalEntryService $s, JournalEntry $e) => $s->approve($e, auth()->user()), 'Journal entries approved.')),
 
             BulkAction::make('rejectBulk')
-                ->label('Reject')
+                ->label(__('Reject'))
                 ->visible(fn (): bool => auth()->user()?->can('JournalEntryReject') ?? false)
                 ->schema([
-                    Textarea::make('reason')->label('Reason')->required(),
+                    Textarea::make('reason')->label(__('Reason'))->required(),
                 ])
                 ->action(fn (array $data, Collection $records) => self::runBulk($records, fn (JournalEntryService $s, JournalEntry $e) => $s->reject($e, auth()->user(), $data['reason']), 'Journal entries rejected.')),
 
             BulkAction::make('postBulk')
-                ->label('Post Entry')
+                ->label(__('Post Entry'))
                 ->visible(fn (): bool => auth()->user()?->can('JournalEntryPost') ?? false)
                 ->requiresConfirmation()
                 ->modalDescription('Posting will update account balances. This cannot be undone (only reversed). Continue?')
                 ->action(fn (Collection $records) => self::runBulk($records, fn (JournalEntryService $s, JournalEntry $e) => $s->post($e), 'Journal entries posted to the ledger.')),
 
             BulkAction::make('reverseBulk')
-                ->label('Reverse Entry')
+                ->label(__('Reverse Entry'))
                 ->visible(fn (): bool => auth()->user()?->can('JournalEntryReverse') ?? false)
                 ->requiresConfirmation()
                 ->modalDescription('This will create and post a mirrored reversing entry. Continue?')

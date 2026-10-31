@@ -65,7 +65,7 @@ class IssuedAssetResource extends Resource
     {
         return $schema->components([
             Select::make('employee_id')
-                ->label('Issued to')
+                ->label(__('Issued to'))
                 ->relationship('employee', 'employee_id', fn ($query) => app(EmployeeAccess::class)
                     ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
                 ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
@@ -78,23 +78,23 @@ class IssuedAssetResource extends Resource
                 ->required(),
 
             Select::make('asset_kind')
-                ->label('Kind')
+                ->label(__('Kind'))
                 // The company's own list — docs/saas-launch-plan.md §14.10. `$keep` holds
                 // on to the value an old asset already carries.
                 ->options(fn (?IssuedAsset $record): array => IssuedAsset::kindOptions($record?->asset_kind))
                 ->required(),
 
             TextInput::make('description')->required()->maxLength(255),
-            TextInput::make('serial_no')->label('Serial number')->maxLength(255),
+            TextInput::make('serial_no')->label(__('Serial number'))->maxLength(255),
 
             // docs/saas-launch-plan.md §14.10.
             TextInput::make('tag')
-                ->label('Asset tag')
+                ->label(__('Asset tag'))
                 ->maxLength(40)
                 ->helperText('The sticker on it. Not the serial — a serial is the maker\'s, a tag is yours, and an audit counts tags.'),
-            TextInput::make('vendor')->label('Bought from')->maxLength(120),
+            TextInput::make('vendor')->label(__('Bought from'))->maxLength(120),
             DatePicker::make('warranty_until')
-                ->label('Warranty until')
+                ->label(__('Warranty until'))
                 ->native(false)
                 ->helperText('What decides whether a broken screen is a phone call or a purchase.'),
 
@@ -107,7 +107,7 @@ class IssuedAssetResource extends Resource
             // Guarded: a company that keeps its books elsewhere has no fixed asset
             // register to point at, and the field is absent rather than empty.
             Select::make('fixed_asset_id')
-                ->label('On the books as')
+                ->label(__('On the books as'))
                 ->options(fn (): array => FixedAsset::orderBy('name')->pluck('name', 'id')->all())
                 ->searchable()
                 ->visible(fn (): bool => modules()->enabled('accounting'))
@@ -122,28 +122,28 @@ class IssuedAssetResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('employee.display_label')
-                    ->label('Issued to')
+                    ->label(__('Issued to'))
                     ->searchable(query: fn ($query, string $search) => LandlordUserColumn::search($query, $search))
                     ->sortable(),
 
                 TextColumn::make('description')->searchable()
                     ->description(fn (IssuedAsset $record): ?string => $record->serial_no),
 
-                TextColumn::make('tag')->label('Tag')->placeholder('—')->searchable()->toggleable(),
+                TextColumn::make('tag')->label(__('Tag'))->placeholder('—')->searchable()->toggleable(),
                 TextColumn::make('warranty_until')
-                    ->label('Warranty')
+                    ->label(__('Warranty'))
                     ->date('d M Y')
                     ->placeholder('—')
                     ->color(fn (IssuedAsset $record): string => $record->isUnderWarranty() === false ? 'danger' : 'gray')
                     ->description(fn (IssuedAsset $record): ?string => $record->isUnderWarranty() === false ? 'expired' : null)
                     ->toggleable(),
-                TextColumn::make('asset_kind')->label('Kind')->badge()->color('gray')
+                TextColumn::make('asset_kind')->label(__('Kind'))->badge()->color('gray')
                     ->formatStateUsing(fn (string $state): string => IssuedAsset::kindLabel($state)),
 
                 TextColumn::make('issued_on')->date('d M Y')->sortable(),
 
                 TextColumn::make('returned_on')
-                    ->label('Returned')
+                    ->label(__('Returned'))
                     ->date('d M Y')
                     ->placeholder('still out')
                     ->color(fn (IssuedAsset $record): string => $record->isReturned() ? 'success' : 'warning')
@@ -154,19 +154,19 @@ class IssuedAssetResource extends Resource
             ->defaultSort('issued_on', 'desc')
             ->filters([
                 Filter::make('outstanding')
-                    ->label('Still out')
+                    ->label(__('Still out'))
                     ->query(fn (Builder $query): Builder => $query->outstanding()),
             ])
             ->recordActions([
                 Action::make('return')
-                    ->label('Mark returned')
+                    ->label(__('Mark returned'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('success')
                     ->visible(fn (IssuedAsset $record): bool => ! $record->isReturned()
                         && (auth()->user()?->can('update', $record) ?? false))
                     ->schema([
                         DatePicker::make('returned_on')->native(false)->default(now())->required(),
-                        Textarea::make('condition_note')->label('Condition')->rows(2),
+                        Textarea::make('condition_note')->label(__('Condition'))->rows(2),
                     ])
                     ->action(function (IssuedAsset $record, array $data): void {
                         $record->update([

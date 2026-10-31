@@ -121,7 +121,7 @@ class EobiReturnFile extends Page
         return [
             HelpAction::make('eobi-return', 'EOBI Return: Help'),
             Action::make('downloadEobiReturn')
-                ->label('Download EOBI return (CSV)')
+                ->label(__('Download EOBI return (CSV)'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->visible(fn (): bool => $this->getRows()->isNotEmpty())
                 ->action(function () {

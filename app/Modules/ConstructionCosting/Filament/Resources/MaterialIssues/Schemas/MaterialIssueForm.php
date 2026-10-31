@@ -28,7 +28,7 @@ class MaterialIssueForm
                     ->columns(2)
                     ->schema([
                         Select::make('stock_location_id')
-                            ->label('Out of store')
+                            ->label(__('Out of store'))
                             ->options(fn (): array => StockLocation::query()->active()->orderBy('code')->get()
                                 ->mapWithKeys(fn (StockLocation $location): array => [
                                     $location->getKey() => $location->displayName(),
@@ -39,13 +39,13 @@ class MaterialIssueForm
                             ->helperText('The store the material physically came out of.'),
 
                         DatePicker::make('issued_on')
-                            ->label('Issued on')
+                            ->label(__('Issued on'))
                             ->native(false)
                             ->required()
                             ->default(now()),
 
                         TextInput::make('reference')
-                            ->label('Paper docket number')
+                            ->label(__('Paper docket number'))
                             ->maxLength(255)
                             ->helperText('What is written on the docket the storeman signed, if it has its own number.'),
                     ]),
@@ -55,23 +55,23 @@ class MaterialIssueForm
                     ->columns(2)
                     ->schema([
                         Select::make('issued_by_worker_id')
-                            ->label('Issued by')
+                            ->label(__('Issued by'))
                             ->options(fn (): array => static::workers())
                             ->searchable()
                             ->placeholder('Not on the register'),
 
                         TextInput::make('issued_by_name')
-                            ->label('…or a name')
+                            ->label(__('…or a name'))
                             ->maxLength(255),
 
                         Select::make('received_by_worker_id')
-                            ->label('Received by')
+                            ->label(__('Received by'))
                             ->options(fn (): array => static::workers())
                             ->searchable()
                             ->placeholder('Not on the register'),
 
                         TextInput::make('received_by_name')
-                            ->label('…or a name')
+                            ->label(__('…or a name'))
                             ->maxLength(255)
                             ->helperText('Use this when the person is not on the worker register — a subcontractor\'s ganger, usually.'),
                     ]),

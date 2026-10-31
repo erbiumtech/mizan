@@ -38,7 +38,7 @@ class ListLabourRecords extends ListRecords
     private function importAction(): Action
     {
         return Action::make('importTimesheets')
-            ->label('Import from timesheets')
+            ->label(__('Import from timesheets'))
             ->icon('heroicon-o-arrow-down-on-square')
             ->color('gray')
             ->visible(fn (): bool => app(TimesheetLabourImport::class)->isAvailable()
@@ -47,19 +47,19 @@ class ListLabourRecords extends ListRecords
             ->modalDescription('Only approved entries, only on projects a job names, and only for people the worker register links to an employee. Everything arrives as a draft — the rate is worked out and frozen when you approve it, from the construction rate ladder rather than the charge-out one.')
             ->schema([
                 DatePicker::make('from')
-                    ->label('From')
+                    ->label(__('From'))
                     ->native(false)
                     ->required()
                     ->default(now()->startOfMonth()),
 
                 DatePicker::make('to')
-                    ->label('To')
+                    ->label(__('To'))
                     ->native(false)
                     ->required()
                     ->default(now()),
 
                 Select::make('job_id')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->options(fn (): array => Job::query()->whereNotNull('project_id')->orderBy('code')->get()
                         ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                         ->all())

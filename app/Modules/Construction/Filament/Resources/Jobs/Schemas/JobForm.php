@@ -29,7 +29,7 @@ class JobForm
                     ->columns(2)
                     ->schema([
                         TextInput::make('code')
-                            ->label('Job number')
+                            ->label(__('Job number'))
                             ->required()
                             ->maxLength(255)
                             ->unique(ignoreRecord: true)
@@ -40,7 +40,7 @@ class JobForm
                             ->maxLength(255),
 
                         Select::make('parent_id')
-                            ->label('Part of')
+                            ->label(__('Part of'))
                             ->relationship('parent', 'name')
                             ->searchable()
                             ->preload()
@@ -89,7 +89,7 @@ class JobForm
                     ->columns(2)
                     ->schema([
                         Select::make('contract_standard')
-                            ->label('Contract standard')
+                            ->label(__('Contract standard'))
                             ->options([
                                 Job::STANDARD_FIDIC => 'FIDIC',
                                 Job::STANDARD_AIA => 'AIA',
@@ -106,7 +106,7 @@ class JobForm
                         // the job still exists: a tender has no client record either way. Same shape as
                         // `invoices.project_id`. The coupling is recorded in ModuleBoundaryTest.
                         Select::make('client_contact_id')
-                            ->label('Client')
+                            ->label(__('Client'))
                             ->visible(fn (): bool => modules()->enabled('invoicing'))
                             ->options(fn (): array => Contact::query()
                                 ->whereIn('kind', [Contact::KIND_CUSTOMER, Contact::KIND_BOTH])
@@ -125,7 +125,7 @@ class JobForm
                          * most contractors most of the time — the store is the exception, not the norm.
                          */
                         Select::make('stock_location_id')
-                            ->label('Site store')
+                            ->label(__('Site store'))
                             ->visible(fn (): bool => modules()->enabled('inventory'))
                             ->options(fn (): array => StockLocation::query()->active()->orderBy('code')->get()
                                 ->mapWithKeys(fn (StockLocation $location): array => [
@@ -150,7 +150,7 @@ class JobForm
                          * chosen" is a state §17.6's report names rather than papering over.
                          */
                         Select::make('exposure_hours_source')
-                            ->label('Safety exposure hours from')
+                            ->label(__('Safety exposure hours from'))
                             ->visible(fn (): bool => modules()->enabled('construction_qhse')
                                 && (modules()->enabled('construction_field') || modules()->enabled('timesheets')))
                             ->options(fn (): array => array_filter([
@@ -171,7 +171,7 @@ class JobForm
                          * money, so a default would pick the answer that flatters exactly the job that needs watching.
                          */
                         Select::make('percent_complete_method')
-                            ->label('Percent complete measured by')
+                            ->label(__('Percent complete measured by'))
                             ->visible(fn (): bool => modules()->enabled('construction_costing'))
                             ->options([
                                 'cost_to_cost' => 'Cost to cost — cost to date over forecast final cost',
@@ -182,14 +182,14 @@ class JobForm
                             ->helperText('A percentage without its method is one nobody can defend. Cost-to-cost needs no surveyor and reports more progress the more a job overspends.'),
 
                         Select::make('certifier_contact_id')
-                            ->label('Certifier')
+                            ->label(__('Certifier'))
                             ->visible(fn (): bool => modules()->enabled('invoicing'))
                             ->options(fn (): array => Contact::query()->orderBy('name')->pluck('name', 'id')->all())
                             ->searchable()
                             ->helperText('The Engineer under FIDIC, the Architect under AIA.'),
 
                         TextInput::make('contract_sum')
-                            ->label('Contract sum (original)')
+                            ->label(__('Contract sum (original)'))
                             ->numeric()
                             ->helperText('The original sum. The revised sum is computed from approved variations and never typed.'),
                     ]),
@@ -197,10 +197,10 @@ class JobForm
                 Section::make('The site')
                     ->columns(2)
                     ->schema([
-                        TextInput::make('site_address_line_1')->label('Address')->maxLength(255),
-                        TextInput::make('site_address_line_2')->label('Address line 2')->maxLength(255),
-                        TextInput::make('site_city')->label('City')->maxLength(255),
-                        TextInput::make('site_country')->label('Country')->maxLength(255),
+                        TextInput::make('site_address_line_1')->label(__('Address'))->maxLength(255),
+                        TextInput::make('site_address_line_2')->label(__('Address line 2'))->maxLength(255),
+                        TextInput::make('site_city')->label(__('City'))->maxLength(255),
+                        TextInput::make('site_country')->label(__('Country'))->maxLength(255),
                     ]),
 
                 Section::make('Programme')
@@ -213,7 +213,7 @@ class JobForm
                             ->native(false)
                             ->helperText('Set by an approved extension of time, not by hand.'),
                         TextInput::make('defects_period_days')
-                            ->label('Defects liability (days)')
+                            ->label(__('Defects liability (days)'))
                             ->numeric()
                             ->minValue(0),
                     ]),

@@ -42,7 +42,7 @@ class EditCompany extends EditRecord
     private function applyProfileAction(): Action
     {
         return Action::make('applyProfileLicences')
-            ->label('Apply profile licences')
+            ->label(__('Apply profile licences'))
             ->icon('heroicon-o-sparkles')
             ->color('gray')
             ->visible(fn (): bool => $this->record->hasProfile()

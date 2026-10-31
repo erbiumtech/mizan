@@ -41,7 +41,7 @@ class ChequeBookResource extends Resource
     {
         return $schema->components([
             Select::make('company_bank_account_id')
-                ->label('Bank account')
+                ->label(__('Bank account'))
                 ->relationship('companyBankAccount', 'title')
                 ->required()
                 ->preload()
@@ -52,19 +52,19 @@ class ChequeBookResource extends Resource
                 ->helperText('Printed before the number, if the leaves carry one.'),
 
             TextInput::make('first_no')
-                ->label('First number')
+                ->label(__('First number'))
                 ->numeric()
                 ->minValue(1)
                 ->required(),
 
             TextInput::make('last_no')
-                ->label('Last number')
+                ->label(__('Last number'))
                 ->numeric()
                 ->required()
                 ->rule(fn (Get $get) => 'gte:'.(int) $get('first_no')),
 
             TextInput::make('next_no')
-                ->label('Next to print')
+                ->label(__('Next to print'))
                 ->numeric()
                 ->helperText('Leave blank to start at the first number. Set it when leaves were already used by hand.')
                 ->visibleOn('edit'),
@@ -78,11 +78,11 @@ class ChequeBookResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('companyBankAccount.title')->label('Bank account')->sortable(),
-                TextColumn::make('range')->label('Range')->state(fn (ChequeBook $record): string => $record->label()),
-                TextColumn::make('next_no')->label('Next')->state(fn (ChequeBook $record): string => $record->isExhausted() ? 'Used up' : $record->format($record->next_no)),
-                TextColumn::make('remaining')->label('Left')->state(fn (ChequeBook $record): int => $record->remaining()),
-                IconColumn::make('is_active')->boolean()->label('Active'),
+                TextColumn::make('companyBankAccount.title')->label(__('Bank account'))->sortable(),
+                TextColumn::make('range')->label(__('Range'))->state(fn (ChequeBook $record): string => $record->label()),
+                TextColumn::make('next_no')->label(__('Next'))->state(fn (ChequeBook $record): string => $record->isExhausted() ? 'Used up' : $record->format($record->next_no)),
+                TextColumn::make('remaining')->label(__('Left'))->state(fn (ChequeBook $record): int => $record->remaining()),
+                IconColumn::make('is_active')->boolean()->label(__('Active')),
             ])
             ->defaultSort('id', 'desc')
             ->recordActions([

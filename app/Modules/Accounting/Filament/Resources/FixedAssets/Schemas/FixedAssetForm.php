@@ -21,7 +21,7 @@ class FixedAssetForm
                     ->maxLength(255),
 
                 Select::make('account_id')
-                    ->label('Asset Account')
+                    ->label(__('Asset Account'))
                     ->relationship(
                         'account',
                         'name',
@@ -32,18 +32,18 @@ class FixedAssetForm
                     ->required(),
 
                 DatePicker::make('purchase_date')
-                    ->label('Purchase Date')
+                    ->label(__('Purchase Date'))
                     ->required(),
 
                 TextInput::make('purchase_cost')
-                    ->label('Purchase Cost')
+                    ->label(__('Purchase Cost'))
                     ->numeric()
                     ->step(0.01)
                     ->required()
                     ->minValue(0.01),
 
                 Select::make('depreciation_method')
-                    ->label('Depreciation Method')
+                    ->label(__('Depreciation Method'))
                     ->options([
                         'straight_line' => 'Straight Line',
                         'declining_balance' => 'Declining Balance',
@@ -52,14 +52,14 @@ class FixedAssetForm
                     ->required(),
 
                 TextInput::make('useful_life_months')
-                    ->label('Useful Life (months)')
+                    ->label(__('Useful Life (months)'))
                     ->numeric()
                     ->integer()
                     ->required()
                     ->minValue(1),
 
                 TextInput::make('salvage_value')
-                    ->label('Salvage Value')
+                    ->label(__('Salvage Value'))
                     ->numeric()
                     ->step(0.01)
                     ->minValue(0),

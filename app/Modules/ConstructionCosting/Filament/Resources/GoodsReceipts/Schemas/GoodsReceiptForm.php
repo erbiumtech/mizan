@@ -29,7 +29,7 @@ class GoodsReceiptForm
             ->columns(2)
             ->components([
                 Select::make('commitment_id')
-                    ->label('Against order')
+                    ->label(__('Against order'))
                     ->options(fn (): array => Commitment::query()
                         ->committing()
                         ->get()
@@ -43,18 +43,18 @@ class GoodsReceiptForm
                     ->disabled(fn (?GoodsReceipt $record): bool => $record !== null && ! $record->isDraft()),
 
                 DatePicker::make('received_on')
-                    ->label('Received on')
+                    ->label(__('Received on'))
                     ->required()
                     ->default(now())
                     ->helperText('The day it arrived. If that month is closed the cost lands in the open one and keeps this date.'),
 
                 TextInput::make('delivery_note_reference')
-                    ->label('Delivery note')
+                    ->label(__('Delivery note'))
                     ->maxLength(255)
                     ->helperText("The supplier's own number. It is what the invoice will be matched against."),
 
                 Select::make('location_id')
-                    ->label('Delivered to')
+                    ->label(__('Delivered to'))
                     ->options(fn (): array => Location::query()->orderBy('path')->get()
                         ->mapWithKeys(fn (Location $l): array => [$l->getKey() => "{$l->code} — {$l->name}"])
                         ->all())

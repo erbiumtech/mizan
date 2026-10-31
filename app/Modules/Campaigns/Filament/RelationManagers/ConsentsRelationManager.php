@@ -41,13 +41,13 @@ class ConsentsRelationManager extends RelationManager
         return $table
             ->modifyQueryUsing(fn ($query) => $query->with('recorder'))
             ->columns([
-                TextColumn::make('recorded_at')->label('When')->dateTime('d M Y H:i')->sortable(),
+                TextColumn::make('recorded_at')->label(__('When'))->dateTime('d M Y H:i')->sortable(),
                 TextColumn::make('channel')->formatStateUsing(fn (string $state): string => self::CHANNELS[$state] ?? $state),
                 TextColumn::make('state')->badge()
                     ->formatStateUsing(fn (string $state): string => $state === Consent::STATE_GRANTED ? 'Agreed' : 'Withdrawn')
                     ->color(fn (string $state): string => $state === Consent::STATE_GRANTED ? 'success' : 'danger'),
                 TextColumn::make('source')->placeholder('—')->wrap(),
-                TextColumn::make('recorder.name')->label('Recorded by')->placeholder('—'),
+                TextColumn::make('recorder.name')->label(__('Recorded by'))->placeholder('—'),
             ])
             ->defaultSort('recorded_at', 'desc')
             ->headerActions([
@@ -67,7 +67,7 @@ class ConsentsRelationManager extends RelationManager
             ->visible(fn (): bool => auth()->user()?->can('create', Consent::class) ?? false)
             ->schema([
                 Select::make('channel')->options(self::CHANNELS)->required(),
-                TextInput::make('source')->label('Evidence')->required()->maxLength(190)->helperText($sourceHelp),
+                TextInput::make('source')->label(__('Evidence'))->required()->maxLength(190)->helperText($sourceHelp),
             ])
             ->action(function (array $data) use ($state): void {
                 $subject = $this->getOwnerRecord();

@@ -18,33 +18,33 @@ class SalarySlabsTable
         return $table
             ->columns([
                 TextColumn::make('id')
-                    ->label('ID')
+                    ->label(__('ID'))
                     ->sortable(),
 
                 TextColumn::make('fiscalYear.name')
-                    ->label('Fiscal Year')
+                    ->label(__('Fiscal Year'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('min_amount')
-                    ->label('Minimum Amount (Annual)')
+                    ->label(__('Minimum Amount (Annual)'))
                     ->numeric()
                     ->sortable(),
 
                 TextColumn::make('max_amount')
-                    ->label('Maximum Amount (Annual)')
+                    ->label(__('Maximum Amount (Annual)'))
                     ->numeric(),
 
                 TextColumn::make('fixed_tax')
-                    ->label('Fixed Tax Amount')
+                    ->label(__('Fixed Tax Amount'))
                     ->numeric(),
 
                 TextColumn::make('percentage')
-                    ->label('Tax Percentage (%)')
+                    ->label(__('Tax Percentage (%)'))
                     ->numeric(),
 
                 TextColumn::make('slab_preview')
-                    ->label('Slab Preview')
+                    ->label(__('Slab Preview'))
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->state(function (SalarySlab $record): string {
                         $max = $record->max_amount ? number_format($record->max_amount) : 'Above';
@@ -56,7 +56,7 @@ class SalarySlabsTable
             ])
             ->filters([
                 SelectFilter::make('fiscal_year_id')
-                    ->label('Fiscal Year')
+                    ->label(__('Fiscal Year'))
                     ->options(fn (): array => FiscalYear::pluck('name', 'id')->toArray()),
             ])
             ->recordActions([

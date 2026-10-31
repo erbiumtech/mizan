@@ -14,7 +14,7 @@ class ListApplications extends ListRecords
     {
         return [
             HelpAction::make('applications', 'Applications: Help'),
-            \Filament\Actions\CreateAction::make()->label('Record an application'),
+            \Filament\Actions\CreateAction::make()->label(__('Record an application')),
         ];
     }
 }

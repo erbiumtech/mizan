@@ -83,7 +83,7 @@ class OptionValueResource extends Resource
     {
         return $schema->components([
             Select::make('list')
-                ->label('Dropdown')
+                ->label(__('Dropdown'))
                 ->options(fn (): array => array_map(
                     fn (array $list): string => $list['label'],
                     OptionLists::enabled(),
@@ -126,12 +126,12 @@ class OptionValueResource extends Resource
                 ->helperText('What people see in the dropdown. Renaming one relabels it everywhere; records already saved keep pointing at it.'),
 
             Toggle::make('is_active')
-                ->label('Offered')
+                ->label(__('Offered'))
                 ->default(true)
                 ->helperText('Switch off rather than delete: an entry that is no longer offered stays readable on the records that already use it.'),
 
             TextInput::make('sort')
-                ->label('Order in the list')
+                ->label(__('Order in the list'))
                 ->numeric()
                 ->default(0),
         ]);
@@ -142,7 +142,7 @@ class OptionValueResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('list')
-                    ->label('Dropdown')
+                    ->label(__('Dropdown'))
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => OptionLists::all()[$state]['label'] ?? $state)
                     ->sortable(),
@@ -155,13 +155,13 @@ class OptionValueResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->color('gray'),
 
-                IconColumn::make('is_active')->label('Offered')->boolean()->sortable(),
+                IconColumn::make('is_active')->label(__('Offered'))->boolean()->sortable(),
 
-                TextColumn::make('sort')->label('Order')->alignEnd()->sortable()->toggleable(),
+                TextColumn::make('sort')->label(__('Order'))->alignEnd()->sortable()->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('list')
-                    ->label('Dropdown')
+                    ->label(__('Dropdown'))
                     ->options(fn (): array => array_map(
                         fn (array $list): string => $list['label'],
                         OptionLists::enabled(),

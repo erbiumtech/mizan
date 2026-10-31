@@ -59,27 +59,27 @@ class EnvironmentIncidentsTable extends TableWidget
             )
             ->columns([
                 TextColumn::make('environment.project.name')
-                    ->label('Project')
+                    ->label(__('Project'))
                     ->url(fn (ProjectEnvironmentIncident $record): ?string => $record->environment?->project
                         ? ProjectResource::getUrl('view', ['record' => $record->environment->project_id])
                         : null),
 
                 TextColumn::make('environment.kind')
-                    ->label('Environment')
+                    ->label(__('Environment'))
                     ->badge()
                     ->color('danger')
                     ->formatStateUsing(fn (?string $state): string => ProjectEnvironment::KINDS[$state] ?? (string) $state),
 
                 TextColumn::make('started_at')
-                    ->label('Down for')
+                    ->label(__('Down for'))
                     ->formatStateUsing(fn ($state, ProjectEnvironmentIncident $record): string => $record->durationForHumans()),
 
-                TextColumn::make('failure_count')->label('Failed checks'),
+                TextColumn::make('failure_count')->label(__('Failed checks')),
 
-                TextColumn::make('last_status_code')->label('HTTP')->placeholder('—'),
+                TextColumn::make('last_status_code')->label(__('HTTP'))->placeholder('—'),
 
                 TextColumn::make('last_error')
-                    ->label('Last error')
+                    ->label(__('Last error'))
                     ->placeholder('—')
                     ->wrap()
                     ->limit(80),

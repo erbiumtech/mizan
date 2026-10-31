@@ -35,7 +35,7 @@ class LedgerFreezeSettingsSection implements SettingsSection
                 ->description('Stop entries being posted into months that have already been reported, while the year stays open.')
                 ->schema([
                     DatePicker::make('accounting.ledger_frozen_before')
-                        ->label('Freeze the ledger before')
+                        ->label(__('Freeze the ledger before'))
                         ->native(false)
                         ->helperText('Nothing dated earlier can be posted. Drafts can still be written and re-dated, '
                             .'and a holder of JournalEntryBackdate can still post — the activity log records who did. '

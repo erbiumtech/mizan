@@ -15,7 +15,7 @@ class ListDailyReports extends ListRecords
     {
         return [
             HelpAction::make('daily-reports', 'Daily Reports: Help'),
-            CreateAction::make()->label('File today\'s report'),
+            CreateAction::make()->label(__('File today\'s report')),
         ];
     }
 }

@@ -67,21 +67,21 @@ class InterviewResource extends Resource
              */
             ->groups([
                 Group::make('application.applicant.name')
-                    ->label('Candidate')
+                    ->label(__('Candidate'))
                     ->collapsible(),
             ])
             ->defaultGroup('application.applicant.name')
             ->columns([
                 TextColumn::make('round')
-                    ->label('Round')
+                    ->label(__('Round'))
                     ->badge()
                     ->color('gray')
                     ->formatStateUsing(fn ($state): string => 'Round '.$state)
                     ->sortable(),
 
-                TextColumn::make('scheduled_at')->label('When')->dateTime('d M Y H:i')->sortable(),
+                TextColumn::make('scheduled_at')->label(__('When'))->dateTime('d M Y H:i')->sortable(),
 
-                TextColumn::make('application.vacancy.title')->label('Vacancy')->placeholder('—')->toggleable(),
+                TextColumn::make('application.vacancy.title')->label(__('Vacancy'))->placeholder('—')->toggleable(),
 
                 TextColumn::make('mode')
                     ->badge()
@@ -91,13 +91,13 @@ class InterviewResource extends Resource
                 // The size of the panel, not its names: the names would be a lookup per row, and
                 // whoever is triaging a list wants to know three people are expected to reply.
                 TextColumn::make('panel_size')
-                    ->label('Panel')
+                    ->label(__('Panel'))
                     ->state(fn (Interview $record): string => (string) count((array) ($record->interviewer_user_ids ?? [])))
                     ->alignCenter()
                     ->toggleable(),
 
                 TextColumn::make('panel_feedback')
-                    ->label('Feedback')
+                    ->label(__('Feedback'))
                     ->badge()
                     ->state(function (Interview $record): string {
                         $summary = app(Interviews::class)->feedbackSummary($record);
@@ -133,7 +133,7 @@ class InterviewResource extends Resource
             ->defaultSort('round')
             ->recordActions([
                 Action::make('feedback')
-                    ->label('My feedback')
+                    ->label(__('My feedback'))
                     ->icon('heroicon-o-chat-bubble-left-ellipsis')
                     ->visible(fn (Interview $r): bool => in_array((int) auth()->id(), array_map('intval', (array) ($r->interviewer_user_ids ?? [])), true))
                     ->fillForm(fn (Interview $record): array => InterviewFeedback::query()->where('interview_id', $record->getKey())->where('user_id', auth()->id())->first()?->only(['rating', 'recommendation', 'strengths', 'concerns']) ?? [])
@@ -155,7 +155,7 @@ class InterviewResource extends Resource
                         Notification::make()->success()->title('Thank you. Your feedback is on the interview.')->send();
                     }),
                 Action::make('readFeedback')
-                    ->label('Read feedback')
+                    ->label(__('Read feedback'))
                     ->icon('heroicon-o-eye')
                     ->color('gray')
                     ->modalHeading('Panel feedback')
@@ -182,7 +182,7 @@ class InterviewResource extends Resource
                         return new HtmlString('<ul class="text-sm space-y-2">'.$html.'</ul>');
                     }),
                 Action::make('decide')
-                    ->label('Outcome')
+                    ->label(__('Outcome'))
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
                     ->visible(fn (Interview $r): bool => ! $r->isDecided() && (auth()->user()?->can('ApplicantUpdate') ?? false))
