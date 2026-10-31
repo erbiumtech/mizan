@@ -6,6 +6,7 @@ use App\Modules\Core\Models\CompanyModule;
 use App\Modules\Projects\Filament\Resources\Projects\Pages\EditProject;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Work\Filament\Pages\Board;
+use App\Modules\Work\Filament\Resources\WorkWorkflows\WorkWorkflowResource;
 use App\Modules\Work\Models\WorkBoard;
 use App\Modules\Work\Models\WorkItem;
 use App\Modules\Work\Models\WorkStatus;
@@ -264,7 +265,16 @@ class WorkBoardSettingsTest extends AccountingTestCase
             ->assertActionHidden('boardSettings')
             ->assertActionHidden('newBoard')
             ->assertActionHidden('resetColumns')
-            ->assertActionHidden('deleteBoard');
+            ->assertActionHidden('deleteBoard')
+            ->assertActionHidden('editWorkflow');
+    }
+
+    /** The statuses a column may hold are the workflow's, so the board offers a way to that workflow. */
+    public function test_the_board_offers_the_projects_workflow_to_edit(): void
+    {
+        Livewire::test(Board::class, ['project' => $this->project->getKey()])
+            ->assertActionVisible('editWorkflow')
+            ->assertActionHasUrl('editWorkflow', WorkWorkflowResource::getUrl('edit', ['record' => $this->workflow]));
     }
 
     public function test_the_workflow_field_is_offered_only_where_the_company_has_work(): void

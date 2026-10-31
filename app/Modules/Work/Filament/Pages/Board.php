@@ -9,6 +9,7 @@ use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Work\Filament\Resources\WorkItems\WorkItemResource;
 use App\Modules\Work\Filament\Resources\WorkReleases\WorkReleaseResource;
+use App\Modules\Work\Filament\Resources\WorkWorkflows\WorkWorkflowResource;
 use App\Modules\Work\Models\WorkBoard;
 use App\Modules\Work\Models\WorkItem;
 use App\Modules\Work\Models\WorkStatus;
@@ -160,6 +161,7 @@ class Board extends Page
             $this->boardSettingsAction(),
             ActionGroup::make([
                 $this->newBoardAction(),
+                $this->editWorkflowAction(),
                 $this->resetColumnsAction(),
                 $this->deleteBoardAction(),
             ])
@@ -207,6 +209,15 @@ class Board extends Page
                     ->helperText(__('Off, a subtask is counted on its parent\'s card instead.')),
                 Repeater::make('columns')
                     ->label(__('Columns'))
+                    // A column can only hold statuses the workflow has; a new one is added there. A new tab,
+                    // so the settings typed here so far are not lost.
+                    ->hintAction(
+                        Action::make('editWorkflowFromSettings')
+                            ->label(__('Edit workflow'))
+                            ->icon('heroicon-m-arrow-top-right-on-square')
+                            ->url(fn (): ?string => $this->workflowEditUrl(), shouldOpenInNewTab: true)
+                            ->visible(fn (): bool => $this->workflowEditUrl() !== null),
+                    )
                     ->schema([
                         TextInput::make('label')
                             ->label(__('Column name'))
@@ -384,6 +395,31 @@ class Board extends Page
         }
 
         return WorkBoard::query()->where('project_id', $project->getKey())->orderBy('id')->pluck('name', 'id')->all();
+    }
+
+    /**
+     * The project's workflow, to add, rename or reorder the statuses a board's columns map. Only for
+     * whoever may edit that workflow; the default workflow is the same record every project without
+     * its own shares, so editing it reaches them too.
+     */
+    protected function editWorkflowAction(): Action
+    {
+        return Action::make('editWorkflow')
+            ->label(__('Edit workflow'))
+            ->icon('heroicon-o-arrow-path-rounded-square')
+            ->url(fn (): ?string => $this->workflowEditUrl())
+            ->visible(fn (): bool => $this->workflowEditUrl() !== null);
+    }
+
+    private function workflowEditUrl(): ?string
+    {
+        $workflow = $this->workflow();
+
+        if ($workflow === null || ! (auth()->user()?->can('update', $workflow) ?? false)) {
+            return null;
+        }
+
+        return WorkWorkflowResource::getUrl('edit', ['record' => $workflow]);
     }
 
     private function workflow(): ?WorkWorkflow
