@@ -181,6 +181,37 @@ class ProjectForm
                             ]),
                     ]),
 
+                /*
+                 * The project's own say on three work-module defaults — docs/project-management-plan.md
+                 * §8.4 and §8.8. Plain columns on this table, offered only when the module is enabled,
+                 * the same guarded shape as the client picker above: Projects names no class of the
+                 * work module's and the columns simply stay null without it.
+                 */
+                Section::make('Work')
+                    ->columns(3)
+                    ->description('Overrides for this project. Empty means the company default under Settings → Work.')
+                    ->visible(fn (): bool => modules()->enabled('work'))
+                    ->schema([
+                        Select::make('work_merge_moves_to_done')
+                            ->label('A merged pull request')
+                            ->options([1 => 'Resolves the items it names', 0 => 'Is only recorded'])
+                            ->placeholder('Company default')
+                            ->native(false),
+
+                        Select::make('work_time_source')
+                            ->label('Time is logged')
+                            ->options(['here' => 'Here', 'clockify' => 'In Clockify', 'either' => 'Either'])
+                            ->placeholder('Company default')
+                            ->native(false),
+
+                        Select::make('work_task_on_progress')
+                            ->label('Clockify task is created')
+                            ->options([0 => 'On the first timer', 1 => 'When the item starts'])
+                            ->placeholder('On the first timer')
+                            ->native(false)
+                            ->helperText('A task for every item ever started fills a workspace with tasks nobody timed.'),
+                    ]),
+
                 ...CustomFieldsSchema::form(Project::class),
             ]);
     }
