@@ -528,6 +528,165 @@
     }
 }
 
+/*
+ * The rest of a list page, after the design's "People › Employees" board: the toolbar on the table's own
+ * surface with the search as a pill, active filters as input chips, a 56px header row and rows of at
+ * least 56px, and pagination as round page buttons with the current one in the selected-chip colour.
+ * Filament's table and pagination rules sit in a cascade layer, so these unlayered ones win at any
+ * specificity; nothing here changes layout beyond heights, gaps and padding.
+ */
+.fi-ta-header-toolbar {
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-color: var(--md-sys-color-outline-variant);
+    background-color: transparent;
+}
+
+.fi-ta-search-field .fi-input-wrp {
+    min-height: 2.5rem;
+    border-radius: var(--md-sys-shape-full, 9999px);
+    background-color: var(--md-sys-color-surface-container-high);
+    box-shadow: none;
+    padding-inline: 0.5rem 1rem;
+
+    &:focus-within {
+        box-shadow: inset 0 0 0 2px var(--md-sys-color-primary);
+    }
+
+    & .fi-input {
+        min-height: 2.5rem;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        color: var(--md-sys-color-on-surface);
+
+        &::placeholder {
+            color: var(--md-sys-color-on-surface-variant);
+        }
+    }
+
+    & .fi-icon {
+        color: var(--md-sys-color-on-surface-variant);
+    }
+
+    /* A pill has no seam between its icon and its text. */
+    & .fi-input-wrp-prefix,
+    & .fi-input-wrp-suffix {
+        border-inline: 0;
+    }
+}
+
+.fi-ta-filter-indicators {
+    align-items: center;
+    padding: 0.5rem 1rem;
+    border-color: var(--md-sys-color-outline-variant);
+    background-color: transparent;
+
+    & .fi-ta-filter-indicators-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--md-sys-color-on-surface-variant);
+    }
+
+    & .fi-ta-filter-indicators-badges-ctn {
+        gap: 0.5rem;
+    }
+
+    & .fi-badge {
+        min-height: 2rem;
+        padding-inline: 0.75rem 0.5rem;
+        border-radius: var(--md-sys-shape-small);
+        background-color: var(--md-sys-color-secondary-container);
+        color: var(--md-sys-color-on-secondary-container);
+        font-size: 0.875rem;
+    }
+}
+
+/* Header row 56px; body rows at least 56px, taller only where a cell's content needs it. */
+.fi-ta-table > thead > tr > th {
+    height: 3.5rem;
+}
+
+.fi-ta-table > thead,
+.fi-ta-table > tbody,
+.fi-ta-table > thead > tr,
+.fi-ta-table > tbody > tr {
+    border-color: var(--md-sys-color-outline-variant);
+}
+
+.fi-ta-table > tbody > tr > td {
+    height: 3.5rem;
+}
+
+.fi-ta-header-cell {
+    padding-inline: 1rem;
+}
+
+.fi-ta-cell {
+    color: var(--md-sys-color-on-surface);
+}
+
+.fi-ta-row.fi-selected,
+.fi-ta-row:has(.fi-ta-record-checkbox:checked) {
+    background-color: color-mix(in srgb, var(--md-sys-color-secondary-container) 60%, transparent);
+}
+
+.fi-ta-ctn > .fi-pagination,
+.fi-ta-ctn .fi-pagination {
+    padding: 0.5rem 1rem;
+    border-color: var(--md-sys-color-outline-variant);
+}
+
+.fi-pagination {
+    & .fi-pagination-overview {
+        font-size: 0.875rem;
+        font-weight: 400;
+        color: var(--md-sys-color-on-surface-variant);
+    }
+
+    & .fi-pagination-items {
+        gap: 0.25rem;
+        border-radius: 0;
+        background-color: transparent;
+        box-shadow: none;
+    }
+
+    & .fi-pagination-item {
+        border-inline: 0;
+
+        & .fi-pagination-item-btn {
+            min-width: 2.5rem;
+            height: 2.5rem;
+            justify-content: center;
+            align-items: center;
+            border-radius: var(--md-sys-shape-full, 9999px);
+        }
+
+        &:first-of-type .fi-pagination-item-btn,
+        &:last-of-type .fi-pagination-item-btn {
+            border-radius: var(--md-sys-shape-full, 9999px);
+        }
+
+        &.fi-active .fi-pagination-item-btn {
+            background-color: var(--md-sys-color-secondary-container);
+        }
+
+        &.fi-active .fi-pagination-item-label {
+            color: var(--md-sys-color-on-secondary-container);
+        }
+    }
+
+    & .fi-pagination-item-label {
+        font-size: 0.875rem;
+        color: var(--md-sys-color-on-surface-variant);
+    }
+
+    & .fi-pagination-records-per-page-select .fi-input-wrp {
+        min-height: 2.5rem;
+        border-radius: var(--md-sys-shape-full, 9999px);
+        box-shadow: inset 0 0 0 1px var(--md-sys-color-outline);
+    }
+}
+
 /* ---------------------------------------------------------------- chips (badges) */
 
 /* Badges become assist chips: 8px corners, no ring; the tonal colour pair is Filament's. */

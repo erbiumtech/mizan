@@ -82,9 +82,12 @@ class EmployeesTable
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
+                // A status chip, as on the Material list design: tonal green for active, neutral otherwise.
                 TextColumn::make('is_active')
                     ->label(__('Status'))
-                    ->formatStateUsing(fn ($state): string => (int) $state === 1 ? 'Active' : 'Inactive'),
+                    ->badge()
+                    ->color(fn ($state): string => (int) $state === 1 ? 'success' : 'gray')
+                    ->formatStateUsing(fn ($state): string => (int) $state === 1 ? __('Active') : __('Inactive')),
 
                 TextColumn::make('bank_code')
                     ->searchable(),
