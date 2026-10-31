@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Resources\BankStatementLines;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Accounting\Filament\Resources\BankStatementLines\Pages\CreateBankStatementLine;
 use App\Modules\Accounting\Filament\Resources\BankStatementLines\Pages\EditBankStatementLine;
 use App\Modules\Accounting\Filament\Resources\BankStatementLines\Pages\ListBankStatementLines;
@@ -21,6 +22,9 @@ class BankStatementLineResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = BankStatementLine::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

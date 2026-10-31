@@ -2,6 +2,7 @@
 
 namespace App\Modules\Advances\Filament\Resources\AdvanceTypes\Pages;
 
+use App\Filament\Concerns\OpensRecordsInSheets;
 use App\Filament\Support\HelpAction;
 use App\Modules\Advances\Filament\Resources\AdvanceTypes\AdvanceTypeResource;
 use Filament\Actions\CreateAction;
@@ -9,6 +10,8 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListAdvanceTypes extends ListRecords
 {
+    use OpensRecordsInSheets;
+
     protected static string $resource = AdvanceTypeResource::class;
 
     protected function getHeaderActions(): array

@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionCosting\Filament\Resources\Trades;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionCosting\Filament\Resources\Trades\Pages\CreateTrade;
 use App\Modules\ConstructionCosting\Filament\Resources\Trades\Pages\EditTrade;
 use App\Modules\ConstructionCosting\Filament\Resources\Trades\Pages\ListTrades;
@@ -32,6 +33,9 @@ class TradeResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Trade::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedWrenchScrewdriver;
 

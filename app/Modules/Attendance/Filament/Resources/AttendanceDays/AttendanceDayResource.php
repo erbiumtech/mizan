@@ -4,6 +4,7 @@ namespace App\Modules\Attendance\Filament\Resources\AttendanceDays;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Attendance\Filament\Resources\AttendanceDays\Pages\CreateAttendanceDay;
 use App\Modules\Attendance\Filament\Resources\AttendanceDays\Pages\EditAttendanceDay;
 use App\Modules\Attendance\Filament\Resources\AttendanceDays\Pages\ListAttendanceDays;
@@ -25,6 +26,9 @@ class AttendanceDayResource extends Resource
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = AttendanceDay::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClock;
 

@@ -3,6 +3,7 @@
 namespace App\Modules\Employees\Filament\Resources\EmployeeChangeRequests;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Employees\Filament\Resources\EmployeeChangeRequests\Pages\ListEmployeeChangeRequests;
 use App\Modules\Employees\Filament\Resources\EmployeeChangeRequests\Schemas\EmployeeChangeRequestForm;
 use App\Modules\Employees\Filament\Resources\EmployeeChangeRequests\Tables\EmployeeChangeRequestsTable;
@@ -21,6 +22,9 @@ class EmployeeChangeRequestResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = EmployeeChangeRequest::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

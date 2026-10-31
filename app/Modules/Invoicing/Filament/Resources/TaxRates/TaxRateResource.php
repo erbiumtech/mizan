@@ -3,6 +3,7 @@
 namespace App\Modules\Invoicing\Filament\Resources\TaxRates;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Invoicing\Filament\Resources\TaxRates\Pages\CreateTaxRate;
 use App\Modules\Invoicing\Filament\Resources\TaxRates\Pages\EditTaxRate;
 use App\Modules\Invoicing\Filament\Resources\TaxRates\Pages\ListTaxRates;
@@ -21,6 +22,9 @@ class TaxRateResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = TaxRate::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedReceiptPercent;
 

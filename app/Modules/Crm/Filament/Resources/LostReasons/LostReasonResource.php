@@ -4,6 +4,7 @@ namespace App\Modules\Crm\Filament\Resources\LostReasons;
 
 use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Crm\Filament\Resources\LostReasons\Pages\CreateLostReason;
 use App\Modules\Crm\Filament\Resources\LostReasons\Pages\EditLostReason;
 use App\Modules\Crm\Filament\Resources\LostReasons\Pages\ListLostReasons;
@@ -31,6 +32,9 @@ class LostReasonResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = LostReason::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedXCircle;
 

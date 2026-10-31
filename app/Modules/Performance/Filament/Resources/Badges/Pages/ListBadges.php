@@ -2,6 +2,7 @@
 
 namespace App\Modules\Performance\Filament\Resources\Badges\Pages;
 
+use App\Filament\Concerns\OpensRecordsInSheets;
 use App\Filament\Support\HelpAction;
 use App\Modules\Performance\Filament\Resources\Badges\BadgeResource;
 use App\Modules\Performance\Services\Badges;
@@ -12,6 +13,8 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListBadges extends ListRecords
 {
+    use OpensRecordsInSheets;
+
     protected static string $resource = BadgeResource::class;
 
     protected function getHeaderActions(): array

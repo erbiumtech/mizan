@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionContracts\Filament\Resources\ProgressClaims;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionContracts\Filament\Resources\ProgressClaims\Pages\CreateProgressClaim;
 use App\Modules\ConstructionContracts\Filament\Resources\ProgressClaims\Pages\EditProgressClaim;
 use App\Modules\ConstructionContracts\Filament\Resources\ProgressClaims\Pages\ListProgressClaims;
@@ -30,6 +31,9 @@ class ProgressClaimResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = ProgressClaim::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedInboxArrowDown;
 

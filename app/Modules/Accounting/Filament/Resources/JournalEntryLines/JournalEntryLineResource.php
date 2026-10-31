@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Resources\JournalEntryLines;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Accounting\Filament\Resources\JournalEntryLines\Pages\CreateJournalEntryLine;
 use App\Modules\Accounting\Filament\Resources\JournalEntryLines\Pages\EditJournalEntryLine;
 use App\Modules\Accounting\Filament\Resources\JournalEntryLines\Pages\ListJournalEntryLines;
@@ -22,6 +23,9 @@ class JournalEntryLineResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = JournalEntryLine::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedListBullet;
 

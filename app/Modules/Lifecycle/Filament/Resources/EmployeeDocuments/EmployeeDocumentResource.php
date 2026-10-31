@@ -4,6 +4,7 @@ namespace App\Modules\Lifecycle\Filament\Resources\EmployeeDocuments;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Lifecycle\Filament\Resources\EmployeeDocuments\Pages\CreateEmployeeDocument;
 use App\Modules\Lifecycle\Filament\Resources\EmployeeDocuments\Pages\EditEmployeeDocument;
 use App\Modules\Lifecycle\Filament\Resources\EmployeeDocuments\Pages\ListEmployeeDocuments;
@@ -38,6 +39,9 @@ class EmployeeDocumentResource extends Resource
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = EmployeeDocument::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedIdentification;
 

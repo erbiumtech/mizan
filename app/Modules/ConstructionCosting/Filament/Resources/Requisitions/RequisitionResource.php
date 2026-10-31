@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionCosting\Filament\Resources\Requisitions;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionCosting\Filament\Resources\Requisitions\Pages\CreateRequisition;
 use App\Modules\ConstructionCosting\Filament\Resources\Requisitions\Pages\EditRequisition;
 use App\Modules\ConstructionCosting\Filament\Resources\Requisitions\Pages\ListRequisitions;
@@ -33,6 +34,9 @@ class RequisitionResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Requisition::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedInboxStack;
 

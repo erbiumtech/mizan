@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionCosting\Filament\Resources\LabourRecords;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionCosting\Filament\Resources\LabourRecords\Pages\CreateLabourRecord;
 use App\Modules\ConstructionCosting\Filament\Resources\LabourRecords\Pages\EditLabourRecord;
 use App\Modules\ConstructionCosting\Filament\Resources\LabourRecords\Pages\ListLabourRecords;
@@ -33,6 +34,9 @@ class LabourRecordResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = LabourRecord::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 

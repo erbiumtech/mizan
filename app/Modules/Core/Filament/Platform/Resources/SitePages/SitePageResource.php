@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Platform\Resources\SitePages;
 
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Filament\Platform\Resources\SitePages\Pages\CreateSitePage;
 use App\Modules\Core\Filament\Platform\Resources\SitePages\Pages\EditSitePage;
 use App\Modules\Core\Filament\Platform\Resources\SitePages\Pages\ListSitePages;
@@ -34,6 +35,9 @@ use UnitEnum;
 class SitePageResource extends Resource
 {
     protected static ?string $model = SitePage::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
 

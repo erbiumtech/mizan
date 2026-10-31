@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionQhse\Filament\Resources\Ncrs;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionQhse\Filament\Resources\Ncrs\Pages\CreateNcr;
 use App\Modules\ConstructionQhse\Filament\Resources\Ncrs\Pages\EditNcr;
 use App\Modules\ConstructionQhse\Filament\Resources\Ncrs\Pages\ListNcrs;
@@ -35,6 +36,9 @@ class NcrResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Ncr::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedExclamationTriangle;
 

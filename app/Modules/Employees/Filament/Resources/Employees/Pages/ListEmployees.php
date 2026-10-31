@@ -2,6 +2,7 @@
 
 namespace App\Modules\Employees\Filament\Resources\Employees\Pages;
 
+use App\Filament\Concerns\OpensRecordsInSheets;
 use App\Filament\Support\HelpAction;
 use App\Modules\Core\Filament\Pages\CsvImport;
 use App\Modules\Employees\Filament\Resources\Employees\EmployeeResource;
@@ -12,6 +13,8 @@ use Filament\Support\Icons\Heroicon;
 
 class ListEmployees extends ListRecords
 {
+    use OpensRecordsInSheets;
+
     protected static string $resource = EmployeeResource::class;
 
     /**

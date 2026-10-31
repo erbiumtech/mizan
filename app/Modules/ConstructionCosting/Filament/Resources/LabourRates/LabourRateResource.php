@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionCosting\Filament\Resources\LabourRates;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionCosting\Filament\Resources\LabourRates\Pages\CreateLabourRate;
 use App\Modules\ConstructionCosting\Filament\Resources\LabourRates\Pages\EditLabourRate;
 use App\Modules\ConstructionCosting\Filament\Resources\LabourRates\Pages\ListLabourRates;
@@ -34,6 +35,9 @@ class LabourRateResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = LabourRate::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
 

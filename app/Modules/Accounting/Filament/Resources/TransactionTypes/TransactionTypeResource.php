@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Resources\TransactionTypes;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Accounting\Filament\Resources\TransactionTypes\Pages\CreateTransactionType;
 use App\Modules\Accounting\Filament\Resources\TransactionTypes\Pages\EditTransactionType;
 use App\Modules\Accounting\Filament\Resources\TransactionTypes\Pages\ListTransactionTypes;
@@ -23,6 +24,9 @@ class TransactionTypeResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = TransactionType::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTag;
 

@@ -2,12 +2,15 @@
 
 namespace App\Modules\Crm\Filament\Resources\LeadSources\Pages;
 
+use App\Filament\Concerns\OpensRecordsInSheets;
 use App\Filament\Support\HelpAction;
 use App\Modules\Crm\Filament\Resources\LeadSources\LeadSourceResource;
 use Filament\Resources\Pages\ListRecords;
 
 class ListLeadSources extends ListRecords
 {
+    use OpensRecordsInSheets;
+
     protected static string $resource = LeadSourceResource::class;
 
     protected function getHeaderActions(): array

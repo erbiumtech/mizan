@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\Users;
 
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Filament\Resources\Users\Pages\CreateUser;
 use App\Modules\Core\Filament\Resources\Users\Pages\EditUser;
 use App\Modules\Core\Filament\Resources\Users\Pages\ListUsers;
@@ -19,6 +20,9 @@ use UnitEnum;
 class UserResource extends Resource
 {
     protected static ?string $model = User::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     /**
      * Row-level tenant scoping back on for this resource alone. Users are the

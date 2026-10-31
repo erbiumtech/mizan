@@ -4,6 +4,7 @@ namespace App\Modules\Mpr\Filament\Resources\MPRs;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Mpr\Filament\Resources\MPRs\Pages\CreateMPR;
 use App\Modules\Mpr\Filament\Resources\MPRs\Pages\EditMPR;
 use App\Modules\Mpr\Filament\Resources\MPRs\Pages\ListMPRS;
@@ -24,6 +25,9 @@ class MPRResource extends Resource
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = MPR::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
 

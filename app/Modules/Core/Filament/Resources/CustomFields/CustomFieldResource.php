@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\CustomFields;
 
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Filament\Resources\CustomFields\Pages\CreateCustomField;
 use App\Modules\Core\Filament\Resources\CustomFields\Pages\EditCustomField;
 use App\Modules\Core\Filament\Resources\CustomFields\Pages\ListCustomFields;
@@ -35,6 +36,9 @@ class CustomFieldResource extends Resource
     }
 
     protected static ?string $model = CustomField::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSquares2x2;
 

@@ -3,6 +3,7 @@
 namespace App\Modules\Lifecycle\Filament\Resources\FinalSettlements;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Lifecycle\Filament\Resources\FinalSettlements\Pages\ListFinalSettlements;
 use App\Modules\Lifecycle\Models\FinalSettlement;
@@ -39,6 +40,9 @@ class FinalSettlementResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = FinalSettlement::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     /**
      * A mere viewer (SettlementView only, a line manager) sees their own reporting downline; a settlement

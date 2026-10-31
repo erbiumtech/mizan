@@ -3,6 +3,7 @@
 namespace App\Modules\Payroll\Filament\Resources\ProvidentFundEntries;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Payroll\Filament\Resources\ProvidentFundEntries\Pages\CreateProvidentFundEntry;
 use App\Modules\Payroll\Filament\Resources\ProvidentFundEntries\Pages\ListProvidentFundEntries;
@@ -27,6 +28,9 @@ class ProvidentFundEntryResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = ProvidentFundEntry::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBuildingLibrary;
 

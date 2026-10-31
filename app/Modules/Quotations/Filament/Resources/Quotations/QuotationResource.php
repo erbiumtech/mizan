@@ -4,6 +4,7 @@ namespace App\Modules\Quotations\Filament\Resources\Quotations;
 
 use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Crm\Models\Lead;
 use App\Modules\Inventory\Models\Product;
 use App\Modules\Invoicing\Models\Contact;
@@ -49,6 +50,9 @@ class QuotationResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Quotation::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
 

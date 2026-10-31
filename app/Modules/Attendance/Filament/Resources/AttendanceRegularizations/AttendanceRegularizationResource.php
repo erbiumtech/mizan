@@ -4,6 +4,7 @@ namespace App\Modules\Attendance\Filament\Resources\AttendanceRegularizations;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Attendance\Filament\Resources\AttendanceDays\Schemas\AttendanceDayForm;
 use App\Modules\Attendance\Filament\Resources\AttendanceRegularizations\Pages\CreateAttendanceRegularization;
 use App\Modules\Attendance\Filament\Resources\AttendanceRegularizations\Pages\ListAttendanceRegularizations;
@@ -44,6 +45,9 @@ class AttendanceRegularizationResource extends Resource
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = AttendanceRegularization::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPencilSquare;
 

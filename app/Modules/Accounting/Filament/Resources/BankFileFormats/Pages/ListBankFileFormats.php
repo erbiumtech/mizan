@@ -2,6 +2,7 @@
 
 namespace App\Modules\Accounting\Filament\Resources\BankFileFormats\Pages;
 
+use App\Filament\Concerns\OpensRecordsInSheets;
 use App\Filament\Support\HelpAction;
 use App\Modules\Accounting\Filament\Resources\BankFileFormats\BankFileFormatResource;
 use Filament\Actions\CreateAction;
@@ -9,6 +10,8 @@ use Filament\Resources\Pages\ListRecords;
 
 class ListBankFileFormats extends ListRecords
 {
+    use OpensRecordsInSheets;
+
     protected static string $resource = BankFileFormatResource::class;
 
     protected function getHeaderActions(): array

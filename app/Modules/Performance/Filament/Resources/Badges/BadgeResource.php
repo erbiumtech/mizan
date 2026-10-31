@@ -4,6 +4,7 @@ namespace App\Modules\Performance\Filament\Resources\Badges;
 
 use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Employees\Rules\RuleForm;
 use App\Modules\Performance\Filament\Resources\Badges\Pages\CreateBadge;
 use App\Modules\Performance\Filament\Resources\Badges\Pages\EditBadge;
@@ -29,6 +30,9 @@ class BadgeResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Badge::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTrophy;
 

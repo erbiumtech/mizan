@@ -3,6 +3,7 @@
 namespace App\Modules\Crm\Filament\Resources\SalesTargets;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Crm\Filament\Resources\SalesTargets\Pages\CreateSalesTarget;
 use App\Modules\Crm\Filament\Resources\SalesTargets\Pages\EditSalesTarget;
 use App\Modules\Crm\Filament\Resources\SalesTargets\Pages\ListSalesTargets;
@@ -34,6 +35,9 @@ class SalesTargetResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = SalesTarget::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedFlag;
 

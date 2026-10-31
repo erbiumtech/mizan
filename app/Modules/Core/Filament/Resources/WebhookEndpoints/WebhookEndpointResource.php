@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\WebhookEndpoints;
 
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Filament\Resources\WebhookEndpoints\Pages\CreateWebhookEndpoint;
 use App\Modules\Core\Filament\Resources\WebhookEndpoints\Pages\EditWebhookEndpoint;
 use App\Modules\Core\Filament\Resources\WebhookEndpoints\Pages\ListWebhookEndpoints;
@@ -29,6 +30,9 @@ use UnitEnum;
 class WebhookEndpointResource extends Resource
 {
     protected static ?string $model = WebhookEndpoint::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBolt;
 

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\OptionValues\Pages;
 
+use App\Filament\Concerns\OpensRecordsInSheets;
 use App\Filament\Support\HelpAction;
 use App\Modules\Core\Filament\Resources\OptionValues\OptionValueResource;
 use App\Support\OptionLists;
@@ -12,6 +13,8 @@ use Illuminate\Support\Str;
 
 class ListOptionValues extends ListRecords
 {
+    use OpensRecordsInSheets;
+
     protected static string $resource = OptionValueResource::class;
 
     protected function getHeaderActions(): array

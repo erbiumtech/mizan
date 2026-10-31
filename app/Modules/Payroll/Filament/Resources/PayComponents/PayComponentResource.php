@@ -3,6 +3,7 @@
 namespace App\Modules\Payroll\Filament\Resources\PayComponents;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Payroll\Filament\Resources\PayComponents\Pages\CreatePayComponent;
 use App\Modules\Payroll\Filament\Resources\PayComponents\Pages\EditPayComponent;
 use App\Modules\Payroll\Filament\Resources\PayComponents\Pages\ListPayComponents;
@@ -30,6 +31,9 @@ class PayComponentResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = PayComponent::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSquares2x2;
 

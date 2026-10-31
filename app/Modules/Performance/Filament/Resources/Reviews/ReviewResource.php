@@ -4,6 +4,7 @@ namespace App\Modules\Performance\Filament\Resources\Reviews;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Employees\Models\EmployeeChangeRequest;
 use App\Modules\Performance\Filament\Resources\Reviews\Pages\CreateReview;
 use App\Modules\Performance\Filament\Resources\Reviews\Pages\EditReview;
@@ -49,6 +50,9 @@ class ReviewResource extends Resource
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = Review::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
 

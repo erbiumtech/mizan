@@ -4,6 +4,7 @@ namespace App\Modules\Attendance\Filament\Resources\EmployeeWorkPatterns;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Attendance\Filament\Resources\EmployeeWorkPatterns\Pages\CreateEmployeeWorkPattern;
 use App\Modules\Attendance\Filament\Resources\EmployeeWorkPatterns\Pages\EditEmployeeWorkPattern;
 use App\Modules\Attendance\Filament\Resources\EmployeeWorkPatterns\Pages\ListEmployeeWorkPatterns;
@@ -32,6 +33,9 @@ class EmployeeWorkPatternResource extends Resource
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = EmployeeWorkPattern::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendarDays;
 

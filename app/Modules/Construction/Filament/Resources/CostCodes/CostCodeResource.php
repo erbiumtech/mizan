@@ -3,6 +3,7 @@
 namespace App\Modules\Construction\Filament\Resources\CostCodes;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Construction\Filament\Resources\CostCodes\Pages\CreateCostCode;
 use App\Modules\Construction\Filament\Resources\CostCodes\Pages\EditCostCode;
 use App\Modules\Construction\Filament\Resources\CostCodes\Pages\ListCostCodes;
@@ -28,6 +29,9 @@ class CostCodeResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = CostCode::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

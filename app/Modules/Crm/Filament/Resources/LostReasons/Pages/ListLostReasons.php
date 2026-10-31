@@ -2,12 +2,15 @@
 
 namespace App\Modules\Crm\Filament\Resources\LostReasons\Pages;
 
+use App\Filament\Concerns\OpensRecordsInSheets;
 use App\Filament\Support\HelpAction;
 use App\Modules\Crm\Filament\Resources\LostReasons\LostReasonResource;
 use Filament\Resources\Pages\ListRecords;
 
 class ListLostReasons extends ListRecords
 {
+    use OpensRecordsInSheets;
+
     protected static string $resource = LostReasonResource::class;
 
     protected function getHeaderActions(): array

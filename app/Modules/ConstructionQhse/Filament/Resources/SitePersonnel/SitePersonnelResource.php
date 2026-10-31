@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionQhse\Filament\Resources\SitePersonnel;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionQhse\Filament\Resources\SitePersonnel\Pages\CreateSitePersonnel;
 use App\Modules\ConstructionQhse\Filament\Resources\SitePersonnel\Pages\EditSitePersonnel;
 use App\Modules\ConstructionQhse\Filament\Resources\SitePersonnel\Pages\ListSitePersonnel;
@@ -34,6 +35,9 @@ class SitePersonnelResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = SitePersonnel::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedIdentification;
 

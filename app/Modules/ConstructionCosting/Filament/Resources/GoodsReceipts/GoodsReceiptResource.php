@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionCosting\Filament\Resources\GoodsReceipts;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionCosting\Filament\Resources\GoodsReceipts\Pages\CreateGoodsReceipt;
 use App\Modules\ConstructionCosting\Filament\Resources\GoodsReceipts\Pages\EditGoodsReceipt;
 use App\Modules\ConstructionCosting\Filament\Resources\GoodsReceipts\Pages\ListGoodsReceipts;
@@ -33,6 +34,9 @@ class GoodsReceiptResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = GoodsReceipt::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTruck;
 

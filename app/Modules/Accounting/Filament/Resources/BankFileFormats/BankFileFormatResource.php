@@ -4,6 +4,7 @@ namespace App\Modules\Accounting\Filament\Resources\BankFileFormats;
 
 use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Accounting\Filament\Resources\BankFileFormats\Pages\CreateBankFileFormat;
 use App\Modules\Accounting\Filament\Resources\BankFileFormats\Pages\EditBankFileFormat;
 use App\Modules\Accounting\Filament\Resources\BankFileFormats\Pages\ListBankFileFormats;
@@ -36,6 +37,9 @@ class BankFileFormatResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = BankFileFormat::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
 

@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Resources\ScheduledTransactions;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Accounting\Filament\Resources\ScheduledTransactions\Pages\CreateScheduledTransaction;
 use App\Modules\Accounting\Filament\Resources\ScheduledTransactions\Pages\EditScheduledTransaction;
 use App\Modules\Accounting\Filament\Resources\ScheduledTransactions\Pages\ListScheduledTransactions;
@@ -22,6 +23,9 @@ class ScheduledTransactionResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = ScheduledTransaction::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowPath;
 

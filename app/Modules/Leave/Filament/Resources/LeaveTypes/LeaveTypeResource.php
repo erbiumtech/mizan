@@ -3,6 +3,7 @@
 namespace App\Modules\Leave\Filament\Resources\LeaveTypes;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Leave\Filament\Resources\LeaveTypes\Pages\CreateLeaveType;
 use App\Modules\Leave\Filament\Resources\LeaveTypes\Pages\EditLeaveType;
 use App\Modules\Leave\Filament\Resources\LeaveTypes\Pages\ListLeaveTypes;
@@ -25,6 +26,9 @@ class LeaveTypeResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = LeaveType::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

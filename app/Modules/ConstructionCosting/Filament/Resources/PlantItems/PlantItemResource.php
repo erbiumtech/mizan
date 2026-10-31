@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionCosting\Filament\Resources\PlantItems;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionCosting\Filament\Resources\PlantItems\Pages\CreatePlantItem;
 use App\Modules\ConstructionCosting\Filament\Resources\PlantItems\Pages\EditPlantItem;
 use App\Modules\ConstructionCosting\Filament\Resources\PlantItems\Pages\ListPlantItems;
@@ -30,6 +31,9 @@ class PlantItemResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = PlantItem::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTruck;
 

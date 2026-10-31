@@ -4,6 +4,7 @@ namespace App\Modules\Leave\Filament\Resources\LeaveEntitlements;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Leave\Filament\Resources\LeaveEntitlements\Pages\ListLeaveEntitlements;
 use App\Modules\Leave\Filament\Resources\LeaveEntitlements\Schemas\LeaveEntitlementForm;
 use App\Modules\Leave\Filament\Resources\LeaveEntitlements\Tables\LeaveEntitlementsTable;
@@ -31,6 +32,9 @@ class LeaveEntitlementResource extends Resource
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = LeaveEntitlement::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedScale;
 

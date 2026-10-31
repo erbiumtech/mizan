@@ -4,6 +4,7 @@ namespace App\Modules\Campaigns\Filament\Resources\Segments;
 
 use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Campaigns\Filament\Resources\Segments\Pages\CreateSegment;
 use App\Modules\Campaigns\Filament\Resources\Segments\Pages\EditSegment;
 use App\Modules\Campaigns\Filament\Resources\Segments\Pages\ListSegments;
@@ -35,6 +36,9 @@ class SegmentResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Segment::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserGroup;
 

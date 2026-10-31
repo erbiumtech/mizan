@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Resources\Accounts;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Accounting\Filament\Resources\Accounts\Pages\CreateAccount;
 use App\Modules\Accounting\Filament\Resources\Accounts\Pages\EditAccount;
 use App\Modules\Accounting\Filament\Resources\Accounts\Pages\ListAccounts;
@@ -24,6 +25,9 @@ class AccountResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Account::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Platform\Resources\Permissions;
 
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Filament\Platform\Resources\Permissions\Pages\CreatePermission;
 use App\Modules\Core\Filament\Platform\Resources\Permissions\Pages\EditPermission;
 use App\Modules\Core\Filament\Platform\Resources\Permissions\Pages\ListPermissions;
@@ -27,6 +28,9 @@ use UnitEnum;
 class PermissionResource extends Resource
 {
     protected static ?string $model = Permission::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedKey;
 

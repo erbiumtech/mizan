@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\WebhookDeliveries;
 
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Filament\Resources\WebhookDeliveries\Pages\ListWebhookDeliveries;
 use App\Modules\Core\Jobs\DeliverWebhook;
 use App\Modules\Core\Models\WebhookDelivery;
@@ -29,6 +30,9 @@ use UnitEnum;
 class WebhookDeliveryResource extends Resource
 {
     protected static ?string $model = WebhookDelivery::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowUpTray;
 

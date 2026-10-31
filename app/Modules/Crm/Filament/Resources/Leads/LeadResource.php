@@ -4,6 +4,7 @@ namespace App\Modules\Crm\Filament\Resources\Leads;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Crm\Filament\Resources\Leads\Pages\CreateLead;
 use App\Modules\Crm\Filament\Resources\Leads\Pages\EditLead;
 use App\Modules\Crm\Filament\Resources\Leads\Pages\ListLeads;
@@ -26,6 +27,9 @@ class LeadResource extends Resource
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = Lead::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUserPlus;
 

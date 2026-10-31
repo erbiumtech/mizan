@@ -4,6 +4,7 @@ namespace App\Modules\Performance\Filament\Resources\MeritEntries;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Performance\Filament\Resources\MeritEntries\Pages\ListMeritEntries;
 use App\Modules\Performance\Models\MeritEntry;
 use BackedEnum;
@@ -25,6 +26,9 @@ class MeritEntryResource extends Resource
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = MeritEntry::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedScale;
 

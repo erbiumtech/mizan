@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionQhse\Filament\Resources\QhseActions;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionQhse\Filament\Resources\QhseActions\Pages\EditQhseAction;
 use App\Modules\ConstructionQhse\Filament\Resources\QhseActions\Pages\ListQhseActions;
 use App\Modules\ConstructionQhse\Filament\Resources\QhseActions\Schemas\QhseActionForm;
@@ -37,6 +38,9 @@ class QhseActionResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = QhseAction::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCheckCircle;
 

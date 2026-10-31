@@ -3,6 +3,7 @@
 namespace App\Modules\Work\Filament\Resources\WorkItems;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Work\Filament\Resources\WorkItems\Pages\CreateWorkItem;
 use App\Modules\Work\Filament\Resources\WorkItems\Pages\EditWorkItem;
 use App\Modules\Work\Filament\Resources\WorkItems\Pages\ListWorkItems;
@@ -29,6 +30,9 @@ class WorkItemResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = WorkItem::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

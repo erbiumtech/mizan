@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionQhse\Filament\Resources\Itps;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionQhse\Filament\Resources\Itps\Pages\CreateItp;
 use App\Modules\ConstructionQhse\Filament\Resources\Itps\Pages\EditItp;
 use App\Modules\ConstructionQhse\Filament\Resources\Itps\Pages\ListItps;
@@ -36,6 +37,9 @@ class ItpResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Itp::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 

@@ -4,6 +4,7 @@ namespace App\Modules\Campaigns\Filament\Resources\Campaigns;
 
 use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Campaigns\Filament\Resources\Campaigns\Pages\CreateCampaign;
 use App\Modules\Campaigns\Filament\Resources\Campaigns\Pages\EditCampaign;
 use App\Modules\Campaigns\Filament\Resources\Campaigns\Pages\ListCampaigns;
@@ -45,6 +46,9 @@ class CampaignResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Campaign::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMegaphone;
 

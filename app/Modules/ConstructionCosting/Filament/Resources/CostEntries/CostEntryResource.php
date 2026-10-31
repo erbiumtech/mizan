@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionCosting\Filament\Resources\CostEntries;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionCosting\Filament\Resources\CostEntries\Pages\CreateCostEntry;
 use App\Modules\ConstructionCosting\Filament\Resources\CostEntries\Pages\EditCostEntry;
 use App\Modules\ConstructionCosting\Filament\Resources\CostEntries\Pages\ListCostEntries;
@@ -35,6 +36,9 @@ class CostEntryResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = CostEntry::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
 

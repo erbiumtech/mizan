@@ -3,6 +3,7 @@
 namespace App\Modules\ConstructionContracts\Filament\Resources\RetentionMovements;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\ConstructionContracts\Filament\Resources\RetentionMovements\Pages\ListRetentionMovements;
 use App\Modules\ConstructionContracts\Filament\Resources\RetentionMovements\Tables\RetentionMovementsTable;
 use App\Modules\ConstructionContracts\Models\RetentionMovement;
@@ -30,6 +31,9 @@ class RetentionMovementResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = RetentionMovement::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedLockClosed;
 

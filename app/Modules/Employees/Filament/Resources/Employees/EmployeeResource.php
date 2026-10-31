@@ -4,6 +4,7 @@ namespace App\Modules\Employees\Filament\Resources\Employees;
 
 use App\Filament\Concerns\BelongsToModule;
 use App\Filament\Concerns\ScopesToAccessibleEmployees;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Employees\Filament\Resources\Employees\Pages\CreateEmployee;
 use App\Modules\Employees\Filament\Resources\Employees\Pages\EditEmployee;
 use App\Modules\Employees\Filament\Resources\Employees\Pages\ListEmployees;
@@ -12,6 +13,7 @@ use App\Modules\Employees\Filament\Resources\Employees\RelationManagers\ChangeRe
 use App\Modules\Employees\Filament\Resources\Employees\RelationManagers\DirectReportsRelationManager;
 use App\Modules\Employees\Filament\Resources\Employees\RelationManagers\JobHistoryRelationManager;
 use App\Modules\Employees\Filament\Resources\Employees\Schemas\EmployeeForm;
+use App\Modules\Employees\Filament\Resources\Employees\Schemas\EmployeeInfolist;
 use App\Modules\Employees\Filament\Resources\Employees\Tables\EmployeesTable;
 use App\Modules\Employees\Models\Employee;
 use App\Support\ResourceContributions;
@@ -29,6 +31,9 @@ class EmployeeResource extends Resource
     use ScopesToAccessibleEmployees;
 
     protected static ?string $model = Employee::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::SheetView;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
@@ -60,6 +65,15 @@ class EmployeeResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return EmployeeForm::configure($schema);
+    }
+
+    /**
+     * The same infolist as the view page, here too so the list's view sheet shows it rather than a
+     * disabled form — docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return EmployeeInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

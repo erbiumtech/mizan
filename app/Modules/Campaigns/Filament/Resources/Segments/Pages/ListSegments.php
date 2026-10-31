@@ -2,12 +2,15 @@
 
 namespace App\Modules\Campaigns\Filament\Resources\Segments\Pages;
 
+use App\Filament\Concerns\OpensRecordsInSheets;
 use App\Filament\Support\HelpAction;
 use App\Modules\Campaigns\Filament\Resources\Segments\SegmentResource;
 use Filament\Resources\Pages\ListRecords;
 
 class ListSegments extends ListRecords
 {
+    use OpensRecordsInSheets;
+
     protected static string $resource = SegmentResource::class;
 
     protected function getHeaderActions(): array

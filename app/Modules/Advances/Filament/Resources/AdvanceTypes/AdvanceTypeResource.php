@@ -4,6 +4,7 @@ namespace App\Modules\Advances\Filament\Resources\AdvanceTypes;
 
 use App\Filament\Actions\ReplicateRecordAction;
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Advances\Filament\Resources\AdvanceTypes\Pages\CreateAdvanceType;
 use App\Modules\Advances\Filament\Resources\AdvanceTypes\Pages\EditAdvanceType;
 use App\Modules\Advances\Filament\Resources\AdvanceTypes\Pages\ListAdvanceTypes;
@@ -27,6 +28,9 @@ class AdvanceTypeResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = AdvanceType::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
 

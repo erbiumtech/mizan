@@ -3,6 +3,7 @@
 namespace App\Modules\Payroll\Filament\Resources\PayAdjustments;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Models\FiscalYear;
 use App\Modules\Employees\Models\Employee;
 use App\Modules\Payroll\Filament\Resources\PayAdjustments\Pages\CreatePayAdjustment;
@@ -32,6 +33,9 @@ class PayAdjustmentResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = PayAdjustment::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedAdjustmentsHorizontal;
 

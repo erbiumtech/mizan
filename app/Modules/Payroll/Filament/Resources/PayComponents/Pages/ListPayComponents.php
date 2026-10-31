@@ -2,12 +2,15 @@
 
 namespace App\Modules\Payroll\Filament\Resources\PayComponents\Pages;
 
+use App\Filament\Concerns\OpensRecordsInSheets;
 use App\Filament\Support\HelpAction;
 use App\Modules\Payroll\Filament\Resources\PayComponents\PayComponentResource;
 use Filament\Resources\Pages\ListRecords;
 
 class ListPayComponents extends ListRecords
 {
+    use OpensRecordsInSheets;
+
     protected static string $resource = PayComponentResource::class;
 
     protected function getHeaderActions(): array

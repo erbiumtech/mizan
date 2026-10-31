@@ -3,6 +3,7 @@
 namespace App\Modules\Work\Filament\Resources\WorkReleases;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Work\Filament\Resources\WorkReleases\Pages\ListWorkReleases;
 use App\Modules\Work\Models\WorkRelease;
@@ -43,6 +44,9 @@ class WorkReleaseResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = WorkRelease::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRocketLaunch;
 

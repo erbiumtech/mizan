@@ -3,6 +3,7 @@
 namespace App\Modules\Crm\Filament\Resources\FieldVisitRefusals;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Crm\Filament\Resources\FieldVisitRefusals\Pages\ListFieldVisitRefusals;
 use App\Modules\Crm\Models\FieldVisitRefusal;
 use BackedEnum;
@@ -27,6 +28,9 @@ class FieldVisitRefusalResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = FieldVisitRefusal::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedNoSymbol;
 

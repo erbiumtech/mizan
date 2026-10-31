@@ -3,6 +3,7 @@
 namespace App\Modules\Accounting\Filament\Resources\Loans;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Accounting\Filament\Resources\Loans\Pages\CreateLoan;
 use App\Modules\Accounting\Filament\Resources\Loans\Pages\EditLoan;
 use App\Modules\Accounting\Filament\Resources\Loans\Pages\ListLoans;
@@ -23,6 +24,9 @@ class LoanResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Loan::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
 

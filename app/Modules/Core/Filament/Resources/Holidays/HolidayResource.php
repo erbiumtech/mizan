@@ -3,6 +3,7 @@
 namespace App\Modules\Core\Filament\Resources\Holidays;
 
 use App\Filament\Concerns\BelongsToModule;
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Filament\Resources\Holidays\Pages\CreateHoliday;
 use App\Modules\Core\Filament\Resources\Holidays\Pages\EditHoliday;
 use App\Modules\Core\Filament\Resources\Holidays\Pages\ListHolidays;
@@ -28,6 +29,9 @@ class HolidayResource extends Resource
     use BelongsToModule;
 
     protected static ?string $model = Holiday::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Sheet;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCalendar;
 

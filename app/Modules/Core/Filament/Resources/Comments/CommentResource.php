@@ -2,6 +2,7 @@
 
 namespace App\Modules\Core\Filament\Resources\Comments;
 
+use App\Filament\Support\RecordSheet;
 use App\Modules\Core\Filament\Resources\Comments\Pages\CreateComment;
 use App\Modules\Core\Filament\Resources\Comments\Pages\EditComment;
 use App\Modules\Core\Filament\Resources\Comments\Pages\ListComments;
@@ -18,6 +19,9 @@ use UnitEnum;
 class CommentResource extends Resource
 {
     protected static ?string $model = Comment::class;
+
+    /** Where its records open from the list — docs/side-sheets.md. */
+    protected static RecordSheet $recordSheet = RecordSheet::Page;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
