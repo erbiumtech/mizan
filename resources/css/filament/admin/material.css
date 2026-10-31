@@ -947,11 +947,14 @@ summary.fi-nav-drawer-item::after {
  *
  * The Material list design ("People › Employees"): the search pill and a row of filter chips on the page
  * surface, then the card, which holds only the table and its pagination. Scoped to a resource's list page
- * (Filament puts `fi-resource-list-records-page` on it) and to its own table — not to a widget's table on
- * that page, and not to a grid of cards, which has no table to frame. Relation managers and widgets keep
- * the card round their toolbar. docs/material-3-theme.md, "Lists", says how to make another list match.
+ * (Filament puts `fi-resource-list-records-page` on it), to the related records under a record — its
+ * relation managers (`fi-resource-relation-manager`) and its "Manage …" pages — and to their own tables:
+ * not to a widget's table, and not to a grid of cards, which has no table to frame. Related records read
+ * as the same list the reader already knows. docs/material-3-theme.md, "Lists", says how to make another
+ * list match.
  */
-.fi-resource-list-records-page .fi-ta-ctn:not(.fi-ta-ctn-with-content-layout):not(.fi-wi *) {
+:is(.fi-resource-list-records-page, .fi-resource-relation-manager, .fi-resource-manage-related-records-page)
+    .fi-ta-ctn:not(.fi-ta-ctn-with-content-layout):not(.fi-wi *) {
     overflow: visible;
     border-radius: 0;
     background-color: transparent;
@@ -997,6 +1000,12 @@ summary.fi-nav-drawer-item::after {
         background-color: var(--md-sys-color-surface-container-high);
     }
 
+    /* Filters kept in a dropdown say what is on as a row of chips on the page surface, above the card. */
+    & .fi-ta-filter-indicators {
+        padding: 0 0 1rem;
+        border: 0;
+    }
+
     /* The chips say which filters are on; the indicator row under them would say it twice. */
     & .fi-ta-main:has(> .fi-ta-header-ctn > .fi-ta-filters-above-content-ctn) > .fi-ta-filter-indicators {
         display: none;
@@ -1026,6 +1035,74 @@ summary.fi-nav-drawer-item::after {
         border-end-start-radius: var(--md-sys-shape-medium);
         border-end-end-radius: var(--md-sys-shape-medium);
     }
+}
+
+/*
+ * A relation manager's own header: its heading (the relation's name) and its header actions ("New
+ * assignment", "Attach"). Laid into the same row as the search: the heading takes a line of its own above
+ * it, and the actions go to the row's end, where a list page has its page actions. Under a tab that
+ * already names the relation, the heading would say it twice, so it is kept for screen readers only —
+ * unless the tab holds a group of managers (more than one grid cell), where each needs its name.
+ */
+.fi-resource-relation-manager .fi-ta-ctn:not(.fi-ta-ctn-with-content-layout):not(.fi-wi *) {
+    & .fi-ta-header {
+        display: contents;
+    }
+
+    & .fi-ta-header > :not(.fi-ta-actions) {
+        order: 0;
+        flex: 1 0 100%;
+    }
+
+    & .fi-ta-header > .fi-ta-actions {
+        order: 3;
+        margin-inline-start: auto;
+    }
+
+    & .fi-ta-header-toolbar > .fi-ta-actions {
+        order: 4;
+        margin-inline-start: 0;
+    }
+
+    & .fi-ta-header-heading {
+        font-size: 1rem;
+        font-weight: 500;
+        line-height: 1.5rem;
+        color: var(--md-sys-color-on-surface);
+    }
+
+    /* Row actions ("End assignment") as Material text buttons, as on a list row. */
+    & .fi-ta-actions .fi-link {
+        font-weight: 500;
+    }
+}
+
+.fi-sc-tabs-tab > .fi-sc > :only-child > .fi-resource-relation-manager .fi-ta-header-heading {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+/*
+ * Related records load after the record (Filament's relation managers are lazy): until a tab's table
+ * arrives, its place is a skeleton of the card that is coming — a header row and three 56px rows on the
+ * card's surface — rather than a blank box, so the page does not jump when it lands.
+ */
+:is(.fi-resource-edit-record-page, .fi-resource-view-record-page) .fi-loading-section {
+    min-height: 14rem;
+    border-radius: var(--md-sys-shape-medium);
+    background-color: var(--md-sys-color-surface-container-lowest);
+    background-image:
+        linear-gradient(var(--md-sys-color-surface-container-low) 0 3.5rem, transparent 3.5rem),
+        repeating-linear-gradient(
+            to bottom,
+            transparent 0 calc(3.5rem - 1px),
+            var(--md-sys-color-outline-variant) calc(3.5rem - 1px) 3.5rem
+        );
+    box-shadow: inset 0 0 0 1px var(--md-sys-color-outline-variant);
 }
 
 /*

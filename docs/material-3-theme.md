@@ -71,7 +71,11 @@ The design's New employee form:
 
 ## Lists
 
-Every resource list page (Filament marks it `fi-resource-list-records-page`) follows the "People › Employees" design. The table's search pill and any filter chips sit in one row on the page surface. The card below holds only the table and its pagination: `surface-container-lowest`, a 1px `outline-variant` ring and 12px corners. A widget's table on the same page, a relation manager and a grid of cards keep the card round their toolbar.
+Every resource list page (Filament marks it `fi-resource-list-records-page`) follows the "People › Employees" design, and so do the related records under a record: its relation managers (`fi-resource-relation-manager`) and its "Manage …" pages. The table's search pill and any filter chips sit in one row on the page surface. The card below holds only the table and its pagination: `surface-container-lowest`, a 1px `outline-variant` ring and 12px corners. A widget's table and a grid of cards keep the card round their toolbar.
+
+On a relation manager, its header actions ("Assign employee", "New …") go to the end of the search row, where a list page has its page actions. Under a tab that already names the relation, the manager's own heading is kept for screen readers only; a tab holding a group of managers keeps each one's heading. Filters kept in a dropdown show what is on as chips on the page surface, above the card.
+
+Related records load after the record. Filament's relation managers are lazy, and none here turns that off (`RelationManagersLoadLazilyTest`): the record page renders with a skeleton of the card where each table goes, and the table arrives in its own request. Switching tabs sets the page's `activeRelationManager` (`?relation=` in the address), and searching, filtering, sorting and paging are the manager's own Livewire state, so none of them reloads the page.
 
 This needs no code on any list. The CSS lives in `material.css` under "list pages".
 
