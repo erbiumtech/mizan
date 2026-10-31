@@ -54,6 +54,10 @@ class TenantIsolationTest extends TestCase
         \App\Modules\Core\Models\ActivityLog::class,   // shared table, company_id stamped on write and scoped on read
         \App\Modules\Core\Models\Company::class,       // the tenant record itself — nothing to be scoped to yet
         \App\Modules\Core\Models\CompanyModule::class, // licensing: which company bought what
+        // A push subscription is a person's browser, not a company's: the same phone follows them into
+        // every company they are a member of, and a notification is sent to the user — desktop-mobile A3.
+        \App\Modules\Core\Models\DeviceToken::class,
+        \App\Modules\Core\Models\Signup::class,        // a signup exists before the company it will create does
         // The public site belongs to the operator, not to a company: its settings, its hand-written
         // pages and the messages its contact form takes are edited on the platform panel with no tenant
         // current — docs/company-website-plan.md W1 and W4.

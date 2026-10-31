@@ -19,14 +19,18 @@ use App\Modules\Expenses\Support\ExpenseClaimCommandResolver;
 use App\Modules\Invoicing\Support\InvoiceCommandResolver;
 use App\Modules\Quotations\Support\QuotationCommandResolver;
 use App\Multitenancy\RefuseTenantlessTenantAwareJobs;
+use App\Notifications\Channels\WebPushChannel;
 use App\Support\Ai\Claude;
 use App\Support\Ai\StructuredModel;
+use App\Support\Contracts\WebPushTransport;
 use App\Support\EmployeeAccess;
 use App\Support\ModuleAuthorization;
 use App\Support\ModuleMap;
 use App\Support\Modules;
 use App\Support\NavigationBadge;
 use App\Support\TenantSettings;
+use App\Support\WebPush;
+use App\Support\WebPushTransports\LibraryTransport;
 use App\Support\WhatsApp\CloudApiWhatsAppSender;
 use App\Support\WhatsApp\LoggingWhatsAppSender;
 use App\Support\WhatsApp\LogWhatsAppSender;
@@ -48,6 +52,7 @@ use Illuminate\Http\Request;
 use Illuminate\Queue\Events\JobQueueing;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Notification as NotificationFacade;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
@@ -72,6 +77,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(TenantSettings::class);
         $this->app->singleton(EmployeeAccess::class);
         $this->app->singleton(Modules::class);
+
+        // Web Push — docs/desktop-mobile-plan.md A3. The transport is a contract so a test binds a recorder
+        // in its place and so FCM, if a native shell ever arrives, is a second class behind the same seam.
+        $this->app->singleton(WebPushTransport::class, LibraryTransport::class);
 
         /*
          * The model behind the command bot — docs/ai-command-bot-plan.md §4.
@@ -211,6 +220,9 @@ class AppServiceProvider extends ServiceProvider
         // Every API request: 90 a minute per account, or per address before sign-in — security audit finding 11.
         RateLimiter::for('api', fn (Request $request): Limit => Limit::perMinute(90)
             ->by((string) ($request->user()?->getAuthIdentifier() ?: $request->ip())));
+
+        // The `webpush` channel Broadcasting::channels() appends — docs/desktop-mobile-plan.md A3.
+        NotificationFacade::extend(WebPush::CHANNEL, fn ($app): WebPushChannel => $app->make(WebPushChannel::class));
 
         RateLimiter::for('login', fn (Request $request): Limit => Limit::perMinute(5)
             ->by(Str::lower((string) $request->input('email')).'|'.$request->ip()));

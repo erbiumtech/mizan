@@ -27,13 +27,22 @@ final class Broadcasting
      * without one, which would be a failed job per recipient rather than a quieter channel. One guard here
      * rather than one per notification, because every alerting `via()` already routes through this.
      *
-     * Only `broadcast` and `slack` are touched, and the order of the rest is kept.
+     * `webpush` is the mirror image — docs/desktop-mobile-plan.md A3: wherever a notification asks for
+     * `broadcast` (the bell's live update), the push channel is appended when VAPID keys are configured, so
+     * every one of the notifications already on this seam reaches a subscribed phone without being edited.
+     * The push payload is derived from the same message the bell shows (WebPushChannel).
+     *
+     * Only `broadcast`, `slack` and `webpush` are touched, and the order of the rest is kept.
      *
      * @param  array<int, string>  $channels
      * @return array<int, string>
      */
     public static function channels(array $channels): array
     {
+        if (in_array('broadcast', $channels, true) && WebPush::isConfigured() && ! in_array(WebPush::CHANNEL, $channels, true)) {
+            $channels[] = WebPush::CHANNEL;
+        }
+
         $undeliverable = [];
 
         if (! self::isConfigured()) {
