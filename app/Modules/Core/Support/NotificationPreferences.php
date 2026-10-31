@@ -32,6 +32,9 @@ class NotificationPreferences
         'billing' => 'Invoices, quotations and customers',
         'reports' => 'Scheduled reports',
         'monitoring' => 'Monitoring, devices and site alerts',
+        // docs/project-management-plan.md §10.2: one switch for somebody who runs their day from
+        // the board and wants no mail about it.
+        'work' => 'Work items, boards and sprints',
         'company' => 'Company announcements',
         'account' => 'Account, access and billing for this service',
     ];

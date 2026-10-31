@@ -91,6 +91,7 @@ class SettingsSectionsTest extends AccountingTestCase
         $this->assertSame(
             [
                 'accounting.currency', 'accounting.ledger-freeze', 'accounting.petty-cash', 'users.access',
+                'work.defaults',
                 'accounting.payroll-posting', 'payroll.run', 'lifecycle.documents', 'expenses.approval-chain',
                 'lifecycle.onboarding', 'construction.qhse', 'advances.recovery', 'construction.accounts',
                 'construction.costing', 'invoicing.dunning',
@@ -147,6 +148,11 @@ class SettingsSectionsTest extends AccountingTestCase
      * account made on the Users page can sign in with the password just typed for it. Every company has
      * that question whether or not it records anybody as an employee, and a company using none of the
      * HR modules would have found the setting under a tab about staff it does not keep.
+     *
+     * **2026-11-02** — `work.defaults` (36, company) joined, contributed by Work: docs/project-management-plan.md
+     * §15 asks for it under Company "because none of it is employment policy". Points or hours, the morning
+     * digest and its hour, and what a merged pull request does. Directly after `users.access` because it is
+     * the same kind of thing — how this company runs, not whom it employs — and hidden without the module.
      */
     public function test_each_module_says_which_tab_its_settings_belong_under(): void
     {
@@ -156,6 +162,7 @@ class SettingsSectionsTest extends AccountingTestCase
                 'accounting.ledger-freeze' => 'money',
                 'accounting.petty-cash' => 'money',
                 'users.access' => 'company',
+                'work.defaults' => 'company',
                 'accounting.payroll-posting' => 'money',
                 'payroll.run' => 'people',
                 'lifecycle.documents' => 'people',

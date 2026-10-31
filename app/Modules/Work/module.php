@@ -15,10 +15,10 @@
  * elsewhere licenses one and not the other, and the module boundary is what makes that a flag
  * rather than a fork. §2.1.
  *
- * Phase 1 adds the work item, the workflow behind it and the two screens — the board, the backlog
- * and the sprints follow in Phases 2 and 3. The work item joins the *Projects* group that `projects`
- * and `mpr` already claim for the Work domain, because a work item and the project it belongs to
- * are read on the same visit.
+ * Phase 1 adds the work item, the workflow behind it and the two screens; the board, the backlog and
+ * the sprints follow in Phases 2 and 3; Phase 4 adds epics, releases, the project page's tabs and the
+ * four reports. The work item joins the *Projects* group that `projects` and `mpr` already claim for
+ * the Work domain, because a work item and the project it belongs to are read on the same visit.
  *
  * Merged by App\Support\ModuleManifest. See docs/module-packaging-plan.md §5.
  */
@@ -43,12 +43,34 @@ return [
         'App\\Models\\WorkItemLink' => \App\Modules\Work\Models\WorkItemLink::class,
         'App\\Models\\WorkBoard' => \App\Modules\Work\Models\WorkBoard::class,
         'App\\Models\\WorkSprint' => \App\Modules\Work\Models\WorkSprint::class,
+        'App\\Models\\WorkRelease' => \App\Modules\Work\Models\WorkRelease::class,
+        // The repositories that talk to the board — §8.
+        'App\\Models\\IntegrationConnection' => \App\Modules\Work\Models\IntegrationConnection::class,
+        'App\\Models\\IntegrationEvent' => \App\Modules\Work\Models\IntegrationEvent::class,
+        'App\\Models\\IntegrationIdentity' => \App\Modules\Work\Models\IntegrationIdentity::class,
+        'App\\Models\\WorkRepository' => \App\Modules\Work\Models\WorkRepository::class,
+        'App\\Models\\WorkItemCommit' => \App\Modules\Work\Models\WorkItemCommit::class,
+        'App\\Models\\WorkItemBranch' => \App\Modules\Work\Models\WorkItemBranch::class,
+        'App\\Models\\WorkItemPullRequest' => \App\Modules\Work\Models\WorkItemPullRequest::class,
+        // The stopwatch's side — §8.8.
+        'App\\Models\\WorkTimeProject' => \App\Modules\Work\Models\WorkTimeProject::class,
+        'App\\Models\\WorkTimeTask' => \App\Modules\Work\Models\WorkTimeTask::class,
+        // Chat — §8.7.
+        'App\\Models\\WorkChannelSubscription' => \App\Modules\Work\Models\WorkChannelSubscription::class,
     ],
 
     'pages' => [
         'App\\Filament\\Pages\\Board' => \App\Modules\Work\Filament\Pages\Board::class,
         'App\\Filament\\Pages\\MyWork' => \App\Modules\Work\Filament\Pages\MyWork::class,
         'App\\Filament\\Pages\\Backlog' => \App\Modules\Work\Filament\Pages\Backlog::class,
+        'App\\Filament\\Pages\\Epics' => \App\Modules\Work\Filament\Pages\Epics::class,
+        'App\\Filament\\Pages\\Timeline' => \App\Modules\Work\Filament\Pages\Timeline::class,
+        // The four reports of §7, reached from the Reports hub rather than the sidebar.
+        'App\\Filament\\Pages\\WorkVelocity' => \App\Modules\Work\Filament\Pages\WorkVelocity::class,
+        'App\\Filament\\Pages\\WorkCycleTime' => \App\Modules\Work\Filament\Pages\WorkCycleTime::class,
+        'App\\Filament\\Pages\\WorkCreatedVsResolved' => \App\Modules\Work\Filament\Pages\WorkCreatedVsResolved::class,
+        'App\\Filament\\Pages\\WorkCumulativeFlow' => \App\Modules\Work\Filament\Pages\WorkCumulativeFlow::class,
+        'App\\Filament\\Pages\\WorkTimeBySource' => \App\Modules\Work\Filament\Pages\WorkTimeBySource::class,
     ],
 
     'resources' => [
@@ -57,6 +79,10 @@ return [
         // the company has, which is why §13.1 makes it an administrator's.
         'App\\Filament\\Resources\\WorkWorkflows\\WorkWorkflowResource' => \App\Modules\Work\Filament\Resources\WorkWorkflows\WorkWorkflowResource::class,
         'App\\Filament\\Resources\\WorkSprints\\WorkSprintResource' => \App\Modules\Work\Filament\Resources\WorkSprints\WorkSprintResource::class,
+        'App\\Filament\\Resources\\WorkReleases\\WorkReleaseResource' => \App\Modules\Work\Filament\Resources\WorkReleases\WorkReleaseResource::class,
+        // Integrations are a Settings screen: a connection holds a credential to somebody else's
+        // system, which is why §13.1 makes it an administrator's.
+        'App\\Filament\\Resources\\IntegrationConnections\\IntegrationConnectionResource' => \App\Modules\Work\Filament\Resources\IntegrationConnections\IntegrationConnectionResource::class,
     ],
 
     /**
