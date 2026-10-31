@@ -27,7 +27,7 @@ class LabourRatesTable
         return $table
             ->columns([
                 TextColumn::make('applies_to')
-                    ->label('Applies to')
+                    ->label(__('Applies to'))
                     ->getStateUsing(fn (LabourRate $record): string => $record->appliesTo())
                     ->description(fn (LabourRate $record): string => match ($record->tier()) {
                         LabourRate::TIER_JOB_AND_TRADE => 'That trade, on that job',
@@ -39,13 +39,13 @@ class LabourRatesTable
                     ->wrap(),
 
                 TextColumn::make('cost_rate_per_hour')
-                    ->label('Per hour')
+                    ->label(__('Per hour'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->sortable(),
 
                 TextColumn::make('overtime_multiplier')
-                    ->label('OT ×')
+                    ->label(__('OT ×'))
                     ->alignEnd()
                     // A dash is the honest rendering of a null here: it means "whatever the next rate down says",
                     // not "no overtime".
@@ -53,24 +53,24 @@ class LabourRatesTable
                     ->toggleable(),
 
                 TextColumn::make('burden_percent')
-                    ->label('Burden %')
+                    ->label(__('Burden %'))
                     ->alignEnd()
                     ->placeholder('inherited')
                     ->toggleable(),
 
                 TextColumn::make('effective_from')
-                    ->label('From')
+                    ->label(__('From'))
                     ->date()
                     ->sortable(),
 
                 TextColumn::make('effective_to')
-                    ->label('Until')
+                    ->label(__('Until'))
                     ->date()
                     ->placeholder('Further notice')
                     ->sortable(),
 
                 TextColumn::make('in_force')
-                    ->label('In force')
+                    ->label(__('In force'))
                     ->badge()
                     ->getStateUsing(fn (LabourRate $record): string => match (true) {
                         $record->effective_from?->isFuture() => 'From '.$record->effective_from->format('d M'),
@@ -90,22 +90,22 @@ class LabourRatesTable
             ])
             ->filters([
                 SelectFilter::make('job_id')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->relationship('job', 'code')
                     ->searchable(),
 
                 SelectFilter::make('trade_id')
-                    ->label('Trade')
+                    ->label(__('Trade'))
                     ->relationship('trade', 'name')
                     ->searchable(),
 
                 Filter::make('in_force')
-                    ->label('In force today')
+                    ->label(__('In force today'))
                     ->query(fn (Builder $query) => $query->inForceOn(now()->toDateString()))
                     ->toggle(),
 
                 Filter::make('company_default')
-                    ->label('Company defaults only')
+                    ->label(__('Company defaults only'))
                     ->query(fn (Builder $query) => $query
                         ->whereNull('job_id')->whereNull('trade_id')
                         ->whereNull('worker_id')->whereNull('employee_id'))

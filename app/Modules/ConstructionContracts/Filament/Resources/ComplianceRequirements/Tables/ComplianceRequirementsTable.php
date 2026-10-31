@@ -25,20 +25,20 @@ class ComplianceRequirementsTable
         return $table
             ->columns([
                 TextColumn::make('kind')
-                    ->label('Required')
+                    ->label(__('Required'))
                     ->formatStateUsing(fn (ComplianceRequirement $record): string => $record->label())
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('contract.contract_number')
-                    ->label('Contract')
+                    ->label(__('Contract'))
                     // The template is a scope, not a missing contract.
                     ->placeholder('Company template')
                     ->description(fn (ComplianceRequirement $record): ?string => $record->contract?->job?->code)
                     ->sortable(),
 
                 TextColumn::make('blocks')
-                    ->label('Stops')
+                    ->label(__('Stops'))
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => match ($state) {
                         ComplianceRequirement::BLOCKS_NONE => 'nothing',
@@ -51,12 +51,12 @@ class ComplianceRequirementsTable
                         : 'warning'),
 
                 TextColumn::make('grace_days')
-                    ->label('Grace')
+                    ->label(__('Grace'))
                     ->formatStateUsing(fn (int $state): string => $state === 0 ? 'none' : $state.' days')
                     ->alignEnd(),
 
                 TextColumn::make('minimum_cover')
-                    ->label('Minimum cover')
+                    ->label(__('Minimum cover'))
                     ->money(CompanyCurrency::code())
                     ->alignEnd()
                     ->placeholder('any'),
@@ -68,7 +68,7 @@ class ComplianceRequirementsTable
             ])
             ->filters([
                 Filter::make('template')
-                    ->label('Company template only')
+                    ->label(__('Company template only'))
                     ->query(fn (Builder $query) => $query->template())
                     ->toggle(),
 

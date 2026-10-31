@@ -14,7 +14,7 @@ class JournalEntryLineForm
         return $schema
             ->components([
                 Select::make('journal_entry_id')
-                    ->label('Journal Entry')
+                    ->label(__('Journal Entry'))
                     ->relationship('journalEntry', 'id')
                     ->searchable()
                     ->preload()
@@ -22,7 +22,7 @@ class JournalEntryLineForm
 
                 // Nova: relatableQueryUsing — is_active, allow_manual_entry, no children
                 Select::make('account_id')
-                    ->label('Account')
+                    ->label(__('Account'))
                     ->relationship(
                         'account',
                         'name',
@@ -36,7 +36,7 @@ class JournalEntryLineForm
                     ->required(),
 
                 TextInput::make('debit_amount')
-                    ->label('Debit')
+                    ->label(__('Debit'))
                     ->numeric()
                     ->step(0.01)
                     ->minValue(0)
@@ -44,7 +44,7 @@ class JournalEntryLineForm
                     ->required(),
 
                 TextInput::make('credit_amount')
-                    ->label('Credit')
+                    ->label(__('Credit'))
                     ->numeric()
                     ->step(0.01)
                     ->minValue(0)

@@ -45,14 +45,14 @@ class WebhookEndpointResource extends Resource
         return $schema->components([
             TextInput::make('name')->required()->maxLength(120)->placeholder('Our HR system'),
             TextInput::make('url')
-                ->label('URL')
+                ->label(__('URL'))
                 ->required()
                 ->url()
                 ->maxLength(255)
                 ->helperText('An HTTPS address that answers POST. Anything in the 200s counts as delivered.'),
-            Toggle::make('is_active')->label('Active')->default(true),
+            Toggle::make('is_active')->label(__('Active'))->default(true),
             CheckboxList::make('events')
-                ->label('Send me')
+                ->label(__('Send me'))
                 ->options(fn (): array => Webhooks::options())
                 ->columns(2)
                 ->required()
@@ -68,13 +68,13 @@ class WebhookEndpointResource extends Resource
             ->columns([
                 TextColumn::make('name')->searchable()->description(fn (WebhookEndpoint $e): string => (string) $e->url),
                 TextColumn::make('events')
-                    ->label('Listening for')
+                    ->label(__('Listening for'))
                     ->state(fn (WebhookEndpoint $e): string => implode(', ', $e->eventLabels()) ?: 'nothing')
                     ->wrap(),
-                IconColumn::make('is_active')->label('Active')->boolean(),
-                TextColumn::make('last_delivered_at')->label('Last delivered')->dateTime('d M Y H:i')->placeholder('never'),
+                IconColumn::make('is_active')->label(__('Active'))->boolean(),
+                TextColumn::make('last_delivered_at')->label(__('Last delivered'))->dateTime('d M Y H:i')->placeholder('never'),
                 TextColumn::make('consecutive_failures')
-                    ->label('Failing')
+                    ->label(__('Failing'))
                     ->badge()
                     ->color('danger')
                     ->formatStateUsing(fn (int $state): string => $state.' in a row')
@@ -82,7 +82,7 @@ class WebhookEndpointResource extends Resource
             ])
             ->recordActions([
                 Action::make('test')
-                    ->label('Send a test')
+                    ->label(__('Send a test'))
                     ->icon('heroicon-o-paper-airplane')
                     ->color('gray')
                     ->requiresConfirmation()

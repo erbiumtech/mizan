@@ -86,12 +86,12 @@ class ReviewResource extends Resource
             Section::make('The review')
                 ->schema([
                     Select::make('review_cycle_id')
-                        ->label('Cycle')
+                        ->label(__('Cycle'))
                         ->options(fn (): array => ReviewCycle::orderByDesc('period_start')->pluck('name', 'id')->all())
                         ->required(),
 
                     Select::make('employee_id')
-                        ->label('Employee')
+                        ->label(__('Employee'))
                         ->options(fn (): array => app(EmployeeAccess::class)
                             ->scopeAccessibleEmployees(\App\Modules\Employees\Models\Employee::query(), auth()->user())
                             ->get()
@@ -102,12 +102,12 @@ class ReviewResource extends Resource
 
                     // The competencies decide these two when a template is in use — docs/saas-launch-plan.md §14.6.
                     Select::make('review_template_id')
-                        ->label('Template')
+                        ->label(__('Template'))
                         ->options(fn (): array => ReviewTemplate::query()->active()->orderBy('name')->pluck('name', 'id')->all())
                         ->helperText('Its competencies are rated on the tab below; the two ratings here follow from them.'),
 
                     // The employee's own when they can give it under My Review — §14.6 — so read-only here.
-                    Select::make('self_rating')->label('Self rating')->options(ReviewTemplates::scaleOptions())
+                    Select::make('self_rating')->label(__('Self rating'))->options(ReviewTemplates::scaleOptions())
                         ->disabled(fn (?Review $record): bool => $record?->review_template_id !== null || ($record?->selfRatingIsTheEmployees() ?? false))
                         ->hidden(fn (?Review $record): bool => $record !== null && ! ($record->cycle?->includes_self_review ?? true))
                         ->helperText(fn (?Review $record): ?string => match (true) {
@@ -115,15 +115,15 @@ class ReviewResource extends Resource
                             $record?->selfRatingIsTheEmployees() ?? false => 'The employee gives this under My Review.',
                             default => null,
                         }),
-                    Select::make('manager_rating')->label('Manager rating')->options(ReviewTemplates::scaleOptions())
+                    Select::make('manager_rating')->label(__('Manager rating'))->options(ReviewTemplates::scaleOptions())
                         ->disabled(fn (?Review $record): bool => $record?->review_template_id !== null),
                     Select::make('final_rating')->options(ReviewTemplates::scaleOptions())
                         ->helperText('After calibration. An opinion — it reaches no payslip.'),
 
                     // A recommendation, and nothing more: a promotion is a dated job-history row somebody records.
-                    \Filament\Forms\Components\Toggle::make('promotion_recommended')->label('Recommend a promotion'),
+                    \Filament\Forms\Components\Toggle::make('promotion_recommended')->label(__('Recommend a promotion')),
                     Select::make('promotion_designation')
-                        ->label('To')
+                        ->label(__('To'))
                         ->options(fn (): array => options('employees.designation'))
                         ->visible(fn (Get $get): bool => (bool) $get('promotion_recommended'))
                         ->helperText('Recorded here only. Record the promotion itself on the employee when it is decided.'),
@@ -144,7 +144,7 @@ class ReviewResource extends Resource
                 ->description('Every dated entry inside the cycle\'s period — plan §8.1. Shown beside the rating and never written into it.')
                 ->schema([
                     Placeholder::make('merit_evidence')
-                        ->label('For this period')
+                        ->label(__('For this period'))
                         ->content(function (?Review $record): string {
                             if (! $record?->cycle) {
                                 return 'Save the review to see the ledger for its period.';
@@ -175,7 +175,7 @@ class ReviewResource extends Resource
                 ->visible(fn (): bool => modules()->enabled('mpr'))
                 ->schema([
                     Placeholder::make('mpr_evidence')
-                        ->label('Monthly reports')
+                        ->label(__('Monthly reports'))
                         ->content(function (Get $get, ?Review $record): string {
                             if (! $record) {
                                 return 'Save the review to see the reports for its period.';
@@ -198,21 +198,21 @@ class ReviewResource extends Resource
             ->modifyQueryUsing(fn ($query) => $query->with(['incrementRequest']))
             ->columns([
                 TextColumn::make('employee.display_label')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->searchable(query: fn ($query, string $search) => LandlordUserColumn::search($query, $search))
                     ->sortable(),
 
-                TextColumn::make('cycle.name')->label('Cycle')->sortable(),
-                TextColumn::make('reviewer.display_label')->label('Reviewer')->placeholder('—')->toggleable(),
+                TextColumn::make('cycle.name')->label(__('Cycle'))->sortable(),
+                TextColumn::make('reviewer.display_label')->label(__('Reviewer'))->placeholder('—')->toggleable(),
 
                 TextColumn::make('promotion_recommended')
-                    ->label('Promotion')
+                    ->label(__('Promotion'))
                     ->state(fn (Review $r): string => $r->promotion_recommended ? ('recommended'.($r->promotion_designation ? ': '.$r->promotion_designation : '')) : '')
                     ->placeholder('—')
                     ->toggleable(),
 
                 TextColumn::make('final_rating')
-                    ->label('Rating')
+                    ->label(__('Rating'))
                     ->alignEnd()
                     ->placeholder('—')
                     // Said next to every rating, because this is the screen where somebody
@@ -234,7 +234,7 @@ class ReviewResource extends Resource
             ->defaultSort('created_at', 'desc')
             ->filters([
                 SelectFilter::make('review_cycle_id')
-                    ->label('Cycle')
+                    ->label(__('Cycle'))
                     ->options(fn (): array => ReviewCycle::orderByDesc('period_start')->pluck('name', 'id')->all()),
 
                 SelectFilter::make('status')->options([
@@ -247,7 +247,7 @@ class ReviewResource extends Resource
             ])
             ->recordActions([
                 Action::make('submit')
-                    ->label('Submit')
+                    ->label(__('Submit'))
                     ->icon('heroicon-o-paper-airplane')
                     ->color('info')
                     ->visible(fn (Review $record): bool => $record->submitted_at === null
@@ -264,7 +264,7 @@ class ReviewResource extends Resource
                     }),
 
                 Action::make('share')
-                    ->label('Share with them')
+                    ->label(__('Share with them'))
                     ->icon('heroicon-o-eye')
                     ->color('success')
                     ->requiresConfirmation()
@@ -290,13 +290,13 @@ class ReviewResource extends Resource
                  * never writes the package.
                  */
                 Action::make('changeReviewer')
-                    ->label('Change reviewer')
+                    ->label(__('Change reviewer'))
                     ->icon('heroicon-o-user-minus')
                     ->color('gray')
                     ->visible(fn (Review $record): bool => $record->shared_at === null && (auth()->user()?->can('update', $record) ?? false))
                     ->schema([
                         Select::make('reviewer_employee_id')
-                            ->label('Reviewer')
+                            ->label(__('Reviewer'))
                             ->options(fn (Review $record): array => \App\Modules\Employees\Models\Employee::query()->where('is_active', true)->whereKeyNot($record->employee_id)->with('user')->orderBy('employee_id')->get()
                                 ->mapWithKeys(fn ($e): array => [$e->getKey() => $e->display_label])->all())
                             ->searchable()
@@ -340,13 +340,13 @@ class ReviewResource extends Resource
                     ->schema([
                         // A percentage or a figure — docs/saas-launch-plan.md §14.6. Both raise the same request.
                         \Filament\Forms\Components\Radio::make('basis')
-                            ->label('Give the increase as')
+                            ->label(__('Give the increase as'))
                             ->options(['percent' => 'A percentage', 'amount' => 'A new basic wage'])
                             ->default('percent')
                             ->inline()
                             ->live(),
                         TextInput::make('percent')
-                            ->label('Increase (%)')
+                            ->label(__('Increase (%)'))
                             ->numeric()
                             ->minValue(0)
                             ->maxValue(100)
@@ -354,14 +354,14 @@ class ReviewResource extends Resource
                             ->required(fn (Get $get): bool => ($get('basis') ?? 'percent') === 'percent')
                             ->default(fn (Review $record): float => app(ReviewCycleService::class)->suggestedPercent($record)),
                         TextInput::make('amount')
-                            ->label('New basic wage')
+                            ->label(__('New basic wage'))
                             ->numeric()
                             ->minValue(1)
                             ->visible(fn (Get $get): bool => $get('basis') === 'amount')
                             ->required(fn (Get $get): bool => $get('basis') === 'amount')
                             ->default(fn (Review $record): ?float => app(ReviewCycleService::class)->suggestedIncrement($record)['suggested']),
                         DatePicker::make('start_date')
-                            ->label('From')
+                            ->label(__('From'))
                             ->native(false)
                             ->required()
                             ->default(fn (): string => now()->addMonthNoOverflow()->startOfMonth()->toDateString()),

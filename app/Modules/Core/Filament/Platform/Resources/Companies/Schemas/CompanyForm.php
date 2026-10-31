@@ -34,7 +34,7 @@ class CompanyForm
             // categories are seeded, both of which happen once. Switching
             // afterwards would leave a household chart labelled as a business.
             Select::make('type')
-                ->label('Type')
+                ->label(__('Type'))
                 ->options(Company::TYPE_LABELS)
                 ->default(Company::TYPE_BUSINESS)
                 ->required()
@@ -62,7 +62,7 @@ class CompanyForm
             // company" for the rest of its life. Editing it never re-seeds — see
             // docs/company-profiles-plan.md §9.
             Select::make('profile')
-                ->label('Profile')
+                ->label(__('Profile'))
                 ->options(fn (Get $get, ?Company $record): array => CompanyProfiles::optionsForType(
                     $record?->type ?? (string) ($get('type') ?? Company::TYPE_BUSINESS),
                 ))
@@ -85,7 +85,7 @@ class CompanyForm
             // business — a personal account is always an individual. See
             // docs/legal-entity-types-plan.md.
             Select::make('legal_entity')
-                ->label('Legal / tax entity')
+                ->label(__('Legal / tax entity'))
                 ->options(Company::LEGAL_ENTITY_LABELS)
                 ->placeholder('Company (default)')
                 ->live()
@@ -98,20 +98,20 @@ class CompanyForm
             // these and relies on them only when present; the s.100C credit that
             // would use them is not computed yet. See docs/legal-entity-types-plan.md.
             TextInput::make('tax_exempt_ref')
-                ->label('Tax-exemption approval reference')
+                ->label(__('Tax-exemption approval reference'))
                 ->placeholder('e.g. the s.2(36) approval / exemption certificate number')
                 ->visible(fn (Get $get): bool => $get('legal_entity') === Company::LEGAL_NON_PROFIT)
                 ->helperText('The Commissioner\'s approval under s.2(36). Recorded and printed; the exemption is relied on only when present.'),
 
             DatePicker::make('tax_exempt_approved_on')
-                ->label('Approved on')
+                ->label(__('Approved on'))
                 ->native(false)
                 ->visible(fn (Get $get): bool => $get('legal_entity') === Company::LEGAL_NON_PROFIT),
 
             // Only asked on create — the assigned user becomes this company's
             // Administrator (attached + given the Administrator role in its team).
             Select::make('admin_user_id')
-                ->label('Company Admin')
+                ->label(__('Company Admin'))
                 ->helperText('This user is added to the company as its Administrator.')
                 // Any user, not just the current company's — see User::scopeAcrossCompanies().
                 ->options(fn () => User::acrossCompanies()->orderBy('name')->pluck('name', 'id'))

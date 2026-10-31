@@ -45,7 +45,7 @@ class FieldVisitStaffResource extends Resource
     {
         return $schema->components([
             Select::make('employee_id')
-                ->label('Employee')
+                ->label(__('Employee'))
                 ->options(fn (): array => Employee::query()->where('is_active', true)->with('user')
                     ->orderBy('employee_id')->get()
                     ->mapWithKeys(fn (Employee $employee): array => [$employee->getKey() => $employee->display_label])->all())
@@ -61,15 +61,15 @@ class FieldVisitStaffResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('employee.display_label')->label('Employee')->searchable(),
-                TextColumn::make('employee.department')->label('Department')->placeholder('—'),
-                TextColumn::make('enrolled_at')->label('Enrolled')->dateTime('d M Y')->sortable(),
+                TextColumn::make('employee.display_label')->label(__('Employee'))->searchable(),
+                TextColumn::make('employee.department')->label(__('Department'))->placeholder('—'),
+                TextColumn::make('enrolled_at')->label(__('Enrolled'))->dateTime('d M Y')->sortable(),
             ])
             ->defaultSort('id', 'desc')
-            ->recordActions([DeleteAction::make()->label('Remove')])
+            ->recordActions([DeleteAction::make()->label(__('Remove'))])
             ->emptyStateHeading('Nobody enrolled')
             ->emptyStateDescription('Until somebody is, every active employee can be named on a visit.')
-            ->headerActions([CreateAction::make()->label('Enrol somebody')]);
+            ->headerActions([CreateAction::make()->label(__('Enrol somebody'))]);
     }
 
     public static function getPages(): array

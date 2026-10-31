@@ -26,11 +26,11 @@ class PermissionsTable
                     ->sortable(),
 
                 TextColumn::make('guard_name')
-                    ->label('Guard')
+                    ->label(__('Guard'))
                     ->sortable(),
 
                 TextColumn::make('roles_count')
-                    ->label('Roles')
+                    ->label(__('Roles'))
                     ->counts('roles')
                     ->badge(),
 

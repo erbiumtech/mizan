@@ -62,7 +62,7 @@ class ChecklistTemplateResource extends Resource
 
             Repeater::make('items')
                 ->relationship()
-                ->label('Items')
+                ->label(__('Items'))
                 ->schema([
                     TextInput::make('title')->required()->maxLength(255)->columnSpan(2),
 
@@ -73,24 +73,24 @@ class ChecklistTemplateResource extends Resource
                         ->required()
                         ->live(),
                     TextInput::make('link_url')
-                        ->label('Link')
+                        ->label(__('Link'))
                         ->url()
                         ->maxLength(255)
                         ->visible(fn ($get): bool => $get('kind') === ChecklistItem::KIND_LINK),
                     \Filament\Forms\Components\Select::make('auto_check')
-                        ->label('Closes when')
+                        ->label(__('Closes when'))
                         ->options(ChecklistItem::AUTO_CHECKS)
                         ->visible(fn ($get): bool => $get('kind') === ChecklistItem::KIND_AUTO)
                         ->required(fn ($get): bool => $get('kind') === ChecklistItem::KIND_AUTO),
 
                     TextInput::make('owner_role')
-                        ->label('Owner')
+                        ->label(__('Owner'))
                         ->maxLength(255)
                         ->placeholder('IT')
                         ->helperText('A role, not a person — templates outlive whoever holds the job.'),
 
                     TextInput::make('due_offset_days')
-                        ->label('Days from the date')
+                        ->label(__('Days from the date'))
                         ->numeric()
                         ->default(0)
                         ->helperText('Negative is before it: -7 is a week before somebody arrives.'),
@@ -108,8 +108,8 @@ class ChecklistTemplateResource extends Resource
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
                 TextColumn::make('kind')->badge()->color('gray')->sortable(),
-                TextColumn::make('items_count')->label('Items')->counts('items')->alignEnd(),
-                IconColumn::make('is_active')->label('Active')->boolean(),
+                TextColumn::make('items_count')->label(__('Items'))->counts('items')->alignEnd(),
+                IconColumn::make('is_active')->label(__('Active'))->boolean(),
             ])
             ->recordActions([\Filament\Actions\EditAction::make()]);
     }

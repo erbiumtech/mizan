@@ -29,7 +29,7 @@ class VariationForm
                     ->columns(2)
                     ->schema([
                         Select::make('contract_id')
-                            ->label('Contract')
+                            ->label(__('Contract'))
                             ->options(fn (): array => Contract::query()
                                 ->whereNot('status', Contract::STATUS_DRAFT)
                                 ->with('job')
@@ -47,7 +47,7 @@ class VariationForm
                             ->helperText('Only executed contracts. A draft schedule is edited directly.'),
 
                         TextInput::make('variation_number')
-                            ->label('Number')
+                            ->label(__('Number'))
                             // Blank means the next in the contract's series, which must have no gaps.
                             ->maxLength(255)
                             ->helperText('Left blank, the next number in this contract\'s series.'),
@@ -58,7 +58,7 @@ class VariationForm
                             ->columnSpanFull(),
 
                         Select::make('origin')
-                            ->label('Origin')
+                            ->label(__('Origin'))
                             ->options([
                                 'employer_instruction' => 'Employer instruction',
                                 'engineer_instruction' => 'Engineer instruction',
@@ -78,7 +78,7 @@ class VariationForm
                             ->helperText('Where it came from. What it entitles anybody to depends on this.'),
 
                         Select::make('valuation_method')
-                            ->label('Valued by')
+                            ->label(__('Valued by'))
                             ->options([
                                 Variation::METHOD_CONTRACT_RATES => 'Rates in the contract',
                                 Variation::METHOD_PRO_RATA => 'Pro-rata to contract rates',
@@ -105,33 +105,33 @@ class VariationForm
                     ->columns(3)
                     ->schema([
                         TextInput::make('quoted_amount')
-                            ->label('Quoted')
+                            ->label(__('Quoted'))
                             ->numeric()
                             ->helperText('What was asked for.'),
 
                         TextInput::make('assessed_amount')
-                            ->label('Assessed')
+                            ->label(__('Assessed'))
                             ->numeric()
                             ->helperText('What the certifier decided. Filled in from the lines when priced.'),
 
                         TextInput::make('approved_amount')
-                            ->label('Approved')
+                            ->label(__('Approved'))
                             ->numeric()
                             // Set by approving, and shown here because a negotiated figure is typed before the
                             // button is pressed as often as after.
                             ->helperText('What the parties agreed. This is the figure a certificate may include.'),
 
                         TextInput::make('time_impact_days')
-                            ->label('Time claimed (days)')
+                            ->label(__('Time claimed (days)'))
                             ->numeric(),
 
                         TextInput::make('time_granted_days')
-                            ->label('Time granted (days)')
+                            ->label(__('Time granted (days)'))
                             ->numeric()
                             ->helperText('Money and time are separate awards, and routinely disagree.'),
 
                         Select::make('eot_status')
-                            ->label('Extension of time')
+                            ->label(__('Extension of time'))
                             ->options([
                                 'none' => 'Not claimed',
                                 'claimed' => 'Claimed',
@@ -142,11 +142,11 @@ class VariationForm
                             ->selectablePlaceholder(false),
 
                         DatePicker::make('instructed_on')
-                            ->label('Instructed on')
+                            ->label(__('Instructed on'))
                             ->helperText('The date on the instruction, not the date it was typed here.'),
 
                         DatePicker::make('submitted_on')
-                            ->label('Submitted on')
+                            ->label(__('Submitted on'))
                             ->helperText('Time bars run from here.'),
                     ]),
             ]);

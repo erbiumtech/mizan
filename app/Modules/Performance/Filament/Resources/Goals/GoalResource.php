@@ -56,7 +56,7 @@ class GoalResource extends Resource
     {
         return $schema->components([
             Select::make('employee_id')
-                ->label('Employee')
+                ->label(__('Employee'))
                 ->options(fn (): array => app(EmployeeAccess::class)
                     ->scopeAccessibleEmployees(Employee::query()->where('is_active', true), auth()->user())
                     ->get()
@@ -67,7 +67,7 @@ class GoalResource extends Resource
                 ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
 
             Select::make('review_cycle_id')
-                ->label('Cycle')
+                ->label(__('Cycle'))
                 ->options(fn (): array => ReviewCycle::orderByDesc('period_start')->pluck('name', 'id')->all())
                 ->helperText('Optional: a goal may outlive the cycle it was set in, or sit outside one entirely.'),
 
@@ -103,7 +103,7 @@ class GoalResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('employee.display_label')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->searchable(query: fn ($query, string $search) => LandlordUserColumn::search($query, $search))
                     ->sortable(),
 
@@ -114,7 +114,7 @@ class GoalResource extends Resource
                     ->description(fn (Goal $record): ?string => $record->actual ? 'actual: '.$record->actual : null)
                     ->toggleable(),
 
-                TextColumn::make('due_on')->label('Due')->date('d M Y')->placeholder('—')->sortable(),
+                TextColumn::make('due_on')->label(__('Due'))->date('d M Y')->placeholder('—')->sortable(),
 
                 TextColumn::make('status')
                     ->badge()

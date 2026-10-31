@@ -22,7 +22,7 @@ class AdvanceForm
     {
         return $schema->components([
             Select::make('employee_id')
-                ->label('Employee')
+                ->label(__('Employee'))
                 ->relationship('employee', 'employee_id', fn ($query) => app(EmployeeAccess::class)
                     ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
                 ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
@@ -38,7 +38,7 @@ class AdvanceForm
 
             // The type and its limits — docs/saas-launch-plan.md §14.3. Interest and the monthly figure follow.
             Select::make('advance_type_id')
-                ->label('Type')
+                ->label(__('Type'))
                 ->options(fn (): array => AdvanceType::query()->active()->orderBy('name')->pluck('name', 'id')->all())
                 ->live()
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recompute($get, $set))
@@ -48,14 +48,14 @@ class AdvanceForm
                     (float) $t->interest_rate_pct > 0 ? $t->interest_rate_pct.'% interest' : 'interest-free',
                 ])) : null),
             TextInput::make('total_amount')
-                ->label('Advance amount')
+                ->label(__('Advance amount'))
                 ->numeric()
                 ->minValue(0.01)
                 ->required()
                 ->live(onBlur: true)
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recompute($get, $set)),
             TextInput::make('instalments')
-                ->label('Instalments')
+                ->label(__('Instalments'))
                 ->numeric()
                 ->minValue(1)
                 ->maxValue(120)
@@ -63,14 +63,14 @@ class AdvanceForm
                 ->afterStateUpdated(fn (Get $get, Set $set) => self::recompute($get, $set))
                 ->helperText('How many months. Sets the monthly deduction from the amount and any interest.'),
             TextInput::make('interest_amount')
-                ->label('Interest')
+                ->label(__('Interest'))
                 ->numeric()
                 ->minValue(0)
                 ->default(0)
                 ->helperText('Worked out from the type; added to what is recovered.'),
 
             TextInput::make('monthly_instalment')
-                ->label('Monthly deduction')
+                ->label(__('Monthly deduction'))
                 ->numeric()
                 ->minValue(0.01)
                 ->required()
@@ -79,14 +79,14 @@ class AdvanceForm
                     .'whatever is left, so it can never over-recover.'),
 
             DatePicker::make('started_on')
-                ->label('Given on')
+                ->label(__('Given on'))
                 ->native(false)
                 ->default(now())
                 ->required()
                 ->live(onBlur: true),
 
             DatePicker::make('recovery_starts_on')
-                ->label('Start deducting from')
+                ->label(__('Start deducting from'))
                 ->native(false)
                 ->live(onBlur: true)
                 ->helperText('The first payroll month to deduct from. Leave blank to follow Company Settings → '
@@ -94,7 +94,7 @@ class AdvanceForm
                     .'means the whole of it.'),
 
             Select::make('skipped_months')
-                ->label('Skip these months')
+                ->label(__('Skip these months'))
                 ->multiple()
                 ->native(false)
                 ->options(fn (Get $get): array => self::scheduleMonths($get))
@@ -118,7 +118,7 @@ class AdvanceForm
                 ->helperText('Cancelled stops payroll taking any more without writing off what is owed.'),
 
             TextInput::make('reference')
-                ->label('Reference')
+                ->label(__('Reference'))
                 ->maxLength(255)
                 ->helperText('Cheque number, agreement reference — whatever ties this to the money handed over.'),
 
@@ -127,14 +127,14 @@ class AdvanceForm
             // Shown rather than stored: both are derived from the recovery ledger,
             // so a field holding them would be a second version of the truth.
             Placeholder::make('recovered')
-                ->label('Recovered so far')
+                ->label(__('Recovered so far'))
                 ->content(fn (?Advance $record): string => $record
                     ? number_format($record->recoveredAmount(), 2).' over '.$record->recoveries()->count().' deduction(s)'
                     : '—')
                 ->visibleOn('edit'),
 
             Placeholder::make('remaining')
-                ->label('Still outstanding')
+                ->label(__('Still outstanding'))
                 ->content(fn (?Advance $record): string => $record ? number_format($record->remainingAmount(), 2) : '—')
                 ->visibleOn('edit'),
         ])->columns(2);

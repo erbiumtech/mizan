@@ -49,9 +49,9 @@ class WitnessesRelationManager extends RelationManager
             ->components([
                 TextInput::make('name')->required()->maxLength(255),
                 TextInput::make('employer')->maxLength(255),
-                TextInput::make('contact_detail')->label('How to reach them')->maxLength(255),
+                TextInput::make('contact_detail')->label(__('How to reach them'))->maxLength(255),
                 DatePicker::make('statement_taken_on')
-                    ->label('Statement taken on')
+                    ->label(__('Statement taken on'))
                     ->native(false)
                     ->helperText('Filled in for you when you type a statement. A statement taken on the day is worth several taken three weeks later.'),
                 Textarea::make('statement')->rows(4)->columnSpanFull(),
@@ -73,7 +73,7 @@ class WitnessesRelationManager extends RelationManager
                     ->placeholder('no statement taken'),
 
                 TextColumn::make('statement_taken_on')
-                    ->label('Taken')
+                    ->label(__('Taken'))
                     ->date('d M Y')
                     ->placeholder('—')
                     ->description(fn (IncidentWitness $record): ?string => match (true) {

@@ -3,8 +3,10 @@
 namespace App\Modules\Projects\Filament\Resources\Projects\Tables;
 
 use App\Filament\Support\CustomFieldsSchema;
+use App\Modules\Projects\Filament\Resources\Projects\ProjectResource;
 use App\Modules\Projects\Models\Project;
 use App\Modules\Projects\Models\ProjectEnvironment;
+use App\Support\ResourceContributions;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
@@ -46,7 +48,7 @@ class ProjectsTable
                     ->sortable(),
 
                 TextColumn::make('manager.employee_id')
-                    ->label('Manager')
+                    ->label(__('Manager'))
                     ->formatStateUsing(fn ($state, Project $record): string => $record->manager?->display_label ?? '—')
                     ->searchable(query: fn (Builder $query, string $search) => $query->whereHas(
                         'manager',
@@ -55,13 +57,13 @@ class ProjectsTable
                     ->placeholder('—'),
 
                 TextColumn::make('secondaryManager.employee_id')
-                    ->label('Secondary')
+                    ->label(__('Secondary'))
                     ->formatStateUsing(fn ($state, Project $record): string => $record->secondaryManager?->display_label ?? '—')
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('environments')
-                    ->label('Environments')
+                    ->label(__('Environments'))
                     ->badge()
                     ->state(fn (Project $record): array => $record->environments
                         ->sortBy(fn (ProjectEnvironment $env) => array_search($env->kind, array_keys(ProjectEnvironment::KINDS), true))
@@ -77,7 +79,7 @@ class ProjectsTable
                     ->placeholder('—'),
 
                 TextColumn::make('employees_count')
-                    ->label('Team')
+                    ->label(__('Team'))
                     ->badge()
                     ->color('gray')
                     ->sortable(),
@@ -93,9 +95,13 @@ class ProjectsTable
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 ...CustomFieldsSchema::tableColumns(Project::class),
+
+                // The work module's three figures (docs/project-management-plan.md §7), through the
+                // slot: this table never names a work item.
+                ...ResourceContributions::tableColumnsFor(ProjectResource::class),
             ])
             ->groups([
-                Group::make('status')->label('Status'),
+                Group::make('status')->label(__('Status')),
             ])
             ->filters([
                 ...CustomFieldsSchema::tableFilters(Project::class),
@@ -105,20 +111,20 @@ class ProjectsTable
                     ->multiple(),
 
                 SelectFilter::make('manager_employee_id')
-                    ->label('Manager')
+                    ->label(__('Manager'))
                     ->relationship('manager', 'employee_id')
                     ->searchable()
                     ->preload(),
 
                 Filter::make('unhealthy')
-                    ->label('Has an environment down')
+                    ->label(__('Has an environment down'))
                     ->query(fn (Builder $query): Builder => $query->whereHas(
                         'environments',
                         fn (Builder $q) => $q->where('health_status', ProjectEnvironment::HEALTH_DOWN)
                     )),
 
                 Filter::make('never_checked')
-                    ->label('Never health-checked')
+                    ->label(__('Never health-checked'))
                     ->query(fn (Builder $query): Builder => $query->whereHas(
                         'environments',
                         fn (Builder $q) => $q->monitorable()->whereNull('health_checked_at')
@@ -128,7 +134,7 @@ class ProjectsTable
                 ViewAction::make(),
                 EditAction::make(),
                 ActionGroup::make(self::openEnvironmentActions())
-                    ->label('Open')
+                    ->label(__('Open'))
                     ->icon('heroicon-m-arrow-top-right-on-square')
                     ->button()
                     ->color('gray'),

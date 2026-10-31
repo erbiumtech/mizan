@@ -51,7 +51,7 @@ class LeadSourceResource extends Resource
                 ->default(true)
                 ->helperText('Switch off rather than delete: a source with leads against it keeps their history.'),
 
-            TextInput::make('sort')->label('Order in lists')->numeric()->default(0),
+            TextInput::make('sort')->label(__('Order in lists'))->numeric()->default(0),
         ]);
     }
 
@@ -60,8 +60,8 @@ class LeadSourceResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
-                TextColumn::make('leads_count')->label('Leads')->counts('leads')->alignEnd()->sortable(),
-                IconColumn::make('is_active')->label('Active')->boolean()->sortable(),
+                TextColumn::make('leads_count')->label(__('Leads'))->counts('leads')->alignEnd()->sortable(),
+                IconColumn::make('is_active')->label(__('Active'))->boolean()->sortable(),
             ])
             ->defaultSort('sort')
             ->recordActions([\Filament\Actions\EditAction::make()]);

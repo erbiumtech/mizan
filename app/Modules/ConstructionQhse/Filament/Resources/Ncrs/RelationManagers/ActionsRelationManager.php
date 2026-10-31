@@ -56,10 +56,10 @@ class ActionsRelationManager extends RelationManager
 
                 Select::make('priority')->options(QhseAction::PRIORITIES)->default('medium')->required(),
 
-                DatePicker::make('due_on')->label('Due')->native(false),
+                DatePicker::make('due_on')->label(__('Due'))->native(false),
 
                 TextInput::make('assignee_label')
-                    ->label('Who')
+                    ->label(__('Who'))
                     ->maxLength(255)
                     ->helperText('A name is enough. An action nobody is assigned to is an action nobody does.'),
             ]);
@@ -74,16 +74,16 @@ class ActionsRelationManager extends RelationManager
                 TextColumn::make('description')->wrap()->limit(60),
 
                 TextColumn::make('action_type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => ucfirst(str_replace('_', ' ', $state))),
 
                 TextColumn::make('assignee_label')
-                    ->label('Who')
+                    ->label(__('Who'))
                     ->getStateUsing(fn (QhseAction $record): string => $record->assigneeName()),
 
                 TextColumn::make('due_on')
-                    ->label('Due')
+                    ->label(__('Due'))
                     ->date('d M Y')
                     ->placeholder('no date set')
                     ->color(fn (QhseAction $record): string => $record->isOverdue() ? 'danger' : 'gray'),

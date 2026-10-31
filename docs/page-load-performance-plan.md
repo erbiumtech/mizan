@@ -1,6 +1,6 @@
 # Faster Page Loads — SPA Navigation and Render Cost — Plan
 
-**Status:** Phases 0–5 implemented (2026-08-13); Phase 6 outstanding — see [What landed](#what-landed)
+**Status:** Phases 0–6 implemented (0–5 on 2026-08-13, 6 on 2026-08-14); the employee-name N+1 closed 2026-09-26. What is left is not code but decisions and measurements — the badge TTL, hover prefetching, a production query log, the client-side baseline — listed under [Still outstanding](#still-outstanding)
 **Created:** 2026-08-13
 
 Goal: make moving around the panel feel instant. Today every click on a sidebar entry is a full

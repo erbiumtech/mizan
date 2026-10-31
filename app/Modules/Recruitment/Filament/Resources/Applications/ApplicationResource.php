@@ -75,13 +75,13 @@ class ApplicationResource extends Resource
     {
         return $schema->components([
             Select::make('vacancy_id')
-                ->label('Vacancy')
+                ->label(__('Vacancy'))
                 ->options(fn (): array => Vacancy::query()->orderBy('title')->pluck('title', 'id')->all())
                 ->searchable()
                 ->required(),
 
             Select::make('applicant_id')
-                ->label('Applicant')
+                ->label(__('Applicant'))
                 ->options(fn (): array => Applicant::query()->orderBy('name')->pluck('name', 'id')->all())
                 ->searchable()
                 ->required()
@@ -111,8 +111,8 @@ class ApplicationResource extends Resource
             // Eager: the offer, hire and letter actions each ask for the offer per row.
             ->modifyQueryUsing(fn ($query) => $query->with(['offer']))
             ->columns([
-                TextColumn::make('applicant.name')->label('Applicant')->searchable()->sortable(),
-                TextColumn::make('vacancy.title')->label('Vacancy')->searchable()->sortable(),
+                TextColumn::make('applicant.name')->label(__('Applicant'))->searchable()->sortable(),
+                TextColumn::make('vacancy.title')->label(__('Vacancy'))->searchable()->sortable(),
                 TextColumn::make('applied_on')->date('d M Y')->sortable(),
 
                 TextColumn::make('stage')
@@ -130,7 +130,7 @@ class ApplicationResource extends Resource
                 TextColumn::make('rating')->alignEnd()->placeholder('—')->toggleable(),
 
                 TextColumn::make('employee.employee_id')
-                    ->label('Became')
+                    ->label(__('Became'))
                     ->placeholder('—')
                     ->toggleable(),
             ])
@@ -146,7 +146,7 @@ class ApplicationResource extends Resource
                 ]),
 
                 SelectFilter::make('vacancy_id')
-                    ->label('Vacancy')
+                    ->label(__('Vacancy'))
                     ->options(fn (): array => Vacancy::orderBy('title')->pluck('title', 'id')->all()),
             ])
             // Rows open the candidate rather than the edit form: the page answers the question

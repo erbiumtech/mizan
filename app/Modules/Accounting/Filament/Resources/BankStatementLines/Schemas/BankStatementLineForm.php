@@ -15,7 +15,7 @@ class BankStatementLineForm
                 // Nova: BelongsTo bankStatement & matchedLine are exceptOnForms; match_status has no form field.
 
                 DatePicker::make('transaction_date')
-                    ->label('Transaction Date')
+                    ->label(__('Transaction Date'))
                     ->required(),
 
                 TextInput::make('description')

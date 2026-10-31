@@ -19,7 +19,7 @@ class AnnualTaxForm
         return $schema
             ->components([
                 Select::make('employee_id')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->relationship('employee', 'employee_id', fn ($query) => app(EmployeeAccess::class)
                         ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
                     ->getOptionLabelFromRecordUsing(fn (Employee $record): string => $record->display_label)
@@ -46,38 +46,38 @@ class AnnualTaxForm
                     ]),
 
                 Select::make('fiscal_year_id')
-                    ->label('Fiscal Year')
+                    ->label(__('Fiscal Year'))
                     ->relationship('fiscalYear', 'name')
                     ->searchable()
                     ->preload()
                     ->required(),
 
                 TextInput::make('total_net_income')
-                    ->label('Total Net Income')
+                    ->label(__('Total Net Income'))
                     ->numeric()
                     ->step(0.01)
                     ->readOnly(),
 
                 TextInput::make('annual_income_tax')
-                    ->label('Annual Taxable Income')
+                    ->label(__('Annual Taxable Income'))
                     ->numeric()
                     ->step(0.01)
                     ->readOnly(),
 
                 TextInput::make('total_annual_tax')
-                    ->label('Total Annual Tax')
+                    ->label(__('Total Annual Tax'))
                     ->numeric()
                     ->step(0.01)
                     ->readOnly(),
 
                 TextInput::make('paid_tax')
-                    ->label('Paid Tax')
+                    ->label(__('Paid Tax'))
                     ->numeric()
                     ->step(0.01)
                     ->readOnly(),
 
                 TextInput::make('leftover_tax')
-                    ->label('Leftover Tax')
+                    ->label(__('Leftover Tax'))
                     ->numeric()
                     ->step(0.01)
                     ->readOnly(),

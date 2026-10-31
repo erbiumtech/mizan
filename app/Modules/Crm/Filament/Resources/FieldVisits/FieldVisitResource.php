@@ -74,20 +74,20 @@ class FieldVisitResource extends Resource
     {
         return $schema->components([
             Select::make('subject_type')
-                ->label('Visiting')
+                ->label(__('Visiting'))
                 ->options(FieldVisit::subjectTypes())
                 ->required()
                 ->live()
                 ->afterStateUpdated(fn (callable $set) => $set('subject_id', null)),
 
             Select::make('subject_id')
-                ->label('Who')
+                ->label(__('Who'))
                 ->options(fn (Get $get): array => static::subjectOptions((string) $get('subject_type')))
                 ->searchable()
                 ->required(),
 
             Select::make('employee_id')
-                ->label('Visitor')
+                ->label(__('Visitor'))
                 // Only the enrolled, where a company has switched enrolment on —
                 // docs/saas-launch-plan.md §14.10. Off, this is every active employee,
                 // exactly as before.
@@ -98,7 +98,7 @@ class FieldVisitResource extends Resource
                 ->required()
                 ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
 
-            DateTimePicker::make('planned_at')->label('Planned for')->native(false)->seconds(false)->required()->default(now()->addDay()->setTime(10, 0)),
+            DateTimePicker::make('planned_at')->label(__('Planned for'))->native(false)->seconds(false)->required()->default(now()->addDay()->setTime(10, 0)),
 
             Textarea::make('notes')->rows(3)->columnSpanFull(),
         ]);
@@ -120,14 +120,14 @@ class FieldVisitResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('planned_at')->label('Planned')->dateTime('d M Y H:i')->sortable(),
-                TextColumn::make('visitor.display_label')->label('Visitor'),
-                TextColumn::make('subject')->label('Visiting')->state(fn (FieldVisit $record): string => $record->subjectLabel())
+                TextColumn::make('planned_at')->label(__('Planned'))->dateTime('d M Y H:i')->sortable(),
+                TextColumn::make('visitor.display_label')->label(__('Visitor')),
+                TextColumn::make('subject')->label(__('Visiting'))->state(fn (FieldVisit $record): string => $record->subjectLabel())
                     ->description(fn (FieldVisit $record): string => FieldVisit::subjectTypes()[$record->subject_type] ?? ''),
-                TextColumn::make('checked_in_at')->label('In')->dateTime('H:i')->placeholder('—')
+                TextColumn::make('checked_in_at')->label(__('In'))->dateTime('H:i')->placeholder('—')
                     ->url(fn (FieldVisit $record): ?string => $record->mapLink(), shouldOpenInNewTab: true)
                     ->description(fn (FieldVisit $record): ?string => $record->mapLink() ? 'map' : null),
-                TextColumn::make('checked_out_at')->label('Out')->dateTime('H:i')->placeholder('—'),
+                TextColumn::make('checked_out_at')->label(__('Out'))->dateTime('H:i')->placeholder('—'),
 
                 /*
                  * Where the check-in stood against the client's pin — §14.10.
@@ -137,7 +137,7 @@ class FieldVisitResource extends Resource
                  * there" from "we never looked".
                  */
                 TextColumn::make('in_verdict')
-                    ->label('Position')
+                    ->label(__('Position'))
                     ->badge()
                     ->placeholder('—')
                     ->formatStateUsing(fn (?string $state): string => FieldVisit::VERDICTS[$state] ?? '')
@@ -152,21 +152,21 @@ class FieldVisitResource extends Resource
                         : number_format($record->in_distance_m).'m from the pin'),
                 TextColumn::make('outcome')->badge()->formatStateUsing(fn (?string $state): string => FieldVisit::OUTCOMES[$state] ?? '')->placeholder('—'),
                 TextColumn::make('rating')
-                    ->label('Rated')
+                    ->label(__('Rated'))
                     ->placeholder('—')
                     ->formatStateUsing(fn (?int $state): string => $state === null ? '' : $state.'/5')
                     ->description(fn (FieldVisit $record): ?string => $record->rating_comment)
                     ->toggleable(),
-                IconColumn::make('confirmed_at')->label('Confirmed')->boolean()->getStateUsing(fn (FieldVisit $record): bool => $record->isConfirmed())
+                IconColumn::make('confirmed_at')->label(__('Confirmed'))->boolean()->getStateUsing(fn (FieldVisit $record): bool => $record->isConfirmed())
                     ->tooltip(fn (FieldVisit $record): ?string => $record->confirmed_name ? 'by '.$record->confirmed_name : ($record->confirmation_sent_to ? 'sent to '.$record->confirmation_sent_to : null)),
             ])
             ->filters([
                 // `employees.name` is null for anyone with a login — their name is on the user.
-                SelectFilter::make('employee_id')->label('Visitor')
+                SelectFilter::make('employee_id')->label(__('Visitor'))
                     ->relationship('visitor', 'employee_id', fn (Builder $query) => $query->with('user'))
                     ->getOptionLabelFromRecordUsing(fn (Employee $record): string => $record->display_label),
-                Filter::make('unconfirmed')->label('Unconfirmed')->query(fn (Builder $q) => $q->unconfirmed()),
-                Filter::make('open')->label('Not yet done')->query(fn (Builder $q) => $q->whereNull('checked_out_at')),
+                Filter::make('unconfirmed')->label(__('Unconfirmed'))->query(fn (Builder $q) => $q->unconfirmed()),
+                Filter::make('open')->label(__('Not yet done'))->query(fn (Builder $q) => $q->whereNull('checked_out_at')),
             ])
             ->defaultSort('planned_at', 'desc')
             ->recordActions([
@@ -189,11 +189,11 @@ class FieldVisitResource extends Resource
     public static function checkInAction(): Action
     {
         return Action::make('checkIn')
-            ->label('Check in')
+            ->label(__('Check in'))
             ->icon('heroicon-o-map-pin')
             ->color('success')
             ->visible(fn (FieldVisit $record): bool => ! $record->isCheckedIn() && (auth()->user()?->can('update', $record) ?? false))
-            ->schema([ViewField::make('position')->label('Location')->view('filament.forms.geolocation')])
+            ->schema([ViewField::make('position')->label(__('Location'))->view('filament.forms.geolocation')])
             ->action(function (FieldVisit $record, array $data): void {
                 try {
                     app(FieldVisits::class)->checkIn($record, static::position($data));
@@ -207,18 +207,18 @@ class FieldVisitResource extends Resource
     public static function checkOutAction(): Action
     {
         return Action::make('checkOut')
-            ->label('Check out')
+            ->label(__('Check out'))
             ->icon('heroicon-o-flag')
             ->color('warning')
             ->visible(fn (FieldVisit $record): bool => $record->isCheckedIn() && ! $record->isCheckedOut() && (auth()->user()?->can('update', $record) ?? false))
             ->schema([
-                ViewField::make('position')->label('Location')->view('filament.forms.geolocation'),
+                ViewField::make('position')->label(__('Location'))->view('filament.forms.geolocation'),
                 Select::make('outcome')->options(FieldVisit::OUTCOMES)->required(),
                 Textarea::make('notes')->rows(3),
                 // §14.10. Optional: a visit without a photo is still a visit, and a rep
                 // in a basement with no signal should not be stopped from checking out.
                 FileUpload::make('photo_path')
-                    ->label('Photo')
+                    ->label(__('Photo'))
                     ->image()
                     ->disk('public')
                     ->directory('field-visits')
@@ -278,14 +278,14 @@ class FieldVisitResource extends Resource
                 TextInput::make('latitude')->numeric()->required(),
                 TextInput::make('longitude')->numeric()->required(),
                 TextInput::make('radius_m')
-                    ->label('How close counts as here (metres)')
+                    ->label(__('How close counts as here (metres)'))
                     ->numeric()
                     ->minValue(20)
                     ->maxValue(5000)
                     ->required()
                     ->helperText('A shop front is twenty metres. A factory with its office at the back of the '
                         .'yard is two hundred.'),
-                TextInput::make('note')->label('Note')->maxLength(190)->placeholder('Gate 2, behind the workshop'),
+                TextInput::make('note')->label(__('Note'))->maxLength(190)->placeholder('Gate 2, behind the workshop'),
             ])
             ->action(function (FieldVisit $record, array $data): void {
                 FieldVisitPlace::updateOrCreate(
@@ -306,7 +306,7 @@ class FieldVisitResource extends Resource
     public static function resendAction(): Action
     {
         return Action::make('resendConfirmation')
-            ->label('Resend link')
+            ->label(__('Resend link'))
             ->icon('heroicon-o-paper-airplane')
             ->color('gray')
             ->visible(fn (FieldVisit $record): bool => $record->isCheckedOut() && ! $record->isConfirmed() && (auth()->user()?->can('update', $record) ?? false))

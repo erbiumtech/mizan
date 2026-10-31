@@ -78,12 +78,12 @@ class FindTransactions extends Page implements HasTable
             )
             ->columns([
                 TextColumn::make('journalEntry.entry_date')
-                    ->label('Date')
+                    ->label(__('Date'))
                     ->date('d M Y')
                     ->sortable(),
 
                 TextColumn::make('journalEntry.entry_number')
-                    ->label('Entry')
+                    ->label(__('Entry'))
                     ->searchable()
                     ->sortable()
                     ->url(fn (JournalEntryLine $record): ?string => $record->journal_entry_id
@@ -91,19 +91,19 @@ class FindTransactions extends Page implements HasTable
                         : null),
 
                 TextColumn::make('account.code')
-                    ->label('Code')
+                    ->label(__('Code'))
                     ->searchable()
                     ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('account.name')
-                    ->label('Account')
+                    ->label(__('Account'))
                     ->searchable()
                     ->sortable()
                     ->wrap(),
 
                 TextColumn::make('description')
-                    ->label('Narration')
+                    ->label(__('Narration'))
                     // A line often carries no description of its own; the entry's
                     // memo is what a human wrote about the transaction, and
                     // showing a column of blanks helps nobody.
@@ -113,29 +113,29 @@ class FindTransactions extends Page implements HasTable
                     ->placeholder('—'),
 
                 TextColumn::make('journalEntry.reference')
-                    ->label('Reference')
+                    ->label(__('Reference'))
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('debit_amount')
-                    ->label('Debit')
+                    ->label(__('Debit'))
                     ->numeric(decimalPlaces: 2)
                     ->alignEnd()
                     ->sortable()
                     ->placeholder('')
                     ->formatStateUsing(fn ($state): string => (float) $state > 0 ? number_format((float) $state, 2) : '')
-                    ->summarize(Sum::make()->label('Total')->numeric(decimalPlaces: 2)),
+                    ->summarize(Sum::make()->label(__('Total'))->numeric(decimalPlaces: 2)),
 
                 TextColumn::make('credit_amount')
-                    ->label('Credit')
+                    ->label(__('Credit'))
                     ->numeric(decimalPlaces: 2)
                     ->alignEnd()
                     ->sortable()
                     ->formatStateUsing(fn ($state): string => (float) $state > 0 ? number_format((float) $state, 2) : '')
-                    ->summarize(Sum::make()->label('Total')->numeric(decimalPlaces: 2)),
+                    ->summarize(Sum::make()->label(__('Total'))->numeric(decimalPlaces: 2)),
 
                 TextColumn::make('journalEntry.status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->badge()
                     ->color(fn (?string $state): string => match ($state) {
                         JournalEntry::STATUS_POSTED => 'success',
@@ -148,7 +148,7 @@ class FindTransactions extends Page implements HasTable
             ])
             ->filters([
                 SelectFilter::make('account_id')
-                    ->label('Accounts')
+                    ->label(__('Accounts'))
                     ->multiple()
                     ->options(fn (): array => Account::query()
                         ->orderBy('code')
@@ -160,8 +160,8 @@ class FindTransactions extends Page implements HasTable
 
                 Filter::make('dates')
                     ->schema([
-                        DatePicker::make('from')->label('From')->native(false),
-                        DatePicker::make('to')->label('To')->native(false)->afterOrEqual('from'),
+                        DatePicker::make('from')->label(__('From'))->native(false),
+                        DatePicker::make('to')->label(__('To'))->native(false)->afterOrEqual('from'),
                     ])
                     ->columns(2)
                     ->query(fn (Builder $query, array $data): Builder => $query->whereHas(
@@ -181,8 +181,8 @@ class FindTransactions extends Page implements HasTable
 
                 Filter::make('amount')
                     ->schema([
-                        TextInput::make('min')->label('At least')->numeric()->prefix(CompanyCurrency::code()),
-                        TextInput::make('max')->label('At most')->numeric()->prefix(CompanyCurrency::code()),
+                        TextInput::make('min')->label(__('At least'))->numeric()->prefix(CompanyCurrency::code()),
+                        TextInput::make('max')->label(__('At most'))->numeric()->prefix(CompanyCurrency::code()),
                     ])
                     ->columns(2)
                     // Each line is a debit or a credit, never both, so "at least
@@ -215,7 +215,7 @@ class FindTransactions extends Page implements HasTable
                     }),
 
                 SelectFilter::make('status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->options([
                         JournalEntry::STATUS_DRAFT => 'Draft',
                         JournalEntry::STATUS_PENDING => 'Pending approval',
@@ -238,7 +238,7 @@ class FindTransactions extends Page implements HasTable
                     )),
 
                 SelectFilter::make('side')
-                    ->label('Side')
+                    ->label(__('Side'))
                     ->options(['debit' => 'Debits only', 'credit' => 'Credits only'])
                     ->query(fn (Builder $query, array $data): Builder => match ($data['value'] ?? null) {
                         'debit' => $query->where('debit_amount', '>', 0),
@@ -259,7 +259,7 @@ class FindTransactions extends Page implements HasTable
             HelpAction::make('find-transactions', 'Find Transactions: Help'),
 
             Action::make('register')
-                ->label('Account Register')
+                ->label(__('Account Register'))
                 ->icon('heroicon-o-book-open')
                 ->color('gray')
                 ->url(fn (): string => AccountRegister::getUrl())

@@ -22,7 +22,7 @@ class RecordReceiptFromStatementLine
     public static function make(): Action
     {
         return Action::make('recordReceipt')
-            ->label('Record receipt')
+            ->label(__('Record receipt'))
             ->icon('heroicon-o-banknotes')
             ->color('success')
             ->visible(fn (BankStatementLine $record): bool => $record->match_status === BankStatementLine::STATUS_UNMATCHED
@@ -37,7 +37,7 @@ class RecordReceiptFromStatementLine
             ->modalSubmitActionLabel('Record and match')
             ->schema([
                 Select::make('invoice_id')
-                    ->label('Invoice')
+                    ->label(__('Invoice'))
                     ->options(fn (): array => app(StatementReceipts::class)->openInvoices()
                         ->mapWithKeys(fn (Invoice $invoice): array => [$invoice->getKey() => sprintf(
                             '%s · %s · %s outstanding',

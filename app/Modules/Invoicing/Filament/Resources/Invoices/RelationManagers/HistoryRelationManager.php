@@ -25,7 +25,7 @@ class HistoryRelationManager extends RelationManager
     {
         return $table
             ->columns([
-                TextColumn::make('created_at')->label('When')->dateTime('d M Y H:i')->sortable(),
+                TextColumn::make('created_at')->label(__('When'))->dateTime('d M Y H:i')->sortable(),
 
                 TextColumn::make('event')
                     ->badge()
@@ -39,7 +39,7 @@ class HistoryRelationManager extends RelationManager
                     ->alignEnd(),
 
                 TextColumn::make('causer.name')
-                    ->label('By')
+                    ->label(__('By'))
                     // Nobody, for anything the scheduler or a command did — better
                     // than blaming a user who was not there.
                     ->placeholder('the system')

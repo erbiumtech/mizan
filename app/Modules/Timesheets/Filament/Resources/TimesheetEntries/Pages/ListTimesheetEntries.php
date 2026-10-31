@@ -14,7 +14,7 @@ class ListTimesheetEntries extends ListRecords
     {
         return [
             HelpAction::make('timesheets', 'Timesheets: Help'),
-            \Filament\Actions\CreateAction::make()->label('Book time'),
+            \Filament\Actions\CreateAction::make()->label(__('Book time')),
         ];
     }
 }

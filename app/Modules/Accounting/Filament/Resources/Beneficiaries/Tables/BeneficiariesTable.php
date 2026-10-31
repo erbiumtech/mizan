@@ -22,21 +22,21 @@ class BeneficiariesTable
                     ->searchable(),
 
                 TextColumn::make('bank.bank_name')
-                    ->label('Bank')
+                    ->label(__('Bank'))
                     ->searchable(),
 
                 TextColumn::make('iban')
-                    ->label('IBAN')
+                    ->label(__('IBAN'))
                     ->searchable(),
 
                 TextColumn::make('transactionType.name')
-                    ->label('Usual Transaction Type'),
+                    ->label(__('Usual Transaction Type')),
 
                 TextColumn::make('payment_type')
-                    ->label('Default Payment Type'),
+                    ->label(__('Default Payment Type')),
 
                 IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->boolean()
                     ->sortable(),
 
@@ -44,7 +44,7 @@ class BeneficiariesTable
                 // from the list — and so its absence is visible too, which is the
                 // state that breaks the month-end close.
                 IconColumn::make('is_petty_cash_custodian')
-                    ->label('Petty cash')
+                    ->label(__('Petty cash'))
                     ->boolean()
                     ->tooltip(fn (bool $state): ?string => $state ? 'Receives the petty cash replenishment' : null)
                     ->sortable(),

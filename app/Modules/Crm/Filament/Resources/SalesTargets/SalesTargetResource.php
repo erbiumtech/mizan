@@ -47,7 +47,7 @@ class SalesTargetResource extends Resource
     {
         return $schema->components([
             Select::make('employee_id')
-                ->label('Whose')
+                ->label(__('Whose'))
                 ->options(fn (): array => Employee::query()
                     ->where('is_active', true)
                     ->get()
@@ -57,7 +57,7 @@ class SalesTargetResource extends Resource
                 ->required(),
 
             Select::make('kind')
-                ->label('Measured on')
+                ->label(__('Measured on'))
                 ->options([
                     SalesTarget::KIND_WON_VALUE => 'Value of deals won',
                     SalesTarget::KIND_NEW_LEADS => 'New leads',
@@ -70,9 +70,9 @@ class SalesTargetResource extends Resource
             DatePicker::make('period_start')->native(false)->default(now()->startOfQuarter())->required(),
             DatePicker::make('period_end')->native(false)->default(now()->endOfQuarter())->required()->afterOrEqual('period_start'),
 
-            TextInput::make('target_amount')->label('Target')->numeric()->minValue(0)->required(),
+            TextInput::make('target_amount')->label(__('Target'))->numeric()->minValue(0)->required(),
 
-            TextInput::make('currency_code')->label('Currency')->maxLength(3)->placeholder(CompanyCurrency::code()),
+            TextInput::make('currency_code')->label(__('Currency'))->maxLength(3)->placeholder(CompanyCurrency::code()),
         ]);
     }
 
@@ -80,10 +80,10 @@ class SalesTargetResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('employee.display_label')->label('Whose')->searchable()->sortable(),
+                TextColumn::make('employee.display_label')->label(__('Whose'))->searchable()->sortable(),
 
                 TextColumn::make('kind')
-                    ->label('Measured on')
+                    ->label(__('Measured on'))
                     ->badge()
                     ->color('gray')
                     ->formatStateUsing(fn (string $state): string => match ($state) {
@@ -93,16 +93,16 @@ class SalesTargetResource extends Resource
                     }),
 
                 TextColumn::make('period_start')
-                    ->label('Period')
+                    ->label(__('Period'))
                     ->date('d M Y')
                     ->description(fn (SalesTarget $record): string => 'to '.$record->period_end->format('d M Y')),
 
-                TextColumn::make('target_amount')->label('Target')->money(CompanyCurrency::code())->alignEnd(),
+                TextColumn::make('target_amount')->label(__('Target'))->money(CompanyCurrency::code())->alignEnd(),
 
                 // Computed on read, from won deals at the rate each recorded. Never stored:
                 // a stored attainment drifts from the deals behind it.
                 TextColumn::make('attainment')
-                    ->label('Achieved')
+                    ->label(__('Achieved'))
                     ->alignEnd()
                     ->state(function (SalesTarget $record): string {
                         $rows = app(PipelineReports::class)->attainment($record->period_start->toDateString());

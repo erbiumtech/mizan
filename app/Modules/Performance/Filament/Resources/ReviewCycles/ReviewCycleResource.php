@@ -60,7 +60,7 @@ class ReviewCycleResource extends Resource
             // §14.6: the employee rates themselves first, on My Review. A cycle can leave that out — a
             // probation check, say — and then there is no employee half to wait for or to show.
             Toggle::make('includes_self_review')
-                ->label('Ask each employee for a self-review')
+                ->label(__('Ask each employee for a self-review'))
                 ->default(true)
                 ->helperText('On, every employee rates themselves on each competency and adds a comment under My Review '
                     .'before their manager decides; the reviewer sees both side by side. Off, the review is the manager\'s alone.'),
@@ -79,11 +79,11 @@ class ReviewCycleResource extends Resource
                 TextColumn::make('name')->searchable()->sortable(),
 
                 TextColumn::make('period_start')
-                    ->label('Period')
+                    ->label(__('Period'))
                     ->date('d M Y')
                     ->description(fn (ReviewCycle $record): string => 'to '.$record->period_end->format('d M Y')),
 
-                TextColumn::make('reviews_count')->label('Reviews')->counts('reviews')->alignEnd(),
+                TextColumn::make('reviews_count')->label(__('Reviews'))->counts('reviews')->alignEnd(),
 
                 TextColumn::make('status')
                     ->badge()
@@ -98,7 +98,7 @@ class ReviewCycleResource extends Resource
             ->defaultSort('period_start', 'desc')
             ->recordActions([
                 Action::make('open')
-                    ->label('Raise reviews')
+                    ->label(__('Raise reviews'))
                     ->icon('heroicon-o-play')
                     ->color('success')
                     ->requiresConfirmation()

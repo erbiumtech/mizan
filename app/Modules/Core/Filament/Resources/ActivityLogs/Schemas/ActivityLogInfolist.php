@@ -13,13 +13,13 @@ class ActivityLogInfolist
         return $schema
             ->components([
                 TextEntry::make('id')
-                    ->label('ID'),
+                    ->label(__('ID')),
 
                 TextEntry::make('log_name')
-                    ->label('Model'),
+                    ->label(__('Model')),
 
                 TextEntry::make('event')
-                    ->label('Event')
+                    ->label(__('Event'))
                     ->formatStateUsing(fn (?string $state): string => match ($state) {
                         'created' => 'Created',
                         'updated' => 'Updated',
@@ -28,10 +28,10 @@ class ActivityLogInfolist
                     }),
 
                 TextEntry::make('description')
-                    ->label('Description'),
+                    ->label(__('Description')),
 
                 TextEntry::make('subject')
-                    ->label('Subject')
+                    ->label(__('Subject'))
                     // Read from the columns rather than from the relation. The
                     // subject is a morphTo over every audited model in the
                     // application — some of them in a tenant database, some
@@ -44,27 +44,27 @@ class ActivityLogInfolist
                         : '—'),
 
                 TextEntry::make('causer')
-                    ->label('Causer')
+                    ->label(__('Causer'))
                     // Eager-loaded by ActivityLogResource::getEloquentQuery(), which
                     // is what resolves this page's record too.
                     ->state(fn (Activity $record): string => $record->causer?->name ?? 'System'),
 
                 TextEntry::make('changes')
-                    ->label('Changes')
+                    ->label(__('Changes'))
                     ->state(fn (Activity $record): string => json_encode(
                         $record->changes()?->toArray() ?? [],
                         JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
                     )),
 
                 TextEntry::make('properties')
-                    ->label('Extra Properties')
+                    ->label(__('Extra Properties'))
                     ->state(fn (Activity $record): string => json_encode(
                         $record->properties?->toArray() ?? [],
                         JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
                     )),
 
                 TextEntry::make('created_at')
-                    ->label('When')
+                    ->label(__('When'))
                     ->dateTime(),
             ]);
     }

@@ -52,13 +52,13 @@ class PayAdjustmentResource extends Resource
     {
         return $schema->components([
             Select::make('employee_id')
-                ->label('Employee')
+                ->label(__('Employee'))
                 ->options(fn (): array => Employee::query()->where('is_active', true)->with('user')->orderBy('employee_id')->get()
                     ->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()
                 ->required(),
             Select::make('fiscal_year_id')
-                ->label('Fiscal year')
+                ->label(__('Fiscal year'))
                 ->options(fn (): array => FiscalYear::query()->orderByDesc('start_date')->pluck('name', 'id')->all())
                 ->default(fn (): ?int => FiscalYear::current()?->getKey())
                 ->required(),
@@ -67,7 +67,7 @@ class PayAdjustmentResource extends Resource
                 ->default(fn (): string => now()->monthName)
                 ->required(),
             Select::make('pay_component_id')
-                ->label('Line')
+                ->label(__('Line'))
                 ->options(fn (): array => PayComponent::query()->whereIn('code', PayslipService::OVERRIDE_KEYS)->orderBy('sort')->pluck('label', 'id')->all())
                 ->required()
                 ->helperText('Added to what the month would otherwise pay on this line. A negative amount takes it off.'),
@@ -80,12 +80,12 @@ class PayAdjustmentResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('employee.display_label')->label('Employee')->searchable(['employees.employee_id']),
+                TextColumn::make('employee.display_label')->label(__('Employee'))->searchable(['employees.employee_id']),
                 TextColumn::make('month')->description(fn (PayAdjustment $r): ?string => $r->fiscalYear?->name),
-                TextColumn::make('component.label')->label('Line'),
+                TextColumn::make('component.label')->label(__('Line')),
                 TextColumn::make('amount')->numeric(2)->alignRight(),
                 TextColumn::make('reason')->limit(40),
-                TextColumn::make('payslip.id')->label('Payslip')->prefix('#')->placeholder('not yet raised')
+                TextColumn::make('payslip.id')->label(__('Payslip'))->prefix('#')->placeholder('not yet raised')
                     ->description(fn (PayAdjustment $r): ?string => $r->payslip?->payrollRun?->isLocked() ? 'signed off' : null),
             ])
             ->filters([

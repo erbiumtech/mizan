@@ -55,16 +55,16 @@ class SegmentResource extends Resource
                 ->description('Resolved at the moment a campaign is sent. Consent is checked separately, per channel, for every person it finds.')
                 ->columns(2)
                 ->schema([
-                    Toggle::make('definition.include_leads')->label('Open leads')->default(true)
+                    Toggle::make('definition.include_leads')->label(__('Open leads'))->default(true)
                         ->helperText('Leads not yet converted or lost.'),
-                    Toggle::make('definition.include_contacts')->label('Active customers')->default(false)
+                    Toggle::make('definition.include_contacts')->label(__('Active customers'))->default(false)
                         ->helperText('Customers in Invoicing.')
                         ->visible(fn (): bool => modules()->enabled('invoicing')),
-                    Select::make('definition.lead_source_id')->label('Only leads from')
+                    Select::make('definition.lead_source_id')->label(__('Only leads from'))
                         ->options(fn (): array => LeadSource::query()->orderBy('sort')->pluck('name', 'id')->all())
                         ->placeholder('Any source')
                         ->helperText('Narrows the leads only.'),
-                    TextInput::make('definition.city')->label('Only in this city')->maxLength(120)
+                    TextInput::make('definition.city')->label(__('Only in this city'))->maxLength(120)
                         ->helperText('Matched against the lead\'s city and the customer\'s address. Blank for anywhere.'),
                 ]),
         ]);
@@ -75,10 +75,10 @@ class SegmentResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')->searchable()->sortable(),
-                TextColumn::make('audience')->label('Matches now')->alignEnd()
+                TextColumn::make('audience')->label(__('Matches now'))->alignEnd()
                     ->state(fn (Segment $record): int => app(CampaignSender::class)->audienceFor($record)->count()),
-                TextColumn::make('campaigns_count')->label('Campaigns')->counts('campaigns')->alignEnd(),
-                IconColumn::make('is_active')->label('Active')->boolean(),
+                TextColumn::make('campaigns_count')->label(__('Campaigns'))->counts('campaigns')->alignEnd(),
+                IconColumn::make('is_active')->label(__('Active'))->boolean(),
             ])
             ->defaultSort('name')
             ->recordActions([\Filament\Actions\EditAction::make()]);

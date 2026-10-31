@@ -63,8 +63,8 @@ class GeneralLedger extends Page
     {
         return $schema
             ->components([
-                DatePicker::make('from')->label('From')->native(false)->live(),
-                DatePicker::make('to')->label('To')->native(false)->live(),
+                DatePicker::make('from')->label(__('From'))->native(false)->live(),
+                DatePicker::make('to')->label(__('To'))->native(false)->live(),
             ])
             ->statePath('data')
             ->columns(3);

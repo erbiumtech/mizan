@@ -1,6 +1,8 @@
 # SaaS launch: plan
 
-> **Not built.** Written 2026-10-28 from a code inventory and a feature-by-feature reading of
+> **Built, phase by phase, since 2026-10-28; Phase 14's label sweep landed 2026-10-30** — every
+> module under `app/Modules` is in `TranslationCoverageTest::SWEPT`, and every key in `lang/en.json`
+> has an Urdu rendering. Written 2026-10-28 from a code inventory and a feature-by-feature reading of
 > Operentra's published module list and pricing (operentra.com/features, /pricing), the nearest
 > comparable product. Nothing below exists unless marked so. Mechanics common to any new module
 > are in `docs/new-module-checklist.md`; licensing in `docs/modules-plan.md` and

@@ -136,7 +136,7 @@ class Subscription extends Page
              * company's own storage; the person who asked is emailed the link.
              */
             Action::make('export')
-                ->label('Export my data')
+                ->label(__('Export my data'))
                 ->icon('heroicon-o-archive-box-arrow-down')
                 ->color('gray')
                 ->requiresConfirmation()
@@ -157,7 +157,7 @@ class Subscription extends Page
              * about.
              */
             Action::make('backUpNow')
-                ->label('Back up now')
+                ->label(__('Back up now'))
                 ->icon('heroicon-o-circle-stack')
                 ->color('gray')
                 ->requiresConfirmation()
@@ -186,7 +186,7 @@ class Subscription extends Page
              * agreement, and the modal says so.
              */
             Action::make('changePlan')
-                ->label('Change plan')
+                ->label(__('Change plan'))
                 ->icon('heroicon-o-arrows-right-left')
                 ->color('gray')
                 ->visible(fn (): bool => static::company()?->plan !== null && count(Plans::upgradesFrom(static::company()?->plan)) > 1)
@@ -198,7 +198,7 @@ class Subscription extends Page
                 ->modalSubmitActionLabel('Change it')
                 ->schema([
                     Select::make('plan')
-                        ->label('Plan')
+                        ->label(__('Plan'))
                         ->options(fn (): array => Plans::upgradesFrom(static::company()?->plan))
                         ->default(fn (): ?string => static::company()?->plan)
                         ->required()
@@ -233,7 +233,7 @@ class Subscription extends Page
              * and thirty is billed, so this cannot be used to cap what is owed.
              */
             Action::make('holdSeats')
-                ->label('Hold seats')
+                ->label(__('Hold seats'))
                 ->icon('heroicon-o-user-plus')
                 ->color('gray')
                 ->visible(fn (): bool => static::company()?->billing_contact_id !== null)
@@ -244,7 +244,7 @@ class Subscription extends Page
                 ->modalSubmitActionLabel('Save')
                 ->schema([
                     TextInput::make('seats_reserved')
-                        ->label('Seats held')
+                        ->label(__('Seats held'))
                         ->numeric()
                         ->minValue(0)
                         ->maxValue(10000)
@@ -263,7 +263,7 @@ class Subscription extends Page
                 }),
 
             Action::make('customDomain')
-                ->label('Custom domain')
+                ->label(__('Custom domain'))
                 ->icon('heroicon-o-globe-alt')
                 ->visible(fn (): bool => Plans::allowsCustomDomain(static::company()?->plan))
                 ->modalHeading('Your own domain')
@@ -272,7 +272,7 @@ class Subscription extends Page
                 ->modalSubmitActionLabel('Save domain')
                 ->schema([
                     TextInput::make('domain')
-                        ->label('Domain')
+                        ->label(__('Domain'))
                         ->placeholder('hr.yourcompany.pk')
                         ->maxLength(190)
                         ->default(fn (): ?string => static::company()?->domain),
@@ -293,7 +293,7 @@ class Subscription extends Page
                 }),
 
             Action::make('subscribe')
-                ->label('Subscribe')
+                ->label(__('Subscribe'))
                 ->icon('heroicon-o-credit-card')
                 ->visible(fn (): bool => app(Subscriptions::class)->isConfigured()
                     && (static::company()?->hasPlan() ?? false)
@@ -303,22 +303,22 @@ class Subscription extends Page
                 ->modalSubmitActionLabel('Subscribe')
                 ->schema([
                     TextInput::make('email')
-                        ->label('Billing email')
+                        ->label(__('Billing email'))
                         ->email()
                         ->required()
                         ->default(fn (): ?string => auth()->user()?->email),
                     TextInput::make('address')
-                        ->label('Billing address')
+                        ->label(__('Billing address'))
                         ->required()
                         ->maxLength(190),
                     Select::make('country')
-                        ->label('Billing country')
+                        ->label(__('Billing country'))
                         ->options([$home => 'Pakistan', 'OTHER' => 'Outside Pakistan'])
                         ->default($home)
                         ->required()
                         ->live(),
                     Select::make('currency')
-                        ->label('Currency')
+                        ->label(__('Currency'))
                         ->options(array_combine($foreign, $foreign))
                         ->required()
                         ->visible(fn (Get $get): bool => $get('country') !== $home)

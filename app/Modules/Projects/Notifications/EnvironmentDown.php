@@ -89,7 +89,7 @@ class EnvironmentDown extends Notification implements CategorisedNotification, S
             ->danger()
             ->actions([
                 Action::make('open')
-                    ->label('Open project')
+                    ->label(__('Open project'))
                     ->url($this->projectUrl()),
             ])
             ->getDatabaseMessage();

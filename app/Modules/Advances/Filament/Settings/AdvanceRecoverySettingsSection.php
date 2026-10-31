@@ -30,7 +30,7 @@ class AdvanceRecoverySettingsSection implements SettingsSection
                 ->visible(fn (): bool => modules()->enabled('advances'))
                 ->schema([
                     Select::make('advances_recovery_starts')
-                        ->label('Recovery starts')
+                        ->label(__('Recovery starts'))
                         ->options([
                             Advance::RECOVERY_FROM_MONTH_GIVEN => 'From the month the advance is given',
                             Advance::RECOVERY_FROM_MONTH_AFTER => 'From the month after it is given',

@@ -15,7 +15,7 @@ class ListPermits extends ListRecords
     {
         return [
             HelpAction::make('construction-permits', 'Permits to work: Help'),
-            CreateAction::make()->label('Request a permit'),
+            CreateAction::make()->label(__('Request a permit')),
         ];
     }
 }

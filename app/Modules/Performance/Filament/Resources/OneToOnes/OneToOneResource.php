@@ -68,7 +68,7 @@ class OneToOneResource extends Resource
     {
         return $schema->components([
             Select::make('employee_id')
-                ->label('Employee')
+                ->label(__('Employee'))
                 ->options(fn (): array => app(EmployeeAccess::class)
                     ->scopeAccessibleEmployees(Employee::query()->where('is_active', true), auth()->user())
                     ->get()
@@ -78,7 +78,7 @@ class OneToOneResource extends Resource
                 ->required(),
 
             Select::make('manager_employee_id')
-                ->label('Manager')
+                ->label(__('Manager'))
                 ->options(fn (): array => Employee::query()
                     ->where('is_active', true)
                     ->get()
@@ -90,7 +90,7 @@ class OneToOneResource extends Resource
             DatePicker::make('met_on')->native(false)->default(now())->required(),
 
             Textarea::make('notes')
-                ->label('Notes')
+                ->label(__('Notes'))
                 ->rows(4)
                 ->columnSpanFull()
                 ->helperText('Shared with the employee.'),
@@ -98,7 +98,7 @@ class OneToOneResource extends Resource
             // Hidden entirely from the person it is about, not merely read-only: the
             // helper text alone would tell them private notes exist about them.
             Textarea::make('private_notes')
-                ->label('Private notes')
+                ->label(__('Private notes'))
                 ->rows(4)
                 ->columnSpanFull()
                 ->visible(fn (?OneToOne $record): bool => $record === null
@@ -112,19 +112,19 @@ class OneToOneResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('employee.display_label')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->searchable(query: fn ($query, string $search) => LandlordUserColumn::search($query, $search))
                     ->sortable(),
 
-                TextColumn::make('manager.display_label')->label('Manager')->placeholder('—')->toggleable(),
+                TextColumn::make('manager.display_label')->label(__('Manager'))->placeholder('—')->toggleable(),
 
-                TextColumn::make('met_on')->label('Met')->date('d M Y')->sortable(),
+                TextColumn::make('met_on')->label(__('Met'))->date('d M Y')->sortable(),
 
                 TextColumn::make('notes')->wrap()->limit(80)->placeholder('—'),
 
                 // The presence of private notes is itself withheld from the subject.
                 TextColumn::make('private_notes')
-                    ->label('Private')
+                    ->label(__('Private'))
                     ->formatStateUsing(fn ($state): string => $state ? 'yes' : '—')
                     // can(), not hasPermissionTo(): the latter throws for an unseeded
                     // permission name and would take the page down rather than hide a

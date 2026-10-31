@@ -13,6 +13,7 @@ use App\Modules\Timesheets\Services\TimesheetService;
 use App\Support\EmployeeAccess;
 use App\Support\EmployeeOptions;
 use App\Support\LandlordUserColumn;
+use App\Support\ResourceContributions;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -67,7 +68,7 @@ class TimesheetEntryResource extends Resource
     {
         return $schema->components([
             Select::make('employee_id')
-                ->label('Employee')
+                ->label(__('Employee'))
                 ->relationship('employee', 'employee_id', fn ($query) => app(EmployeeAccess::class)
                     ->scopeAccessibleEmployees($query->with('user'), auth()->user()))
                 ->getOptionLabelFromRecordUsing(fn ($record) => $record->display_label)
@@ -81,15 +82,21 @@ class TimesheetEntryResource extends Resource
                 ->default(fn (): ?int => app(EmployeeAccess::class)->ownEmployeeId(auth()->user())),
 
             Select::make('project_id')
-                ->label('Project')
+                ->label(__('Project'))
                 ->options(fn (): array => Project::orderBy('name')->pluck('name', 'id')->all())
                 ->searchable()
-                ->required(),
+                ->required()
+                // Live so a component contributed below it can offer what belongs to this project.
+                ->live(),
+
+            // What another module adds to this form — the work item picker, when there is a board
+            // (App\Support\ResourceContributions). This file never learns what fills the slot.
+            ...ResourceContributions::formComponentsFor(static::class),
 
             DatePicker::make('date')->native(false)->required()->default(now()),
 
             TextInput::make('minutes')
-                ->label('Minutes')
+                ->label(__('Minutes'))
                 ->numeric()
                 ->minValue(1)
                 ->maxValue(1440)
@@ -97,7 +104,7 @@ class TimesheetEntryResource extends Resource
                 ->helperText('Minutes, not hours — 90 is an hour and a half. A rate multiplied by rounded hours drifts across a month of entries.'),
 
             Toggle::make('is_billable')
-                ->label('Billable')
+                ->label(__('Billable'))
                 ->default(true)
                 ->helperText('Non-billable time is still worth recording: it is what utilisation is measured against. It never reaches an invoice.'),
 
@@ -114,25 +121,25 @@ class TimesheetEntryResource extends Resource
                 TextColumn::make('date')->date('d M Y')->sortable(),
 
                 TextColumn::make('employee.display_label')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->searchable(query: fn ($query, string $search) => LandlordUserColumn::search($query, $search))
                     ->sortable(),
 
-                TextColumn::make('project.name')->label('Project')->searchable()->sortable(),
+                TextColumn::make('project.name')->label(__('Project'))->searchable()->sortable(),
 
                 TextColumn::make('task')->placeholder('—')->toggleable(),
 
                 TextColumn::make('minutes')
-                    ->label('Time')
+                    ->label(__('Time'))
                     ->formatStateUsing(fn ($state): string => intdiv((int) $state, 60).'h '
                         .str_pad((string) ((int) $state % 60), 2, '0', STR_PAD_LEFT).'m')
                     ->alignEnd()
                     ->sortable(),
 
-                IconColumn::make('is_billable')->label('Billable')->boolean()->sortable(),
+                IconColumn::make('is_billable')->label(__('Billable'))->boolean()->sortable(),
 
                 TextColumn::make('approved_at')
-                    ->label('Approved')
+                    ->label(__('Approved'))
                     ->date('d M Y')
                     ->placeholder('—')
                     // The three states are worth distinguishing at a glance: unapproved,
@@ -145,23 +152,23 @@ class TimesheetEntryResource extends Resource
             ->defaultSort('date', 'desc')
             ->filters([
                 SelectFilter::make('project_id')
-                    ->label('Project')
+                    ->label(__('Project'))
                     ->options(fn (): array => Project::orderBy('name')->pluck('name', 'id')->all()),
 
-                TernaryFilter::make('is_billable')->label('Billable'),
+                TernaryFilter::make('is_billable')->label(__('Billable')),
 
                 Filter::make('unapproved')
-                    ->label('Awaiting approval')
+                    ->label(__('Awaiting approval'))
                     ->query(fn (Builder $query): Builder => $query->whereNull('approved_at')),
 
                 Filter::make('this_month')
-                    ->label('This month')
+                    ->label(__('This month'))
                     ->default()
                     ->query(fn (Builder $query): Builder => $query->inMonth(now()->year, now()->month)),
             ])
             ->recordActions([
                 Action::make('approve')
-                    ->label('Approve')
+                    ->label(__('Approve'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->visible(fn (TimesheetEntry $record): bool => ! $record->isApproved()
@@ -179,6 +186,8 @@ class TimesheetEntryResource extends Resource
                     }),
 
                 EditAction::make(),
+
+                ...ResourceContributions::recordActionsFor(static::class),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

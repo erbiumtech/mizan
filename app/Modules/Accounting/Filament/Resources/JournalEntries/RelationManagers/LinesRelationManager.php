@@ -26,7 +26,7 @@ class LinesRelationManager extends RelationManager
         return $schema
             ->components([
                 Select::make('account_id')
-                    ->label('Account')
+                    ->label(__('Account'))
                     ->relationship(
                         'account',
                         'name',
@@ -39,21 +39,21 @@ class LinesRelationManager extends RelationManager
                     ->required(),
 
                 TextInput::make('debit_amount')
-                    ->label('Debit')
+                    ->label(__('Debit'))
                     ->numeric()
                     ->minValue(0)
                     ->default(0)
                     ->required(),
 
                 TextInput::make('credit_amount')
-                    ->label('Credit')
+                    ->label(__('Credit'))
                     ->numeric()
                     ->minValue(0)
                     ->default(0)
                     ->required(),
 
                 TextInput::make('description')
-                    ->label('Description')
+                    ->label(__('Description'))
                     ->nullable(),
             ]);
     }
@@ -64,21 +64,21 @@ class LinesRelationManager extends RelationManager
             ->recordTitleAttribute('id')
             ->columns([
                 TextColumn::make('account.name')
-                    ->label('Account')
+                    ->label(__('Account'))
                     ->sortable(),
 
                 TextColumn::make('debit_amount')
-                    ->label('Debit')
+                    ->label(__('Debit'))
                     ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('credit_amount')
-                    ->label('Credit')
+                    ->label(__('Credit'))
                     ->money(CompanyCurrency::code())
                     ->sortable(),
 
                 TextColumn::make('description')
-                    ->label('Description')
+                    ->label(__('Description'))
                     ->searchable(),
             ])
             ->headerActions([

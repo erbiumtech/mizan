@@ -35,7 +35,7 @@ class ConstructionQhseSettingsSection implements SettingsSection
                 ->visible(fn (): bool => modules()->enabled('construction_qhse'))
                 ->schema([
                     Select::make('construction_qhse_rate_base')
-                        ->label('Safety rates are quoted')
+                        ->label(__('Safety rates are quoted'))
                         ->options(self::BASES)
                         ->selectablePlaceholder(false)
                         ->helperText('The hours every frequency and severity rate is expressed against — lost-time, '

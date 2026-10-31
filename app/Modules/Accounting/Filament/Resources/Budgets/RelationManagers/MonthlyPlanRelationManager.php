@@ -34,7 +34,7 @@ class MonthlyPlanRelationManager extends RelationManager
     {
         return $schema->components([
             TextInput::make('amount')
-                ->label('Planned for this month')
+                ->label(__('Planned for this month'))
                 ->numeric()
                 ->minValue(0)
                 ->required()
@@ -48,30 +48,30 @@ class MonthlyPlanRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('account.code')
-                    ->label('Code')
+                    ->label(__('Code'))
                     ->sortable(),
 
                 TextColumn::make('account.name')
-                    ->label('Account')
+                    ->label(__('Account'))
                     ->searchable()
                     ->sortable(),
 
                 TextColumn::make('period_start')
-                    ->label('Month')
+                    ->label(__('Month'))
                     ->date('M Y')
                     ->sortable(),
 
                 TextColumn::make('amount')
-                    ->label('Planned')
+                    ->label(__('Planned'))
                     ->numeric(decimalPlaces: 2)
                     ->alignEnd()
                     ->summarize(
-                        \Filament\Tables\Columns\Summarizers\Sum::make()->label('Total')->numeric(decimalPlaces: 2)
+                        \Filament\Tables\Columns\Summarizers\Sum::make()->label(__('Total'))->numeric(decimalPlaces: 2)
                     ),
             ])
             ->filters([
                 SelectFilter::make('account_id')
-                    ->label('Account')
+                    ->label(__('Account'))
                     ->options(fn (): array => BudgetForm::plannableAccounts())
                     ->searchable(),
             ])

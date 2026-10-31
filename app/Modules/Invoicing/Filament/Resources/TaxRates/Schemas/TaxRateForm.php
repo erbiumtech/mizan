@@ -20,7 +20,7 @@ class TaxRateForm
                 ->helperText('As it appears on the invoice, e.g. "GST 18%".'),
 
             TextInput::make('rate')
-                ->label('Rate (%)')
+                ->label(__('Rate (%)'))
                 ->numeric()
                 ->minValue(0)
                 ->maxValue(100)
@@ -29,12 +29,12 @@ class TaxRateForm
                 ->helperText('18 means 18 per cent. Whether it is added on top or already in the price is decided per invoice.'),
 
             TextInput::make('code')
-                ->label('Filing code')
+                ->label(__('Filing code'))
                 ->maxLength(255)
                 ->helperText("The authority's own code for this tax, if it has one."),
 
             Select::make('account_id')
-                ->label('Posts to')
+                ->label(__('Posts to'))
                 ->options(fn (): array => Account::whereIn('type', ['liability', 'asset'])
                     ->orderBy('code')
                     ->get()
@@ -44,12 +44,12 @@ class TaxRateForm
                 ->helperText('Leave empty to use '.TaxRate::DEFAULT_ACCOUNT_CODE.'. Give each tax its own account if you file them separately.'),
 
             Toggle::make('is_active')
-                ->label('Active')
+                ->label(__('Active'))
                 ->default(true)
                 ->helperText('Switch off to stop offering it on new lines without touching invoices that used it.'),
 
             Toggle::make('is_default')
-                ->label('Offer first on a new line')
+                ->label(__('Offer first on a new line'))
                 ->helperText('Only one rate can be the default; setting this stands the others down.'),
         ]);
     }

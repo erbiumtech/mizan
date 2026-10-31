@@ -16,7 +16,7 @@ class InvoiceLineForm
         return $schema
             ->components([
                 Select::make('invoice_id')
-                    ->label('Invoice')
+                    ->label(__('Invoice'))
                     // Drafts only: an issued invoice has posted its lines, so a line added to one from here
                     // changed the document without touching its totals or its ledger entry.
                     ->relationship('invoice', 'invoice_number', fn ($query) => $query->where('status', Invoice::STATUS_DRAFT))
@@ -25,7 +25,7 @@ class InvoiceLineForm
                     ->required(),
 
                 Select::make('product_id')
-                    ->label('Product')
+                    ->label(__('Product'))
                     ->relationship('product', 'name')
                     ->searchable()
                     ->preload()
@@ -52,7 +52,7 @@ class InvoiceLineForm
                     ->afterStateUpdated(fn (callable $get, callable $set) => LinePricing::fillTotal($get, $set)),
 
                 TextInput::make('unit_price')
-                    ->label('Unit Price')
+                    ->label(__('Unit Price'))
                     ->numeric()
                     ->step(0.01)
                     ->required()
@@ -61,7 +61,7 @@ class InvoiceLineForm
                     ->afterStateUpdated(fn (callable $get, callable $set) => LinePricing::fillTotal($get, $set)),
 
                 TextInput::make('line_total')
-                    ->label('Line Total')
+                    ->label(__('Line Total'))
                     ->numeric()
                     ->step(0.01)
                     ->required()
@@ -72,16 +72,16 @@ class InvoiceLineForm
                 // how the invoice says so; "Defer over service period" on the issued invoice then does the rest.
                 // Blank on every line that is delivered when it is billed, which is most of them.
                 DatePicker::make('service_from')
-                    ->label('Service from')
+                    ->label(__('Service from'))
                     ->nullable()
                     ->helperText('Leave blank unless this line is for a period rather than a delivery.'),
                 DatePicker::make('service_to')
-                    ->label('Service to')
+                    ->label(__('Service to'))
                     ->nullable()
                     ->afterOrEqual('service_from'),
 
                 Select::make('account_id')
-                    ->label('Account Override')
+                    ->label(__('Account Override'))
                     ->relationship('account', 'name')
                     ->searchable()
                     ->preload()

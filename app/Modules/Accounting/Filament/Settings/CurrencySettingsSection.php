@@ -37,7 +37,7 @@ class CurrencySettingsSection implements SettingsSection
                 ->description('What this company keeps its books in. Everything posted is recorded in it.')
                 ->schema([
                     Select::make('base_currency')
-                        ->label('Base currency')
+                        ->label(__('Base currency'))
                         ->options(fn (): array => static::currencyOptions())
                         ->selectablePlaceholder(false)
                         ->native(false)

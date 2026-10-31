@@ -17,7 +17,7 @@ class ListIncidents extends ListRecords
             HelpAction::make('construction-incidents', 'Incidents: Help'),
             // Labelled for what it mostly is. Most of what belongs in this register hurt nobody, and a button saying
             // "new incident" is a button people hesitate over.
-            CreateAction::make()->label('Report something'),
+            CreateAction::make()->label(__('Report something')),
         ];
     }
 }

@@ -78,7 +78,7 @@ class CsvImport extends Page
         return $schema
             ->components([
                 Select::make('type')
-                    ->label('What are you importing?')
+                    ->label(__('What are you importing?'))
                     ->options(CsvImporters::labels())
                     ->selectablePlaceholder(false)
                     ->native(false)
@@ -94,7 +94,7 @@ class CsvImport extends Page
                     ->helperText(fn (Get $get): ?string => $this->dateField($get('type'))['help'] ?? null),
 
                 FileUpload::make('file')
-                    ->label('CSV file')
+                    ->label(__('CSV file'))
                     ->acceptedFileTypes(['text/csv', 'text/plain', 'application/csv'])
                     ->maxSize(4096)
                     ->live()
@@ -154,7 +154,7 @@ class CsvImport extends Page
             HelpAction::make('csv-import', 'CSV Import: Help'),
 
             Action::make('template')
-                ->label('Download template')
+                ->label(__('Download template'))
                 ->icon('heroicon-o-document-arrow-down')
                 ->color('gray')
                 ->action(fn () => response()->streamDownload(
@@ -164,7 +164,7 @@ class CsvImport extends Page
                 )),
 
             Action::make('preview')
-                ->label('Check the file')
+                ->label(__('Check the file'))
                 ->icon('heroicon-o-eye')
                 ->action(function (): void {
                     if (! $contents = $this->contents()) {
@@ -182,7 +182,7 @@ class CsvImport extends Page
                 }),
 
             Action::make('import')
-                ->label('Import')
+                ->label(__('Import'))
                 ->icon('heroicon-o-check')
                 ->color('success')
                 ->requiresConfirmation()

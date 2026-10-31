@@ -30,7 +30,7 @@ class LinesRelationManager extends RelationManager
     {
         return $schema->components([
             Select::make('product_id')
-                ->label('Product')
+                ->label(__('Product'))
                 ->relationship('product', 'name')
                 ->searchable()
                 ->preload()
@@ -58,7 +58,7 @@ class LinesRelationManager extends RelationManager
                 ->afterStateUpdated(fn (callable $get, callable $set) => LinePricing::fillTotal($get, $set)),
 
             TextInput::make('unit_price')
-                ->label('Unit Price')
+                ->label(__('Unit Price'))
                 ->numeric()
                 ->step(0.01)
                 ->required()
@@ -67,7 +67,7 @@ class LinesRelationManager extends RelationManager
                 ->afterStateUpdated(fn (callable $get, callable $set) => LinePricing::fillTotal($get, $set)),
 
             TextInput::make('line_total')
-                ->label('Line Total')
+                ->label(__('Line Total'))
                 ->numeric()
                 ->step(0.01)
                 ->required()
@@ -75,7 +75,7 @@ class LinesRelationManager extends RelationManager
                 ->helperText('Quantity × unit price, filled as you type; issuing checks it.'),
 
             Select::make('account_id')
-                ->label('Account Override')
+                ->label(__('Account Override'))
                 ->relationship('account', 'name')
                 ->searchable()
                 ->preload()
@@ -87,11 +87,11 @@ class LinesRelationManager extends RelationManager
             // how the invoice says so; "Defer over service period" on the issued invoice then does the rest.
             // Blank on every line that is delivered when it is billed, which is most of them.
             DatePicker::make('service_from')
-                ->label('Service from')
+                ->label(__('Service from'))
                 ->nullable()
                 ->helperText('Leave blank unless this line is for a period rather than a delivery.'),
             DatePicker::make('service_to')
-                ->label('Service to')
+                ->label(__('Service to'))
                 ->nullable()
                 ->afterOrEqual('service_from'),
 
@@ -99,7 +99,7 @@ class LinesRelationManager extends RelationManager
             // invoice is issued, from whether that invoice is inclusive — so a
             // figure typed here would be overwritten and is not offered.
             Select::make('tax_rate_id')
-                ->label('Tax')
+                ->label(__('Tax'))
                 ->options(fn (): array => TaxRate::active()
                     ->orderByDesc('is_default')
                     ->orderByDesc('rate')
@@ -121,14 +121,14 @@ class LinesRelationManager extends RelationManager
         return $table
             ->columns([
                 TextColumn::make('taxRate.name')
-                    ->label('Tax')
+                    ->label(__('Tax'))
                     ->placeholder('—')
                     ->description(fn ($record): ?string => (float) $record->tax_amount > 0
                         ? number_format((float) $record->tax_amount, 2)
                         : null),
 
                 TextColumn::make('product.name')
-                    ->label('Product')
+                    ->label(__('Product'))
                     ->toggleable(),
 
                 TextColumn::make('description')
@@ -138,11 +138,11 @@ class LinesRelationManager extends RelationManager
                     ->numeric(),
 
                 TextColumn::make('unit_price')
-                    ->label('Unit Price')
+                    ->label(__('Unit Price'))
                     ->money(CompanyCurrency::code()),
 
                 TextColumn::make('line_total')
-                    ->label('Line Total')
+                    ->label(__('Line Total'))
                     ->money(CompanyCurrency::code()),
             ])
             // Every action asks the same question of the invoice these lines belong to, never of a row:

@@ -54,7 +54,7 @@ class ManpowerRelationManager extends RelationManager
             ->columns(2)
             ->components([
                 Select::make('trade_id')
-                    ->label('Trade')
+                    ->label(__('Trade'))
                     ->options(fn (): array => static::trades())
                     ->searchable()
                     ->visible(fn (): bool => modules()->enabled('construction_costing'))
@@ -67,23 +67,23 @@ class ManpowerRelationManager extends RelationManager
                     }),
 
                 TextInput::make('trade_label')
-                    ->label('Trade, in words')
+                    ->label(__('Trade, in words'))
                     ->maxLength(255)
                     ->helperText('Filled in from the trade register where you have one. Type it where you do not.'),
 
                 Select::make('contact_id')
-                    ->label('Supplied by')
+                    ->label(__('Supplied by'))
                     ->options(fn (): array => Contact::query()->orderBy('name')->pluck('name', 'id')->all())
                     ->searchable()
                     ->visible(fn (): bool => modules()->enabled('invoicing')),
 
                 TextInput::make('company_label')
-                    ->label('Company, in words')
+                    ->label(__('Company, in words'))
                     ->maxLength(255),
 
                 TextInput::make('headcount')->numeric()->default(0),
-                TextInput::make('hours')->label('Hours each')->numeric()->default(0),
-                TextInput::make('overtime_hours')->label('Overtime hours each')->numeric()->default(0)
+                TextInput::make('hours')->label(__('Hours each'))->numeric()->default(0),
+                TextInput::make('overtime_hours')->label(__('Overtime hours each'))->numeric()->default(0)
                     ->helperText('Per person, like the hours: the man-hours are the headcount times both.'),
                 TextInput::make('notes')->maxLength(255)->columnSpanFull(),
             ]);
@@ -112,34 +112,34 @@ class ManpowerRelationManager extends RelationManager
             ->modifyQueryUsing(fn (Builder $query): Builder => $query->with(['contact']))
             ->columns([
                 TextColumn::make('trade_label')
-                    ->label('Trade')
+                    ->label(__('Trade'))
                     ->placeholder('—'),
 
                 TextColumn::make('company')
-                    ->label('Supplied by')
+                    ->label(__('Supplied by'))
                     ->getStateUsing(fn (DailyLogManpower $record): ?string => $record->companyName())
                     ->placeholder('own labour'),
 
                 TextColumn::make('headcount')
                     ->alignEnd()
-                    ->summarize(Sum::make()->label('On site')),
+                    ->summarize(Sum::make()->label(__('On site'))),
 
                 // Per person, so a column total of either would add one man's day to the next crew's; the
                 // man-hours column is the one that adds up.
                 TextColumn::make('hours')
-                    ->label('Hours each')
+                    ->label(__('Hours each'))
                     ->alignEnd(),
 
                 TextColumn::make('overtime_hours')
-                    ->label('Overtime each')
+                    ->label(__('Overtime each'))
                     ->alignEnd(),
 
                 TextColumn::make('man_hours')
-                    ->label('Man-hours')
+                    ->label(__('Man-hours'))
                     ->alignEnd()
                     ->getStateUsing(fn (DailyLogManpower $record): float => $record->totalHours())
                     ->summarize(Summarizer::make()
-                        ->label('Man-hours')
+                        ->label(__('Man-hours'))
                         ->using(fn (QueryBuilder $query): float => round((float) $query->sum(DB::raw('headcount * (hours + overtime_hours)')), 2))),
 
                 TextColumn::make('notes')->wrap()->placeholder('—')->toggleable(),

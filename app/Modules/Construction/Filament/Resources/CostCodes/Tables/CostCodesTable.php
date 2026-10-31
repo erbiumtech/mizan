@@ -38,7 +38,7 @@ class CostCodesTable
                     ->wrap(),
 
                 TextColumn::make('cost_type')
-                    ->label('Type')
+                    ->label(__('Type'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         CostCode::TYPE_LABOUR => 'info',
@@ -50,19 +50,19 @@ class CostCodesTable
                     ->sortable(),
 
                 TextColumn::make('unit')
-                    ->label('Per')
+                    ->label(__('Per'))
                     ->placeholder('—')
                     ->toggleable(),
 
                 // Whether anything may be booked against it. A heading with children cannot be, and this is
                 // the column that explains why it is missing from a budget picker.
                 IconColumn::make('is_leaf')
-                    ->label('Bookable')
+                    ->label(__('Bookable'))
                     ->boolean()
                     ->toggleable(),
 
                 TextColumn::make('icms_category')
-                    ->label('ICMS')
+                    ->label(__('ICMS'))
                     ->formatStateUsing(fn (?string $state): string => $state
                         ? $state.' — '.(CostCode::ICMS_CATEGORIES[$state] ?? '?')
                         : '—')
@@ -70,19 +70,19 @@ class CostCodesTable
                     ->toggleable(),
 
                 TextColumn::make('icms_group')
-                    ->label('ICMS group')
+                    ->label(__('ICMS group'))
                     ->placeholder('—')
                     ->toggleable(isToggledHiddenByDefault: true),
 
-                TextColumn::make('masterformat_code')->label('MasterFormat')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('uniformat_code')->label('UniFormat')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('uniclass_code')->label('Uniclass')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('omniclass_code')->label('OmniClass')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('nrm_code')->label('NRM')->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('masterformat_code')->label(__('MasterFormat'))->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('uniformat_code')->label(__('UniFormat'))->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('uniclass_code')->label(__('Uniclass'))->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('omniclass_code')->label(__('OmniClass'))->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('nrm_code')->label(__('NRM'))->placeholder('—')->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 SelectFilter::make('cost_type')
-                    ->label('Cost type')
+                    ->label(__('Cost type'))
                     ->options([
                         CostCode::TYPE_LABOUR => 'Labour',
                         CostCode::TYPE_MATERIAL => 'Material',
@@ -93,7 +93,7 @@ class CostCodesTable
                     ->multiple(),
 
                 TernaryFilter::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->placeholder('Active only')
                     ->trueLabel('Active only')
                     ->falseLabel('Switched off')
@@ -104,7 +104,7 @@ class CostCodesTable
                     ),
 
                 TernaryFilter::make('is_leaf')
-                    ->label('Bookable only')
+                    ->label(__('Bookable only'))
                     ->queries(
                         true: fn (Builder $query) => $query->where('is_leaf', true),
                         false: fn (Builder $query) => $query->where('is_leaf', false),
@@ -114,15 +114,15 @@ class CostCodesTable
                 // The gap-finder. §2.1's promise is that an unmapped code is visible, countable and fixable
                 // rather than a silently short total in somebody's report — this is where it gets fixed.
                 Filter::make('unmapped_icms')
-                    ->label('Not mapped to ICMS')
+                    ->label(__('Not mapped to ICMS'))
                     ->query(fn (Builder $query) => $query->unmappedFor('icms_category')),
 
                 Filter::make('unmapped_masterformat')
-                    ->label('Not mapped to MasterFormat')
+                    ->label(__('Not mapped to MasterFormat'))
                     ->query(fn (Builder $query) => $query->unmappedFor('masterformat_code')),
 
                 Filter::make('unmapped_nrm')
-                    ->label('Not mapped to NRM')
+                    ->label(__('Not mapped to NRM'))
                     ->query(fn (Builder $query) => $query->unmappedFor('nrm_code')),
             ])
             ->defaultSort('code')

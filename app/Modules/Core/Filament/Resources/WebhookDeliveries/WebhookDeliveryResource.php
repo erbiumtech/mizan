@@ -49,8 +49,8 @@ class WebhookDeliveryResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('created_at')->label('Raised')->dateTime('d M Y H:i')->sortable(),
-                TextColumn::make('endpoint.name')->label('Endpoint')->placeholder('deleted'),
+                TextColumn::make('created_at')->label(__('Raised'))->dateTime('d M Y H:i')->sortable(),
+                TextColumn::make('endpoint.name')->label(__('Endpoint'))->placeholder('deleted'),
                 TextColumn::make('event')
                     ->formatStateUsing(fn (string $state): string => Webhooks::options()[$state] ?? $state),
                 TextColumn::make('status')
@@ -69,12 +69,12 @@ class WebhookDeliveryResource extends Resource
             ->filters([
                 SelectFilter::make('event')->options(fn (): array => Webhooks::options()),
                 Filter::make('failed')
-                    ->label('Failed only')
+                    ->label(__('Failed only'))
                     ->query(fn (Builder $query): Builder => $query->failed()),
             ])
             ->recordActions([
                 Action::make('body')
-                    ->label('Body')
+                    ->label(__('Body'))
                     ->icon('heroicon-o-code-bracket')
                     ->color('gray')
                     ->modalHeading('What was sent')
@@ -84,7 +84,7 @@ class WebhookDeliveryResource extends Resource
                         '<pre class="text-xs overflow-x-auto">'.e((string) json_encode($record->payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)).'</pre>'
                     )),
                 Action::make('resend')
-                    ->label('Send again')
+                    ->label(__('Send again'))
                     ->icon('heroicon-o-arrow-path')
                     ->color('gray')
                     ->requiresConfirmation()

@@ -13,7 +13,7 @@ class CurrencyForm
     {
         return $schema->components([
             TextInput::make('code')
-                ->label('Code')
+                ->label(__('Code'))
                 ->required()
                 ->maxLength(3)
                 ->minLength(3)
@@ -35,7 +35,7 @@ class CurrencyForm
                 ->default(2),
 
             Toggle::make('is_active')
-                ->label('In use')
+                ->label(__('In use'))
                 ->default(true)
                 ->helperText('Switch off to stop offering it, without touching anything already posted in it.'),
         ]);

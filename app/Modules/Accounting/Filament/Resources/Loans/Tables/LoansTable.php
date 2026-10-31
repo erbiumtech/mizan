@@ -24,24 +24,24 @@ class LoansTable
                     ->description(fn (Loan $record): ?string => $record->lender),
 
                 TextColumn::make('principal')
-                    ->label('Borrowed')
+                    ->label(__('Borrowed'))
                     ->numeric(decimalPlaces: 2)
                     ->alignEnd()
                     ->sortable(),
 
                 TextColumn::make('annual_rate')
-                    ->label('Rate')
+                    ->label(__('Rate'))
                     ->formatStateUsing(fn ($state): string => rtrim(rtrim(number_format((float) $state, 2), '0'), '.').'%')
                     ->alignEnd(),
 
                 TextColumn::make('term_months')
-                    ->label('Term')
+                    ->label(__('Term'))
                     ->formatStateUsing(fn ($state): string => $state.' mo')
                     ->alignEnd()
                     ->toggleable(),
 
                 TextColumn::make('progress')
-                    ->label('Paid')
+                    ->label(__('Paid'))
                     ->state(fn (Loan $record): string => $record->paidCount().' of '.$record->term_months)
                     ->badge()
                     ->color(fn (Loan $record): string => match (true) {
@@ -51,24 +51,24 @@ class LoansTable
                     }),
 
                 TextColumn::make('outstanding')
-                    ->label('Still owed')
+                    ->label(__('Still owed'))
                     ->state(fn (Loan $record): float => $record->scheduledOutstanding())
                     ->numeric(decimalPlaces: 2)
                     ->alignEnd()
                     ->tooltip('What the agreement says is left after the instalments recorded so far. Reconcile the loan account against this.'),
 
                 TextColumn::make('next')
-                    ->label('Next due')
+                    ->label(__('Next due'))
                     ->state(fn (Loan $record): string => $record->nextDue()?->due_on?->format('d M Y') ?? 'finished')
                     ->color(fn (string $state): string => $state === 'finished' ? 'success' : 'gray'),
 
                 IconColumn::make('is_active')
-                    ->label('Active')
+                    ->label(__('Active'))
                     ->boolean()
                     ->toggleable(),
             ])
             ->filters([
-                TernaryFilter::make('is_active')->label('Active'),
+                TernaryFilter::make('is_active')->label(__('Active')),
             ])
             ->recordActions([
                 EditAction::make(),

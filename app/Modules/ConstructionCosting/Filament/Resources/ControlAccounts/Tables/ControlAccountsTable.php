@@ -18,24 +18,24 @@ class ControlAccountsTable
             ->defaultSort('kind')
             ->columns([
                 TextColumn::make('account.code')
-                    ->label('Account')
+                    ->label(__('Account'))
                     ->sortable()
                     ->searchable(),
 
                 TextColumn::make('account.name')
-                    ->label('Name')
+                    ->label(__('Name'))
                     ->searchable()
                     ->wrap(),
 
                 TextColumn::make('kind')
-                    ->label('Kind')
+                    ->label(__('Kind'))
                     ->badge()
                     ->formatStateUsing(fn (string $state): string => ControlAccount::KINDS[$state] ?? $state),
 
                 // Named rather than shown as a slug: "Labour burden absorbed" is what somebody setting this up is
                 // looking for, and `labour_burden` is what the code calls it.
                 TextColumn::make('purpose')
-                    ->label('Posting rule')
+                    ->label(__('Posting rule'))
                     ->formatStateUsing(fn (?string $state): string => $state === null
                         ? '—'
                         : (ControlAccount::PURPOSES[$state] ?? $state))
@@ -44,12 +44,12 @@ class ControlAccountsTable
                         : null),
 
                 TextColumn::make('cost_type')
-                    ->label('Cost type')
+                    ->label(__('Cost type'))
                     ->badge()
                     ->placeholder('Any'),
 
                 IconColumn::make('is_active')
-                    ->label('In use')
+                    ->label(__('In use'))
                     ->boolean(),
             ])
             ->filters([

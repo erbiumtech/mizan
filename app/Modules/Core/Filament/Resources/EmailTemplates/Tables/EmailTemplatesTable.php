@@ -24,7 +24,7 @@ class EmailTemplatesTable
         return $table
             ->columns([
                 TextColumn::make('key')
-                    ->label('Email')
+                    ->label(__('Email'))
                     ->formatStateUsing(fn (string $state): string => ucfirst(str_replace('_', ' ', $state)))
                     ->searchable()
                     ->sortable(),
@@ -34,7 +34,7 @@ class EmailTemplatesTable
                 // Which parts are overridden, so it is obvious at a glance that a
                 // template changing only the subject leaves the rest alone.
                 TextColumn::make('overrides')
-                    ->label('Overrides')
+                    ->label(__('Overrides'))
                     ->state(fn (EmailTemplate $record): string => collect([
                         'subject' => $record->subject,
                         'greeting' => $record->greeting,
@@ -42,7 +42,7 @@ class EmailTemplatesTable
                         'closing' => $record->closing,
                     ])->filter()->keys()->implode(', ') ?: 'nothing'),
 
-                IconColumn::make('is_active')->label('In use')->boolean(),
+                IconColumn::make('is_active')->label(__('In use'))->boolean(),
             ])
             ->defaultSort('key')
             ->recordActions([
@@ -74,7 +74,7 @@ class EmailTemplatesTable
                     }),
 
                 Action::make('test')
-                    ->label('Send a test')
+                    ->label(__('Send a test'))
                     ->icon('heroicon-o-paper-airplane')
                     ->color('gray')
                     ->requiresConfirmation()

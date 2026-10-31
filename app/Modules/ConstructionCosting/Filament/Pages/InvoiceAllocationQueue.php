@@ -102,18 +102,18 @@ class InvoiceAllocationQueue extends Page
     public function allocateAction(): Action
     {
         return Action::make('allocate')
-            ->label('Allocate')
+            ->label(__('Allocate'))
             ->icon('heroicon-o-scissors')
             ->modalHeading('Allocate this invoice to jobs and cost codes')
             ->modalDescription('Add a row per job and code. The invoice can be split as finely as it needs to be — that is why this is not a single job field on the invoice.')
             ->schema([
                 Repeater::make('rows')
-                    ->label('Allocations')
+                    ->label(__('Allocations'))
                     ->addActionLabel('Add another job or code')
                     ->minItems(1)
                     ->schema([
                         Select::make('job_id')
-                            ->label('Job')
+                            ->label(__('Job'))
                             ->options(fn (): array => Job::query()->live()->orderBy('code')->get()
                                 ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                                 ->all())
@@ -121,7 +121,7 @@ class InvoiceAllocationQueue extends Page
                             ->required(),
 
                         Select::make('cost_code_id')
-                            ->label('Cost code')
+                            ->label(__('Cost code'))
                             ->options(fn (): array => CostCode::query()->where('is_leaf', true)->where('is_active', true)
                                 ->orderBy('code')->get()
                                 ->mapWithKeys(fn (CostCode $code): array => [$code->getKey() => "{$code->code} — {$code->name}"])
@@ -130,7 +130,7 @@ class InvoiceAllocationQueue extends Page
                             ->required(),
 
                         Select::make('commitment_line_id')
-                            ->label('Against order line')
+                            ->label(__('Against order line'))
                             ->options(fn (): array => CommitmentLine::query()
                                 ->committing()
                                 ->with('commitment')
@@ -185,7 +185,7 @@ class InvoiceAllocationQueue extends Page
     public function withdrawAction(): Action
     {
         return Action::make('withdraw')
-            ->label('Withdraw')
+            ->label(__('Withdraw'))
             ->icon('heroicon-o-arrow-uturn-left')
             ->color('danger')
             ->requiresConfirmation()

@@ -26,16 +26,16 @@ class ExpenseClaimsTable
     {
         return $table
             ->columns([
-                TextColumn::make('claimed_on')->label('Spent')->date('d M Y')->sortable(),
+                TextColumn::make('claimed_on')->label(__('Spent'))->date('d M Y')->sortable(),
 
                 TextColumn::make('employee.display_label')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->searchable(query: fn ($query, string $search) => LandlordUserColumn::search($query, $search))
                     ->sortable(),
 
                 TextColumn::make('description')->searchable()->wrap(),
 
-                TextColumn::make('transactionType.name')->label('Category')->placeholder('—')->toggleable(),
+                TextColumn::make('transactionType.name')->label(__('Category'))->placeholder('—')->toggleable(),
 
                 TextColumn::make('amount')->money(CompanyCurrency::code())->sortable()->alignEnd(),
 
@@ -54,7 +54,7 @@ class ExpenseClaimsTable
                     ->sortable(),
 
                 TextColumn::make('payslip.month')
-                    ->label('Reimbursed on')
+                    ->label(__('Reimbursed on'))
                     // A claim paid through the bank has no payslip; the payment it went out on stands in.
                     ->state(fn (ExpenseClaim $record): ?string => $record->payslip?->month
                         ?? ($record->payment_id ? 'Bank transfer' : null))
@@ -77,14 +77,14 @@ class ExpenseClaimsTable
             ])
             ->recordActions([
                 Action::make('receipt')
-                    ->label('Receipt')
+                    ->label(__('Receipt'))
                     ->icon('heroicon-o-paper-clip')
                     ->color('gray')
                     ->visible(fn (ExpenseClaim $record): bool => (bool) $record->receipt_path)
                     ->url(fn (ExpenseClaim $record): string => Storage::disk('public')->url($record->receipt_path), shouldOpenInNewTab: true),
 
                 Action::make('submit')
-                    ->label('Submit')
+                    ->label(__('Submit'))
                     ->icon('heroicon-o-paper-airplane')
                     ->color('primary')
                     ->requiresConfirmation()
@@ -102,7 +102,7 @@ class ExpenseClaimsTable
                         Notification::make()->success()->title('Submitted.')->send();
                     }),
                 Action::make('approve')
-                    ->label('Approve')
+                    ->label(__('Approve'))
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
@@ -127,13 +127,13 @@ class ExpenseClaimsTable
                     }),
 
                 Action::make('refuse')
-                    ->label('Refuse')
+                    ->label(__('Refuse'))
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->visible(fn (ExpenseClaim $record): bool => auth()->user()?->can('decide', $record) ?? false)
                     ->schema([
                         Textarea::make('reason')
-                            ->label('Reason')
+                            ->label(__('Reason'))
                             ->required()
                             ->rows(3)
                             ->helperText('Sent to the person who claimed. Being told no without being told why is what this step exists to avoid.'),
@@ -156,7 +156,7 @@ class ExpenseClaimsTable
                  * leaves the payroll pool at once and is settled when the payment is approved or released.
                  */
                 Action::make('payThroughBank')
-                    ->label('Pay through the bank')
+                    ->label(__('Pay through the bank'))
                     ->icon('heroicon-o-building-library')
                     ->color('gray')
                     ->visible(fn (ExpenseClaim $record): bool => $record->isApproved()
@@ -170,7 +170,7 @@ class ExpenseClaimsTable
                     ->modalSubmitActionLabel('Raise the payment')
                     ->schema([
                         Select::make('company_bank_account_id')
-                            ->label('Pay from')
+                            ->label(__('Pay from'))
                             ->options(fn (): array => CompanyBankAccount::query()
                                 ->where('is_active', true)
                                 ->orderByDesc('is_default')
@@ -183,7 +183,7 @@ class ExpenseClaimsTable
                             ->required(),
 
                         DatePicker::make('value_date')
-                            ->label('Value date')
+                            ->label(__('Value date'))
                             ->default(now()->toDateString())
                             ->required(),
                     ])

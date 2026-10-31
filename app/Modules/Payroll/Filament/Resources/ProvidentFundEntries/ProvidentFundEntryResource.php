@@ -47,7 +47,7 @@ class ProvidentFundEntryResource extends Resource
     {
         return $schema->components([
             Select::make('employee_id')
-                ->label('Employee')
+                ->label(__('Employee'))
                 ->options(fn (): array => Employee::query()->with('user')->orderBy('employee_id')->get()->mapWithKeys(fn (Employee $e): array => [$e->getKey() => $e->display_label])->all())
                 ->searchable()
                 ->required(),
@@ -67,20 +67,20 @@ class ProvidentFundEntryResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('entry_date')->date('d M Y')->sortable(),
-                TextColumn::make('employee.display_label')->label('Employee'),
+                TextColumn::make('employee.display_label')->label(__('Employee')),
                 TextColumn::make('kind')->badge()->formatStateUsing(fn (string $state): string => ProvidentFundEntry::KINDS[$state] ?? $state),
-                TextColumn::make('employee_amount')->label('Employee')->numeric(2)->alignRight(),
-                TextColumn::make('employer_amount')->label('Employer')->numeric(2)->alignRight(),
-                TextColumn::make('net')->label('Movement')->state(fn (ProvidentFundEntry $r): string => number_format($r->net(), 2))->alignRight(),
+                TextColumn::make('employee_amount')->label(__('Employee'))->numeric(2)->alignRight(),
+                TextColumn::make('employer_amount')->label(__('Employer'))->numeric(2)->alignRight(),
+                TextColumn::make('net')->label(__('Movement'))->state(fn (ProvidentFundEntry $r): string => number_format($r->net(), 2))->alignRight(),
                 TextColumn::make('reference')->limit(40),
                 TextColumn::make('balance')
-                    ->label('Balance now')
+                    ->label(__('Balance now'))
                     ->state(fn (ProvidentFundEntry $r): string => number_format(app(ProvidentFund::class)->balanceFor((int) $r->employee_id), 2))
                     ->alignRight()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('employee_id')->label('Employee')->relationship('employee', 'employee_id'),
+                SelectFilter::make('employee_id')->label(__('Employee'))->relationship('employee', 'employee_id'),
                 SelectFilter::make('kind')->options(ProvidentFundEntry::KINDS),
             ])
             ->defaultSort('id', 'desc')

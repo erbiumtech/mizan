@@ -39,12 +39,12 @@ class MessageLogResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('sent_at')->label('Sent')->dateTime('d M Y H:i')->sortable(),
+                TextColumn::make('sent_at')->label(__('Sent'))->dateTime('d M Y H:i')->sortable(),
                 TextColumn::make('channel')->badge()
                     ->color(fn (string $state): string => $state === MessageLog::CHANNEL_WHATSAPP ? 'success' : 'gray')
                     ->formatStateUsing(fn (string $state): string => $state === MessageLog::CHANNEL_WHATSAPP ? 'WhatsApp' : 'Email'),
                 TextColumn::make('recipient')->searchable()->wrap(),
-                TextColumn::make('purpose')->label('What')->placeholder('—')->searchable(),
+                TextColumn::make('purpose')->label(__('What'))->placeholder('—')->searchable(),
                 TextColumn::make('subject')->limit(60)->placeholder('—')->wrap()->toggleable(),
                 TextColumn::make('status')->badge()
                     ->color(fn (string $state): string => $state === MessageLog::STATUS_FAILED ? 'danger' : 'success')
@@ -55,7 +55,7 @@ class MessageLogResource extends Resource
             ->filters([
                 SelectFilter::make('channel')->options(['mail' => 'Email', 'whatsapp' => 'WhatsApp']),
                 Filter::make('failed')
-                    ->label('Failed only')
+                    ->label(__('Failed only'))
                     ->query(fn (Builder $query): Builder => $query->failed()),
             ])
             ->recordActions([])

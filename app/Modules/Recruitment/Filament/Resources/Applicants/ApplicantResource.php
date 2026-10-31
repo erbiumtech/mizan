@@ -48,15 +48,15 @@ class ApplicantResource extends Resource
             TextInput::make('email')->email()->maxLength(255)
                 ->helperText('Search for this before adding somebody — they may have applied before.'),
             TextInput::make('phone')->tel()->maxLength(50),
-            TextInput::make('cnic')->label('CNIC')->maxLength(50),
+            TextInput::make('cnic')->label(__('CNIC'))->maxLength(50),
             TextInput::make('source')->maxLength(255)->placeholder('Referral'),
             TextInput::make('current_employer')->maxLength(255),
-            TextInput::make('notice_period_days')->label('Notice period (days)')->numeric(),
+            TextInput::make('notice_period_days')->label(__('Notice period (days)'))->numeric(),
             TextInput::make('expected_salary')->numeric(),
             TextInput::make('linkedin')->url()->maxLength(255),
 
             FileUpload::make('resume_path')
-                ->label('CV')
+                ->label(__('CV'))
                 ->disk('public')
                 ->directory('applicant-resumes')
                 ->acceptedFileTypes(['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
@@ -84,11 +84,11 @@ class ApplicantResource extends Resource
                 TextColumn::make('source')->badge()->color('gray')->placeholder('—')->toggleable(),
 
                 TextColumn::make('applications_count')
-                    ->label('Applications')
+                    ->label(__('Applications'))
                     ->counts('applications')
                     ->alignEnd(),
 
-                TextColumn::make('created_at')->label('Added')->date('d M Y')->sortable()->toggleable(),
+                TextColumn::make('created_at')->label(__('Added'))->date('d M Y')->sortable()->toggleable(),
             ])
             ->defaultSort('created_at', 'desc')
             ->recordActions([\Filament\Actions\EditAction::make()]);

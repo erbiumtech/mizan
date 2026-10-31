@@ -14,7 +14,7 @@ class BankStatementForm
         return $schema
             ->components([
                 Select::make('account_id')
-                    ->label('Bank Account')
+                    ->label(__('Bank Account'))
                     ->relationship(
                         'account',
                         'name',
@@ -25,16 +25,16 @@ class BankStatementForm
                     ->required(),
 
                 DatePicker::make('statement_date')
-                    ->label('Statement Date')
+                    ->label(__('Statement Date'))
                     ->required(),
 
                 TextInput::make('opening_balance')
-                    ->label('Opening Balance')
+                    ->label(__('Opening Balance'))
                     ->numeric()
                     ->default(0),
 
                 TextInput::make('closing_balance')
-                    ->label('Closing Balance')
+                    ->label(__('Closing Balance'))
                     ->numeric()
                     ->default(0),
 

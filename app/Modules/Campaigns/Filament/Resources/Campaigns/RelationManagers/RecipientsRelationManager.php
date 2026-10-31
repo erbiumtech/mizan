@@ -38,8 +38,8 @@ class RecipientsRelationManager extends RelationManager
         return $table
             ->modifyQueryUsing(fn ($query) => $query->with(['contact', 'lead']))
             ->columns([
-                TextColumn::make('recipient')->label('Recipient')->state(fn (CampaignSend $record): string => $record->recipientLabel()),
-                TextColumn::make('to')->label('To')->searchable(),
+                TextColumn::make('recipient')->label(__('Recipient'))->state(fn (CampaignSend $record): string => $record->recipientLabel()),
+                TextColumn::make('to')->label(__('To'))->searchable(),
                 TextColumn::make('status')->badge()
                     ->formatStateUsing(fn (string $state): string => self::STATUSES[$state] ?? $state)
                     ->color(fn (string $state): string => match ($state) {
@@ -49,7 +49,7 @@ class RecipientsRelationManager extends RelationManager
                         default => 'warning',
                     })
                     ->description(fn (CampaignSend $record): ?string => $record->failed_reason),
-                TextColumn::make('sent_at')->label('Sent')->dateTime('d M Y H:i')->placeholder('—')->sortable(),
+                TextColumn::make('sent_at')->label(__('Sent'))->dateTime('d M Y H:i')->placeholder('—')->sortable(),
             ])
             ->filters([SelectFilter::make('status')->options(self::STATUSES)])
             ->defaultSort('id');

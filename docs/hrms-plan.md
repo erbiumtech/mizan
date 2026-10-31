@@ -165,7 +165,7 @@ guesses lunar dates would be wrong every year in a way nobody notices until
 payroll. `is_recurring` seeds next year's list as a draft for someone to confirm.
 Asserted as built — a recurring 2026 Eid produces no 2027 row on its own.
 
-**Open, and it leans on this section: `leave_days` records no calendar version.**
+**Decided — accepted and stated, in the `leave_days` migration and §4.1 (header note added 2026-10-30): `leave_days` records no calendar version.** The paragraph is kept as the reasoning behind that decision.
 §4.1 promises days are "recomputed from the calendar when the request is
 approved, and never after — a holiday added retroactively must not silently
 change a settled month". The never-after half is enforceable, but nothing records
@@ -241,9 +241,9 @@ say, all of which turned out to be load-bearing:
   moves the columns on the day it does. Without that command, future-dating
   records a row that never takes effect.
 
-Not built: any UI for the history itself. The rows accumulate from the ordinary
-employee form, so the natural next step is a read-only relation manager on
-`ViewEmployee`, not a resource — job history is written by a change, never typed.
+Built since (noted 2026-10-30): the history has a read-only relation manager on
+`ViewEmployee` (`JobHistoryRelationManager`), not a resource — job history is written by a
+change, never typed, and the rows accumulate from the ordinary employee form.
 
 The `employees` columns stay exactly as they are and become the *current* row —
 denormalised on purpose, because every existing query reads them and none of them

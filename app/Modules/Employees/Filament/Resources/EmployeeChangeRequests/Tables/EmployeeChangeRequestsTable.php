@@ -20,35 +20,35 @@ class EmployeeChangeRequestsTable
             ->modifyQueryUsing(fn ($query) => $query->with('employee.user'))
             ->columns([
                 TextColumn::make('id')
-                    ->label('ID')
+                    ->label(__('ID'))
                     ->sortable(),
 
                 TextColumn::make('employee.employee_id')
-                    ->label('Employee')
+                    ->label(__('Employee'))
                     ->formatStateUsing(fn ($state, $record) => $record->employee?->display_label ?? $state)
                     ->sortable(),
 
                 TextColumn::make('target_type')
-                    ->label('Changes To')
+                    ->label(__('Changes To'))
                     ->badge()
                     ->color(fn ($record): string => $record->targetsSetting() ? 'warning' : 'gray')
                     ->formatStateUsing(fn ($state, $record): string => $record->targetLabel())
                     ->sortable(),
 
                 TextColumn::make('requester.name')
-                    ->label('Requested By'),
+                    ->label(__('Requested By')),
 
                 // The whole request as one "field: value" line. Formatting the array state instead hands
                 // each value over on its own, without its field — and an address arrived as its parts.
                 TextColumn::make('requested_changes')
-                    ->label('Requested Changes')
+                    ->label(__('Requested Changes'))
                     ->state(fn (EmployeeChangeRequest $record): string => collect($record->requested_changes ?? [])
                         ->map(fn ($v, $k) => $k.': '.EmployeeChangeRequest::displayValue($v))
                         ->implode('; '))
                     ->wrap(),
 
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'pending' => 'warning',
@@ -59,20 +59,20 @@ class EmployeeChangeRequestsTable
                     ->sortable(),
 
                 TextColumn::make('reviewer.name')
-                    ->label('Reviewed By')
+                    ->label(__('Reviewed By'))
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('reviewed_at')
-                    ->label('Reviewed At')
+                    ->label(__('Reviewed At'))
                     ->dateTime()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('rejection_reason')
-                    ->label('Rejection Reason')
+                    ->label(__('Rejection Reason'))
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('created_at')
-                    ->label('Requested At')
+                    ->label(__('Requested At'))
                     ->dateTime()
                     ->sortable(),
             ])
@@ -81,7 +81,7 @@ class EmployeeChangeRequestsTable
             ])
             ->recordActions([
                 Action::make('viewChanges')
-                    ->label('View Changes')
+                    ->label(__('View Changes'))
                     ->icon('heroicon-o-eye')
                     ->color('gray')
                     ->modalHeading('Requested Changes')
@@ -90,7 +90,7 @@ class EmployeeChangeRequestsTable
                     ->modalCancelActionLabel('Close'),
 
                 Action::make('approve')
-                    ->label('Approve')
+                    ->label(__('Approve'))
                     ->icon('heroicon-o-check')
                     ->color('success')
                     ->requiresConfirmation()
@@ -98,19 +98,19 @@ class EmployeeChangeRequestsTable
                     ->action(fn (EmployeeChangeRequest $record) => self::run(fn () => $record->approve(auth()->user()), 'Approved 1 change request(s).')),
 
                 Action::make('reject')
-                    ->label('Reject')
+                    ->label(__('Reject'))
                     ->icon('heroicon-o-x-mark')
                     ->color('danger')
                     ->visible(fn (EmployeeChangeRequest $record): bool => (auth()->user()?->can('EmployeeChangeApprove') ?? false) && $record->isPending())
                     ->schema([
-                        TextInput::make('reason')->label('Reason')->nullable(),
+                        TextInput::make('reason')->label(__('Reason'))->nullable(),
                     ])
                     ->action(fn (array $data, EmployeeChangeRequest $record) => self::run(fn () => $record->reject(auth()->user(), $data['reason'] ?? null), 'Rejected 1 change request(s).')),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     BulkAction::make('approveBulk')
-                        ->label('Approve')
+                        ->label(__('Approve'))
                         ->icon('heroicon-o-check')
                         ->color('success')
                         ->requiresConfirmation()
@@ -118,12 +118,12 @@ class EmployeeChangeRequestsTable
                         ->action(fn (Collection $records) => self::runBulk($records, fn (EmployeeChangeRequest $r) => $r->approve(auth()->user()), 'Approved')),
 
                     BulkAction::make('rejectBulk')
-                        ->label('Reject')
+                        ->label(__('Reject'))
                         ->icon('heroicon-o-x-mark')
                         ->color('danger')
                         ->visible(fn (): bool => auth()->user()?->can('EmployeeChangeApprove') ?? false)
                         ->schema([
-                            TextInput::make('reason')->label('Reason')->nullable(),
+                            TextInput::make('reason')->label(__('Reason'))->nullable(),
                         ])
                         ->action(fn (array $data, Collection $records) => self::runBulk($records, fn (EmployeeChangeRequest $r) => $r->reject(auth()->user(), $data['reason'] ?? null), 'Rejected')),
                 ]),

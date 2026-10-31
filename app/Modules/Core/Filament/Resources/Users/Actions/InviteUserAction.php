@@ -24,7 +24,7 @@ class InviteUserAction
     public static function make(): Action
     {
         return Action::make('invite')
-            ->label('Invite by email')
+            ->label(__('Invite by email'))
             ->icon('heroicon-o-envelope')
             ->color('gray')
             ->visible(fn (): bool => Filament::getTenant() instanceof Company
@@ -37,7 +37,7 @@ class InviteUserAction
                 TextInput::make('name')->required()->maxLength(255),
                 TextInput::make('email')->email()->required()->maxLength(255),
                 Select::make('roles')
-                    ->label('Roles here')
+                    ->label(__('Roles here'))
                     ->multiple()
                     ->required()
                     ->options(fn (): array => Filament::getTenant()?->roles()->orderBy('name')->pluck('name', 'name')->all() ?? [])

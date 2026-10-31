@@ -166,14 +166,14 @@ class LifecycleServiceProvider extends ServiceProvider
     private function startChecklistAction(): \Filament\Actions\Action
     {
         return \Filament\Actions\Action::make('startChecklist')
-            ->label('Start checklist')
+            ->label(__('Start checklist'))
             ->icon('heroicon-o-clipboard-document-check')
             ->color('gray')
             ->visible(fn (): bool => modules()->enabled('lifecycle') && (auth()->user()?->can('create', EmployeeChecklist::class) ?? false))
             ->modalDescription('Starts the template\'s items for this person, each due its number of days from the joining date (onboarding) or the last working day (exit).')
             ->schema([
                 \Filament\Forms\Components\Select::make('template_id')
-                    ->label('Checklist')
+                    ->label(__('Checklist'))
                     ->options(fn (): array => ChecklistTemplate::query()->active()->orderBy('kind')->orderBy('name')->get()
                         ->mapWithKeys(fn (ChecklistTemplate $t): array => [$t->getKey() => $t->name.' ('.ucfirst($t->kind).')'])->all())
                     ->default(fn (): ?int => app(ChecklistService::class)->defaultTemplate(ChecklistTemplate::KIND_ONBOARDING)?->getKey())

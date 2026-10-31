@@ -33,17 +33,17 @@ class DailyLogsTable
         return $table
             ->columns([
                 TextColumn::make('log_date')
-                    ->label('Date')
+                    ->label(__('Date'))
                     ->date('D d M Y')
                     ->sortable(),
 
                 TextColumn::make('job.code')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->sortable()
                     ->toggleable(),
 
                 TextColumn::make('working_conditions')
-                    ->label('Conditions')
+                    ->label(__('Conditions'))
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         DailyLog::CONDITION_STOPPED => 'danger',
@@ -54,7 +54,7 @@ class DailyLogsTable
                     ->sortable(),
 
                 TextColumn::make('weather_hours_lost')
-                    ->label('Weather hrs')
+                    ->label(__('Weather hrs'))
                     ->alignEnd()
                     ->sortable()
                     ->toggleable(),
@@ -62,7 +62,7 @@ class DailyLogsTable
                 // §17's denominator. No summariser: it is a fold over the children, and `Sum` needs a real column —
                 // the mistake Phase 6c and 8b both made, recorded in the plan.
                 TextColumn::make('man_hours')
-                    ->label('Man-hours')
+                    ->label(__('Man-hours'))
                     ->alignEnd()
                     ->getStateUsing(fn (DailyLog $record): float => $record->totalManHours())
                     ->description(fn (DailyLog $record): ?string => $record->totalHeadcount() > 0
@@ -70,7 +70,7 @@ class DailyLogsTable
                         : null),
 
                 TextColumn::make('standing_plant')
-                    ->label('Plant standing')
+                    ->label(__('Plant standing'))
                     ->alignEnd()
                     ->getStateUsing(fn (DailyLog $record): float => $record->standingPlantHours())
                     ->toggleable(),
@@ -78,12 +78,12 @@ class DailyLogsTable
                 // Counted in the query rather than folded over a loaded relation: a register page of thirty days would
                 // otherwise load every docket and every photograph to print two numbers.
                 TextColumn::make('deliveries_count')
-                    ->label('Deliveries')
+                    ->label(__('Deliveries'))
                     ->alignEnd()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('photos_count')
-                    ->label('Photos')
+                    ->label(__('Photos'))
                     ->alignEnd()
                     ->toggleable(isToggledHiddenByDefault: true),
 
@@ -92,14 +92,14 @@ class DailyLogsTable
                  * wants confirmed, and a blank cell reads as "not checked".
                  */
                 TextColumn::make('unnotified')
-                    ->label('Unnotified')
+                    ->label(__('Unnotified'))
                     ->badge()
                     ->getStateUsing(fn (DailyLog $record): string => (string) $record->unnotifiedEvents()->count())
                     ->color(fn (string $state): string => $state === '0' ? 'gray' : 'danger')
                     ->tooltip('Events that cost time, are not the contractor\'s own risk, and have no delay event behind them.'),
 
                 TextColumn::make('approved_at')
-                    ->label('Locked')
+                    ->label(__('Locked'))
                     ->badge()
                     ->getStateUsing(fn (DailyLog $record): string => $record->isApproved()
                         ? 'Approved'
@@ -113,21 +113,21 @@ class DailyLogsTable
             ])
             ->filters([
                 SelectFilter::make('job_id')
-                    ->label('Job')
+                    ->label(__('Job'))
                     ->relationship('job', 'code')
                     ->searchable(),
 
                 SelectFilter::make('working_conditions')
-                    ->label('Conditions')
+                    ->label(__('Conditions'))
                     ->options(DailyLog::CONDITIONS),
 
                 Filter::make('open')
-                    ->label('Not yet signed off')
+                    ->label(__('Not yet signed off'))
                     ->query(fn (Builder $query) => $query->open())
                     ->toggle(),
 
                 Filter::make('time_lost')
-                    ->label('Lost time')
+                    ->label(__('Lost time'))
                     ->query(fn (Builder $query) => $query->where('weather_hours_lost', '>', 0)
                         ->orWhereNot('working_conditions', DailyLog::CONDITION_WORKABLE))
                     ->toggle(),
@@ -138,7 +138,7 @@ class DailyLogsTable
                     ->visible(fn (DailyLog $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('approve')
-                    ->label('Sign off')
+                    ->label(__('Sign off'))
                     ->icon('heroicon-o-lock-closed')
                     ->color('success')
                     ->requiresConfirmation()
@@ -152,14 +152,14 @@ class DailyLogsTable
                     )),
 
                 Action::make('reopen')
-                    ->label('Reopen')
+                    ->label(__('Reopen'))
                     ->icon('heroicon-o-lock-open')
                     ->color('warning')
                     ->modalHeading('Reopen a signed day')
                     ->modalDescription('The approval is cleared, so the day has to be signed off again afterwards rather than carrying an approval that predates the change. The reason stays on the record — a reopened diary is one somebody will ask about.')
                     ->schema([
                         Textarea::make('reason')
-                            ->label('What was wrong with it')
+                            ->label(__('What was wrong with it'))
                             ->rows(2)
                             ->required(),
                     ])

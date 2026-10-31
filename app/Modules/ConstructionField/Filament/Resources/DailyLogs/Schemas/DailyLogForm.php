@@ -28,7 +28,7 @@ class DailyLogForm
                     ->columns(2)
                     ->schema([
                         Select::make('job_id')
-                            ->label('Job')
+                            ->label(__('Job'))
                             ->options(fn (): array => Job::query()->orderBy('code')->get()
                                 ->mapWithKeys(fn (Job $job): array => [$job->getKey() => "{$job->code} — {$job->name}"])
                                 ->all())
@@ -38,7 +38,7 @@ class DailyLogForm
                             ->dehydrated(),
 
                         DatePicker::make('log_date')
-                            ->label('Date')
+                            ->label(__('Date'))
                             ->native(false)
                             ->required()
                             ->default(now())
@@ -52,21 +52,21 @@ class DailyLogForm
                     ->description('The two fields below the weather are what a weather-based extension of time is actually made of. A paragraph about rain cannot be assessed; four hours against a stopped day can.')
                     ->columns(3)
                     ->schema([
-                        TextInput::make('weather_am')->label('Weather, morning')->maxLength(255),
-                        TextInput::make('weather_pm')->label('Weather, afternoon')->maxLength(255),
-                        TextInput::make('temperature_c')->label('Temperature °C')->numeric(),
-                        TextInput::make('rainfall_mm')->label('Rainfall mm')->numeric(),
-                        TextInput::make('wind_kph')->label('Wind kph')->numeric(),
+                        TextInput::make('weather_am')->label(__('Weather, morning'))->maxLength(255),
+                        TextInput::make('weather_pm')->label(__('Weather, afternoon'))->maxLength(255),
+                        TextInput::make('temperature_c')->label(__('Temperature °C'))->numeric(),
+                        TextInput::make('rainfall_mm')->label(__('Rainfall mm'))->numeric(),
+                        TextInput::make('wind_kph')->label(__('Wind kph'))->numeric(),
 
                         Select::make('working_conditions')
-                            ->label('Conditions')
+                            ->label(__('Conditions'))
                             ->options(DailyLog::CONDITIONS)
                             ->default(DailyLog::CONDITION_WORKABLE)
                             ->selectablePlaceholder(false)
                             ->required(),
 
                         TextInput::make('weather_hours_lost')
-                            ->label('Hours lost to weather')
+                            ->label(__('Hours lost to weather'))
                             ->numeric()
                             ->default(0)
                             ->required()
@@ -75,9 +75,9 @@ class DailyLogForm
 
                 Section::make('What happened')
                     ->schema([
-                        Textarea::make('work_summary')->label('Work done')->rows(3),
-                        Textarea::make('delays')->label('Delays')->rows(2),
-                        Textarea::make('instructions_received')->label('Instructions received')->rows(2)
+                        Textarea::make('work_summary')->label(__('Work done'))->rows(3),
+                        Textarea::make('delays')->label(__('Delays'))->rows(2),
+                        Textarea::make('instructions_received')->label(__('Instructions received'))->rows(2)
                             ->helperText('A verbal instruction written down on the day is worth more than one remembered six months later.'),
                         Textarea::make('visitors')->rows(2),
                     ]),
@@ -86,9 +86,9 @@ class DailyLogForm
                     ->description('Safety, quality and environment. Written here on the day; an NCR or an incident report is a separate document when one is needed.')
                     ->columns(3)
                     ->schema([
-                        Textarea::make('safety_observations')->label('Safety')->rows(2),
-                        Textarea::make('quality_observations')->label('Quality')->rows(2),
-                        Textarea::make('environmental_observations')->label('Environment')->rows(2),
+                        Textarea::make('safety_observations')->label(__('Safety'))->rows(2),
+                        Textarea::make('quality_observations')->label(__('Quality'))->rows(2),
+                        Textarea::make('environmental_observations')->label(__('Environment'))->rows(2),
                     ]),
             ]);
     }

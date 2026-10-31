@@ -49,6 +49,36 @@ Points or minutes, both optional, and your company uses one or the other. Time l
 item is an ordinary timesheet entry, so it reaches payroll inputs and client invoices the same way
 every other hour does.
 
+## Logging time
+
+**Log time** on an item takes minutes, a date, a note and whether it bills, and writes one
+timesheet entry — nothing else. The item's *Time* section then shows what has been logged against
+its estimate, what is left (or how far over it is), and what those hours cost at the payroll rate
+for each person's month. Hours nobody's payroll can price are counted and said to be uncosted rather
+than priced at a guess.
+
+Time logged from an item is yours: it goes on your own timesheet. Logging somebody else's time is
+done on the timesheet, where the item picker is.
+
+A row that was synced in from another tool — Clockify, or a commit message — is read-only on the
+timesheet and says where to change it. The next sync would overwrite a hand edit anyway.
+
+This needs the Timesheets module; without it the button and the section are absent.
+
+## Three assists, when the company has an AI key
+
+- **Draft from a sentence**, on the new-item form: one sentence about what is wrong or wanted,
+  and the form is filled in — title, a description in the house template, type, priority, and two
+  suggested labels. It is a draft: check it, change it, and nothing is saved until you save it.
+- **Summarise thread**, on an item with more than ten comments: three lines at the top of the
+  item, marked as generated and dated, regenerated whenever you ask.
+- **Suggest estimate**: a number drawn from three finished items on the project with similar
+  titles, shown with the three it came from. It is never written; type it into the field if it
+  looks right.
+
+None of the three acts on its own, and all three are absent when the server has no key. Automatic
+assignment, prioritisation and sprint planning are deliberately not offered.
+
 ## Roles and permissions
 
 Everybody who works the board may view, create, update and move items — filing a bug should never

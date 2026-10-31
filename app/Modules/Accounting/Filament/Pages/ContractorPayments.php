@@ -56,7 +56,7 @@ class ContractorPayments extends Page
         return $schema
             ->components([
                 Select::make('fiscal_year_id')
-                    ->label('Fiscal year')
+                    ->label(__('Fiscal year'))
                     ->options(fn (): array => FiscalYear::orderByDesc('start_date')->pluck('name', 'id')->all())
                     ->selectablePlaceholder(false)
                     ->native(false)

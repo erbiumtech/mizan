@@ -28,7 +28,7 @@ class ComplianceRequirementForm
             ->columns(2)
             ->components([
                 Select::make('contract_id')
-                    ->label('Contract')
+                    ->label(__('Contract'))
                     ->options(fn (): array => Contract::query()->payable()->with('job')->get()
                         ->mapWithKeys(fn (Contract $c): array => [
                             $c->getKey() => "{$c->job?->code} · {$c->contract_number} — {$c->title}",
@@ -39,7 +39,7 @@ class ComplianceRequirementForm
                     ->helperText('Blank makes this a company template. A contract with its own requirement of the same kind overrides the template.'),
 
                 Select::make('kind')
-                    ->label('What is required')
+                    ->label(__('What is required'))
                     ->options([
                         'general_liability' => 'General / public liability insurance',
                         'workers_compensation' => "Workers' compensation",
@@ -66,7 +66,7 @@ class ComplianceRequirementForm
                         ->where('contract_id', $get('contract_id'))),
 
                 Select::make('blocks')
-                    ->label('What its absence stops')
+                    ->label(__('What its absence stops'))
                     ->options([
                         ComplianceRequirement::BLOCKS_CERTIFICATION => 'Certification — the certificate will not issue',
                         ComplianceRequirement::BLOCKS_NONE => 'Nothing — chased, but never stops a payment',
@@ -78,14 +78,14 @@ class ComplianceRequirementForm
                     ->helperText('Certification is the useful one: refusing to certify is a sentence somebody can act on, where a payable finance cannot pay is a stuck payment with no owner.'),
 
                 TextInput::make('grace_days')
-                    ->label('Grace days past expiry')
+                    ->label(__('Grace days past expiry'))
                     ->numeric()
                     ->default(0)
                     ->minValue(0)
                     ->helperText('A renewal in the post is ordinary. Zero here means a certificate stops on the day the policy lapses.'),
 
                 TextInput::make('minimum_cover')
-                    ->label('Minimum sum insured')
+                    ->label(__('Minimum sum insured'))
                     ->numeric()
                     ->helperText('Where the contract specifies one, so a token policy does not satisfy it. Blank means any policy of that kind will do.'),
 

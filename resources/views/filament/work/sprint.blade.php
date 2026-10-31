@@ -25,6 +25,24 @@
                 <span class="fi-sprint-figure-label">{{ __('Carried in') }}</span>
                 <span class="fi-sprint-figure-value">{{ $progress['carried'] }}</span>
             </div>
+
+            @if ($this->timeIsAvailable())
+                @php($time = $this->time())
+                {{-- The same three figures the item shows, in sum — §9. Logged is the timesheet's, never a second total. --}}
+                <div class="fi-sprint-figure">
+                    <span class="fi-sprint-figure-label">{{ __('Logged / estimate') }}</span>
+                    <span class="fi-sprint-figure-value">
+                        {{ \App\Modules\Work\Services\WorkTime::duration($time['logged']) }}
+                        / {{ \App\Modules\Work\Services\WorkTime::duration($time['estimate']) }}
+                    </span>
+                </div>
+                <div class="fi-sprint-figure">
+                    <span class="fi-sprint-figure-label">{{ __('Cost') }}</span>
+                    <span class="fi-sprint-figure-value" title="{{ $time['uncosted'] > 0 ? $time['uncosted'].' '.__('entries could not be costed') : '' }}">
+                        {{ $time['cost'] === null ? __('uncosted') : number_format($time['cost']) }}{{ $time['uncosted'] > 0 && $time['cost'] !== null ? ' *' : '' }}
+                    </span>
+                </div>
+            @endif
         </div>
     </x-filament::section>
 

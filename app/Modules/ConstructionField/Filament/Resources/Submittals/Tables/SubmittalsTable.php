@@ -42,7 +42,7 @@ class SubmittalsTable
         return $table
             ->columns([
                 TextColumn::make('spec_section')
-                    ->label('Section')
+                    ->label(__('Section'))
                     ->sortable()
                     ->searchable(),
 
@@ -54,17 +54,17 @@ class SubmittalsTable
                         .($record->job?->code ? " · {$record->job->code}" : '')),
 
                 TextColumn::make('responsible_label')
-                    ->label('Who owes it')
+                    ->label(__('Who owes it'))
                     ->getStateUsing(fn (Submittal $record): string => $record->responsibleName())
                     ->toggleable(),
 
                 IconColumn::make('is_long_lead')
-                    ->label('Long lead')
+                    ->label(__('Long lead'))
                     ->boolean()
                     ->toggleable(),
 
                 TextColumn::make('required_on_site_date')
-                    ->label('On site')
+                    ->label(__('On site'))
                     ->date('d M Y')
                     ->placeholder('no date')
                     ->sortable(),
@@ -75,7 +75,7 @@ class SubmittalsTable
                  * `SubmittalService::dueToSubmit()` is the ordered report.
                  */
                 TextColumn::make('submit_by')
-                    ->label('Submit by')
+                    ->label(__('Submit by'))
                     ->badge()
                     ->getStateUsing(function (Submittal $record): string {
                         $by = $record->submitBy();
@@ -119,14 +119,14 @@ class SubmittalsTable
                  * budgeted once and every round after it spends float nobody planned.
                  */
                 TextColumn::make('rounds')
-                    ->label('Rounds')
+                    ->label(__('Rounds'))
                     ->badge()
                     ->getStateUsing(fn (Submittal $record): string => (string) $record->roundsUsed())
                     ->color(fn (Submittal $record): string => $record->hasResubmitted() ? 'warning' : 'gray')
                     ->tooltip('A submittal that has been round three times is a schedule risk a status column cannot show.'),
 
                 TextColumn::make('overrun')
-                    ->label('Overrun')
+                    ->label(__('Overrun'))
                     ->badge()
                     ->getStateUsing(function (Submittal $record): ?string {
                         $days = $record->reviewOverrunDays();
@@ -138,24 +138,24 @@ class SubmittalsTable
                     ->tooltip('Days the reviewer kept it beyond the review period — the only claimable part of a submittal being late.'),
             ])
             ->filters([
-                SelectFilter::make('job_id')->label('Job')->relationship('job', 'code')->searchable(),
+                SelectFilter::make('job_id')->label(__('Job'))->relationship('job', 'code')->searchable(),
 
                 SelectFilter::make('type')->options(Submittal::TYPES),
 
                 SelectFilter::make('status')->options(Submittal::STATUSES),
 
                 Filter::make('outstanding')
-                    ->label('Not yet cleared')
+                    ->label(__('Not yet cleared'))
                     ->query(fn (Builder $query): Builder => $query->outstanding())
                     ->toggle(),
 
                 Filter::make('long_lead')
-                    ->label('Long lead')
+                    ->label(__('Long lead'))
                     ->query(fn (Builder $query): Builder => $query->longLead())
                     ->toggle(),
 
                 Filter::make('resubmitted')
-                    ->label('Been round more than once')
+                    ->label(__('Been round more than once'))
                     // `has()` rather than a HAVING on a `withCount` alias, which SQLite refuses as a non-aggregate.
                     ->query(fn (Builder $query): Builder => $query->has('reviews', '>', 1))
                     ->toggle(),
@@ -166,27 +166,27 @@ class SubmittalsTable
                     ->visible(fn (Submittal $record): bool => auth()->user()?->can('update', $record) ?? false),
 
                 Action::make('submit')
-                    ->label('Submit')
+                    ->label(__('Submit'))
                     ->icon('heroicon-o-paper-airplane')
                     ->color('primary')
                     ->modalHeading('Send it for review')
                     ->modalDescription('This opens a round. The review period is snapshotted onto it, so an overrun stays measured against the period that applied when it went out.')
                     ->schema(fn (Submittal $record): array => [
-                        DatePicker::make('sent_on')->label('Sent on')->native(false)->default(now())->required(),
+                        DatePicker::make('sent_on')->label(__('Sent on'))->native(false)->default(now())->required(),
                         TextInput::make('revision')->default($record->revision)->maxLength(255),
                         TextInput::make('review_period_days')
-                            ->label('Review period (days)')
+                            ->label(__('Review period (days)'))
                             ->numeric()
                             ->default($record->review_period_days)
                             ->required(),
                         // Options rather than `relationship()`: the action's record is the submittal, and the reviewer
                         // belongs to the round this is about to create.
                         Select::make('reviewer_contact_id')
-                            ->label('Reviewer')
+                            ->label(__('Reviewer'))
                             ->options(fn (): array => static::contacts())
                             ->searchable()
                             ->visible(fn (): bool => modules()->enabled('invoicing')),
-                        TextInput::make('reviewer_label')->label('Reviewer, in words')->maxLength(255),
+                        TextInput::make('reviewer_label')->label(__('Reviewer, in words'))->maxLength(255),
                     ])
                     ->visible(fn (Submittal $record): bool => (auth()->user()?->can('submit', $record) ?? false)
                         && $record->isAwaitingSubmission())
@@ -200,14 +200,14 @@ class SubmittalsTable
                     )),
 
                 Action::make('recordReturn')
-                    ->label('Record return')
+                    ->label(__('Record return'))
                     ->icon('heroicon-o-arrow-uturn-left')
                     ->color('info')
                     ->modalHeading('Record the reviewer\'s return')
                     ->modalDescription('Date it the day it came back. The turnaround this register reports is the reviewer\'s, and dating it from when you filed it flatters them.')
                     ->schema([
                         Select::make('result')->options(SubmittalReview::RESULTS)->required(),
-                        DatePicker::make('returned_on')->label('Came back on')->native(false)->default(now())->required(),
+                        DatePicker::make('returned_on')->label(__('Came back on'))->native(false)->default(now())->required(),
                         Textarea::make('comments')->rows(3),
                     ])
                     ->visible(fn (Submittal $record): bool => (auth()->user()?->can('recordReturn', $record) ?? false)
@@ -235,7 +235,7 @@ class SubmittalsTable
                  * same act as filing paperwork.
                  */
                 Action::make('raiseDelayEvent')
-                    ->label('Notify late review')
+                    ->label(__('Notify late review'))
                     ->icon('heroicon-o-clock')
                     ->color('danger')
                     ->modalHeading('Notify a late review')

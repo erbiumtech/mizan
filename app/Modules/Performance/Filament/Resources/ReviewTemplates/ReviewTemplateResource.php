@@ -45,23 +45,23 @@ class ReviewTemplateResource extends Resource
         return $schema->components([
             TextInput::make('name')->required()->maxLength(80)->unique(ignoreRecord: true)->placeholder('Annual review, Sales review'),
             TextInput::make('description')->maxLength(190),
-            Toggle::make('is_default')->label('Use for new cycles')->helperText('One template is the default; opening a cycle puts its competencies on every review.'),
+            Toggle::make('is_default')->label(__('Use for new cycles'))->helperText('One template is the default; opening a cycle puts its competencies on every review.'),
             Toggle::make('is_active')->default(true),
             Repeater::make('competencies')
                 ->relationship()
-                ->label('Competencies')
+                ->label(__('Competencies'))
                 ->orderColumn('sort')
                 ->columns(3)
                 ->defaultItems(1)
                 ->live()
                 ->schema([
                     TextInput::make('name')->required()->maxLength(120)->placeholder('Quality of work'),
-                    TextInput::make('weight')->label('Weight (%)')->numeric()->minValue(0)->maxValue(100)->required()->default(0),
+                    TextInput::make('weight')->label(__('Weight (%)'))->numeric()->minValue(0)->maxValue(100)->required()->default(0),
                     TextInput::make('description')->maxLength(190)->placeholder('What good looks like here'),
                 ])
                 ->columnSpanFull(),
             Placeholder::make('weights')
-                ->label('Weights')
+                ->label(__('Weights'))
                 ->content(function (Get $get): string {
                     $total = collect((array) $get('competencies'))->sum(fn ($row): float => (float) ($row['weight'] ?? 0));
 
@@ -77,11 +77,11 @@ class ReviewTemplateResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name')->sortable()->searchable(),
-                TextColumn::make('competencies_count')->counts('competencies')->label('Competencies'),
-                TextColumn::make('weight')->label('Weights')->state(fn (ReviewTemplate $t): string => $t->weightProblem() ?? '100')
+                TextColumn::make('competencies_count')->counts('competencies')->label(__('Competencies')),
+                TextColumn::make('weight')->label(__('Weights'))->state(fn (ReviewTemplate $t): string => $t->weightProblem() ?? '100')
                     ->color(fn (ReviewTemplate $t): string => $t->weightProblem() === null ? 'success' : 'danger'),
-                IconColumn::make('is_default')->boolean()->label('Default'),
-                IconColumn::make('is_active')->boolean()->label('Active'),
+                IconColumn::make('is_default')->boolean()->label(__('Default')),
+                IconColumn::make('is_active')->boolean()->label(__('Active')),
             ])
             ->recordActions([EditAction::make(), DeleteAction::make()]);
     }

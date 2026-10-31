@@ -61,7 +61,7 @@ class BudgetVsActual extends Page
         return $schema
             ->components([
                 Select::make('budget_id')
-                    ->label('Budget')
+                    ->label(__('Budget'))
                     ->options(fn (): array => Budget::query()
                         ->with('fiscalYear')
                         ->where('is_active', true)
@@ -85,12 +85,12 @@ class BudgetVsActual extends Page
                     }),
 
                 DatePicker::make('from')
-                    ->label('From')
+                    ->label(__('From'))
                     ->native(false)
                     ->live(),
 
                 DatePicker::make('to')
-                    ->label('To')
+                    ->label(__('To'))
                     ->native(false)
                     ->afterOrEqual('from')
                     ->live(),

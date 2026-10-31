@@ -68,7 +68,7 @@ class DailyReportResource extends Resource
         return $schema->components([
             DatePicker::make('report_date')->native(false)->default(now())->maxDate(now())->required(),
             Textarea::make('body')
-                ->label('What you did today')
+                ->label(__('What you did today'))
                 ->rows(10)
                 ->required()
                 ->maxLength(5000)
@@ -82,7 +82,7 @@ class DailyReportResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('report_date')->date('D d M')->sortable(),
-                TextColumn::make('employee.display_label')->label('Employee'),
+                TextColumn::make('employee.display_label')->label(__('Employee')),
                 TextColumn::make('body')->limit(80)->wrap(),
                 TextColumn::make('verdict')
                     ->badge()
@@ -94,18 +94,18 @@ class DailyReportResource extends Resource
                         default => 'gray',
                     })
                     ->tooltip(fn (DailyReport $record): ?string => static::verdictVisibleTo($record) ? $record->verdict_summary : null),
-                TextColumn::make('manager_decision')->label('Decision')->badge()->placeholder('—'),
-                TextColumn::make('meritEntry.points')->label('Points')->alignEnd()->placeholder('—'),
+                TextColumn::make('manager_decision')->label(__('Decision'))->badge()->placeholder('—'),
+                TextColumn::make('meritEntry.points')->label(__('Points'))->alignEnd()->placeholder('—'),
             ])
             ->defaultSort('report_date', 'desc')
             ->filters([
                 SelectFilter::make('manager_decision')
-                    ->label('Decision')
+                    ->label(__('Decision'))
                     ->options([DailyReport::DECISION_ACCEPTED => 'Accepted', DailyReport::DECISION_OVERRIDDEN => 'Overridden']),
             ])
             ->recordActions([
                 Action::make('accept')
-                    ->label('Accept verdict')
+                    ->label(__('Accept verdict'))
                     ->icon('heroicon-o-check')
                     ->color('success')
                     ->visible(fn (DailyReport $record): bool => ! $record->isDecided() && $record->hasVerdict()
