@@ -1,0 +1,628 @@
+/*
+ * ============================================================================
+ * Material Design 3 — the panel's visual layer
+ * ============================================================================
+ *
+ * Imported last from theme.css, so where it restyles something theme.css already styles it wins at
+ * equal specificity. Everything here is skin: it changes colour, shape, type and spacing, never the
+ * geometry theme.css builds (the rail's width, the column offsets, the flyouts' positioning), and it
+ * reaches components only through Filament's own classes plus a single hook on the search trigger.
+ *
+ * Every colour comes from a `--md-sys-color-*` token below. The tokens are the Material 3 scheme
+ * generated from the logo green (#3E894A) as the seed; the same seed drives the primary and gray
+ * ramps in App\Providers\Filament\AdminPanelProvider, so Filament's own utilities and these tokens
+ * agree. To change the seed: regenerate both (docs/material-3-theme.md says how).
+ *
+ * Filament's component styles live in the `components` cascade layer; these rules are unlayered,
+ * which is why they win without `!important`.
+ */
+
+/* ------------------------------------------------------------------ tokens */
+
+:root {
+    --md-sys-color-primary: #2f6a3a;
+    --md-sys-color-on-primary: #ffffff;
+    --md-sys-color-primary-container: #b2f2b6;
+    --md-sys-color-on-primary-container: #002109;
+    --md-sys-color-secondary: #516350;
+    --md-sys-color-on-secondary: #ffffff;
+    --md-sys-color-secondary-container: #d4e8d0;
+    --md-sys-color-on-secondary-container: #0f1f10;
+    --md-sys-color-tertiary: #39656c;
+    --md-sys-color-tertiary-container: #bcebf2;
+    --md-sys-color-on-tertiary-container: #001f24;
+    --md-sys-color-error: #ba1a1a;
+    --md-sys-color-on-error: #ffffff;
+    --md-sys-color-error-container: #ffdad6;
+    --md-sys-color-on-error-container: #410002;
+    --md-sys-color-surface: #f7fbf2;
+    --md-sys-color-surface-container-lowest: #ffffff;
+    --md-sys-color-surface-container-low: #f1f5ec;
+    --md-sys-color-surface-container: #ebefe6;
+    --md-sys-color-surface-container-high: #e6e9e1;
+    --md-sys-color-surface-container-highest: #e0e4db;
+    --md-sys-color-on-surface: #181d17;
+    --md-sys-color-on-surface-variant: #424940;
+    --md-sys-color-outline: #72796f;
+    --md-sys-color-outline-variant: #c2c8bd;
+    --md-sys-color-inverse-surface: #2d322c;
+    --md-sys-color-inverse-on-surface: #eef2e9;
+    --md-sys-color-scrim: rgb(0 0 0 / 0.32);
+
+    /* Shape — the Material 3 corner scale. */
+    --md-sys-shape-extra-small: 0.25rem;
+    --md-sys-shape-small: 0.5rem;
+    --md-sys-shape-medium: 0.75rem;
+    --md-sys-shape-large: 1rem;
+    --md-sys-shape-extra-large: 1.75rem;
+    --md-sys-shape-full: 9999px;
+
+    /* Elevation 1 and 2, as Material draws them: a key shadow and an ambient one. */
+    --md-sys-elevation-1: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px 1px rgb(0 0 0 / 0.15);
+    --md-sys-elevation-2: 0 1px 2px rgb(0 0 0 / 0.3), 0 2px 6px 2px rgb(0 0 0 / 0.15);
+
+    /*
+     * Navigation item height. Material's drawer item is 56px; this panel's drawer lists up to thirty
+     * screens in one domain, so it runs at 48px — still a comfortable touch target — to keep a whole
+     * domain on one screen. Set to 3.5rem for the spec's height.
+     */
+    --md-nav-item-height: 3rem;
+}
+
+:root.dark,
+.dark {
+    --md-sys-color-primary: #96d59b;
+    --md-sys-color-on-primary: #00390f;
+    --md-sys-color-primary-container: #145120;
+    --md-sys-color-on-primary-container: #b2f2b6;
+    --md-sys-color-secondary: #b8ccb4;
+    --md-sys-color-on-secondary: #243424;
+    --md-sys-color-secondary-container: #3a4b39;
+    --md-sys-color-on-secondary-container: #d4e8d0;
+    --md-sys-color-tertiary: #a1ced6;
+    --md-sys-color-tertiary-container: #1f4d54;
+    --md-sys-color-on-tertiary-container: #bcebf2;
+    --md-sys-color-error: #ffb4ab;
+    --md-sys-color-on-error: #690005;
+    --md-sys-color-error-container: #93000a;
+    --md-sys-color-on-error-container: #ffdad6;
+    --md-sys-color-surface: #10140f;
+    --md-sys-color-surface-container-lowest: #0b0f0a;
+    --md-sys-color-surface-container-low: #181d17;
+    --md-sys-color-surface-container: #1c211b;
+    --md-sys-color-surface-container-high: #262b25;
+    --md-sys-color-surface-container-highest: #31362f;
+    --md-sys-color-on-surface: #dfe4da;
+    --md-sys-color-on-surface-variant: #c2c8bd;
+    --md-sys-color-outline: #8c9388;
+    --md-sys-color-outline-variant: #424940;
+    --md-sys-color-inverse-surface: #dfe4da;
+    --md-sys-color-inverse-on-surface: #2d322c;
+    --md-sys-color-scrim: rgb(0 0 0 / 0.5);
+}
+
+/*
+ * The platform panel shares this stylesheet but is deliberately not green — knowing which panel you
+ * are in without reading the URL is the point of it (PlatformPanelProvider). So it gets the Material
+ * scheme of its own indigo seed. Set on the body, which Filament classes per panel; every token
+ * reference below is inside it, so this is enough.
+ */
+.fi-panel-platform {
+    --md-sys-color-primary: #4355b9;
+    --md-sys-color-on-primary: #ffffff;
+    --md-sys-color-primary-container: #dee0ff;
+    --md-sys-color-on-primary-container: #00105c;
+    --md-sys-color-secondary: #5b5d72;
+    --md-sys-color-on-secondary: #ffffff;
+    --md-sys-color-secondary-container: #e0e1f9;
+    --md-sys-color-on-secondary-container: #181a2c;
+    --md-sys-color-surface: #fbf8ff;
+    --md-sys-color-surface-container-lowest: #ffffff;
+    --md-sys-color-surface-container-low: #f5f2fa;
+    --md-sys-color-surface-container: #efedf4;
+    --md-sys-color-surface-container-high: #e9e7ef;
+    --md-sys-color-surface-container-highest: #e4e1e9;
+    --md-sys-color-on-surface: #1b1b21;
+    --md-sys-color-on-surface-variant: #46464f;
+    --md-sys-color-outline: #767680;
+    --md-sys-color-outline-variant: #c6c5d0;
+    --md-sys-color-inverse-surface: #303036;
+    --md-sys-color-inverse-on-surface: #f2eff7;
+}
+
+.dark .fi-panel-platform,
+.fi-panel-platform:where(.dark, .dark *) {
+    --md-sys-color-primary: #bac3ff;
+    --md-sys-color-on-primary: #08218a;
+    --md-sys-color-primary-container: #293ca0;
+    --md-sys-color-on-primary-container: #dee0ff;
+    --md-sys-color-secondary: #c4c5dd;
+    --md-sys-color-on-secondary: #2d2f42;
+    --md-sys-color-secondary-container: #434659;
+    --md-sys-color-on-secondary-container: #e0e1f9;
+    --md-sys-color-surface: #131318;
+    --md-sys-color-surface-container-lowest: #0e0e13;
+    --md-sys-color-surface-container-low: #1b1b21;
+    --md-sys-color-surface-container: #1f1f25;
+    --md-sys-color-surface-container-high: #2a292f;
+    --md-sys-color-surface-container-highest: #35343a;
+    --md-sys-color-on-surface: #e4e1e9;
+    --md-sys-color-on-surface-variant: #c6c5d0;
+    --md-sys-color-outline: #90909a;
+    --md-sys-color-outline-variant: #46464f;
+    --md-sys-color-inverse-surface: #e4e1e9;
+    --md-sys-color-inverse-on-surface: #303036;
+}
+
+/* -------------------------------------------------------------- page surface */
+
+.fi-body {
+    background-color: var(--md-sys-color-surface);
+    color: var(--md-sys-color-on-surface);
+}
+
+/* Headline small for page titles; title medium for section titles. */
+.fi-header-heading {
+    font-size: 1.5rem;
+    line-height: 2rem;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--md-sys-color-on-surface);
+}
+
+.fi-header-subheading,
+.fi-section-header-description {
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.fi-section-header-heading {
+    font-size: 1rem;
+    line-height: 1.5rem;
+    font-weight: 500;
+}
+
+/* ------------------------------------------------------------ navigation rail */
+
+/*
+ * The domain rail as a Material navigation rail: no dividing line, the page's surface behind it, and
+ * the active domain marked by a pill around its icon rather than a filled tile with an edge bar.
+ */
+.fi-domain-rail {
+    background-color: var(--md-sys-color-surface);
+    border-inline-end: 0;
+
+    &:where(.dark, .dark *) {
+        background-color: var(--md-sys-color-surface);
+    }
+}
+
+.fi-domain-rail-item {
+    width: 100%;
+    gap: 0.25rem;
+    padding-block: 0.25rem;
+    border-radius: 0;
+    background-color: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    box-shadow: none;
+
+    /*
+     * The pill. 56 by 32 with the 20px icon centred in it: padding inside a fixed border-box, so the
+     * SVG's viewBox scales into the 20px content box and the background fills the rest.
+     */
+    & > .fi-icon {
+        box-sizing: border-box;
+        width: 3.5rem;
+        height: 2rem;
+        padding: 0.375rem 1.125rem;
+        border-radius: var(--md-sys-shape-large);
+        transition: background-color 150ms ease;
+    }
+
+    &:hover {
+        background-color: transparent;
+        color: var(--md-sys-color-on-surface);
+
+        & > .fi-icon {
+            background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+        }
+    }
+
+    &:where(.dark, .dark *) {
+        color: var(--md-sys-color-on-surface-variant);
+
+        &:hover {
+            background-color: transparent;
+            color: var(--md-sys-color-on-surface);
+        }
+    }
+
+    &.fi-active,
+    &.fi-active:where(.dark, .dark *) {
+        background-color: transparent;
+        color: var(--md-sys-color-on-surface);
+        box-shadow: none;
+        font-weight: 600;
+
+        & > .fi-icon {
+            background-color: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
+        }
+    }
+}
+
+.fi-domain-rail-item-label {
+    font-size: 0.75rem;
+    line-height: 1rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+
+/* --------------------------------------------------------- navigation drawer */
+
+/*
+ * The contextual column as a Material navigation drawer: a low container surface with a rounded
+ * trailing edge, full-width pill items, and the active screen in the secondary container.
+ */
+.fi-sidebar {
+    background-color: var(--md-sys-color-surface-container-low);
+    border-start-end-radius: var(--md-sys-shape-large);
+    border-end-end-radius: var(--md-sys-shape-large);
+
+    &:where(.dark, .dark *) {
+        background-color: var(--md-sys-color-surface-container-low);
+    }
+}
+
+.fi-sidebar-group-label {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.fi-sidebar-item-btn {
+    min-height: var(--md-nav-item-height);
+    padding-inline: 1rem;
+    border-radius: var(--md-sys-shape-full);
+    color: var(--md-sys-color-on-surface-variant);
+
+    &:hover,
+    &:focus-visible {
+        background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+    }
+
+    & > .fi-sidebar-item-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: inherit;
+    }
+
+    & > .fi-icon {
+        color: inherit;
+    }
+}
+
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+
+    & > .fi-sidebar-item-label,
+    & > .fi-icon {
+        color: var(--md-sys-color-on-secondary-container);
+        font-weight: 600;
+    }
+}
+
+/* ----------------------------------------------------------------- top app bar */
+
+.fi-topbar {
+    background-color: var(--md-sys-color-surface);
+    box-shadow: none;
+
+    &:where(.dark, .dark *) {
+        background-color: var(--md-sys-color-surface);
+    }
+}
+
+/* The ⌘K trigger as a Material search bar: fully rounded, high container, no outline. */
+.fi-command-palette-trigger {
+    height: 3rem;
+    padding-inline: 1rem;
+    border-radius: var(--md-sys-shape-full);
+    background-color: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-on-surface-variant);
+    box-shadow: none;
+
+    &:hover {
+        background-color: var(--md-sys-color-surface-container-highest);
+        box-shadow: none;
+    }
+
+    &:focus-visible {
+        box-shadow: 0 0 0 2px var(--md-sys-color-primary);
+    }
+
+    & .fi-icon,
+    & svg {
+        color: var(--md-sys-color-on-surface-variant);
+    }
+
+    & kbd {
+        border-color: var(--md-sys-color-outline-variant);
+        background-color: transparent;
+        color: var(--md-sys-color-on-surface-variant);
+    }
+}
+
+.fi-user-menu .fi-avatar,
+.fi-topbar .fi-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--md-sys-shape-full);
+}
+
+/* -------------------------------------------------------------------- buttons */
+
+/* Every button is a pill. Filled stays Filament's own colour pair; the rest are reshaped below. */
+.fi-btn {
+    border-radius: var(--md-sys-shape-full);
+    min-height: 2.5rem;
+    padding-inline: 1.5rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+
+    &.fi-size-xs,
+    &.fi-size-sm {
+        min-height: 2rem;
+        padding-inline: 1rem;
+    }
+}
+
+/* Filled primary, in dark mode, uses Material's light-on-dark pair rather than a mid-tone. */
+.fi-btn.fi-color-primary:not(.fi-outlined):not(label):where(.dark, .dark *) {
+    background-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+
+    & > .fi-icon {
+        color: var(--md-sys-color-on-primary);
+    }
+}
+
+/* A button with no colour is Material's tonal button: the secondary container, no outline. */
+.fi-btn:not(.fi-color):not(.fi-outlined):not(label),
+.fi-btn.fi-color-gray:not(.fi-outlined):not(label) {
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    box-shadow: none;
+
+    &:hover {
+        background-color: color-mix(in srgb, var(--md-sys-color-on-secondary-container) 8%, var(--md-sys-color-secondary-container));
+    }
+
+    &:focus-visible {
+        box-shadow: 0 0 0 2px var(--md-sys-color-primary);
+    }
+
+    & > .fi-icon {
+        color: var(--md-sys-color-on-secondary-container);
+    }
+}
+
+/* Outlined: a 1px outline and primary text. */
+.fi-btn.fi-outlined {
+    box-shadow: inset 0 0 0 1px var(--md-sys-color-outline);
+    background-color: transparent;
+
+    &:not(.fi-color) {
+        color: var(--md-sys-color-primary);
+    }
+
+    &:focus-visible {
+        box-shadow:
+            inset 0 0 0 1px var(--md-sys-color-outline),
+            0 0 0 2px var(--md-sys-color-primary);
+    }
+}
+
+/* Icon buttons: 40px circles. */
+.fi-icon-btn {
+    border-radius: var(--md-sys-shape-full);
+}
+
+/* --------------------------------------------------------------------- inputs */
+
+/*
+ * Outlined text fields: a 1px outline, 4px corners, 2px primary while focused and the error colour
+ * when invalid. Filament draws its box with a ring, so the outline is drawn the same way.
+ */
+.fi-input-wrp {
+    border-radius: var(--md-sys-shape-extra-small);
+    background-color: transparent;
+    box-shadow: inset 0 0 0 1px var(--md-sys-color-outline);
+
+    &:not(.fi-disabled):not(:has(.fi-ac-action:focus)):focus-within {
+        box-shadow: inset 0 0 0 2px var(--md-sys-color-primary);
+    }
+
+    &.fi-invalid,
+    &.fi-invalid:not(.fi-disabled):focus-within {
+        box-shadow: inset 0 0 0 2px var(--md-sys-color-error);
+    }
+
+    &.fi-disabled {
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+    }
+
+    & .fi-input {
+        min-height: 2.75rem;
+    }
+}
+
+.fi-fo-field-label-content {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--md-sys-color-on-surface-variant);
+}
+
+.fi-fo-field-wrp-error-message {
+    color: var(--md-sys-color-error);
+}
+
+.fi-checkbox-input:checked,
+.fi-radio-input:checked {
+    background-color: var(--md-sys-color-primary);
+    border-color: var(--md-sys-color-primary);
+}
+
+.fi-toggle.fi-toggle-on {
+    background-color: var(--md-sys-color-primary);
+}
+
+/* ------------------------------------------------------------ cards and sections */
+
+/* Sections are outlined cards: they hold tables and forms, so the lowest container keeps fields legible. */
+.fi-section:not(.fi-section-not-contained) {
+    border-radius: var(--md-sys-shape-medium);
+    background-color: var(--md-sys-color-surface-container-lowest);
+    box-shadow: inset 0 0 0 1px var(--md-sys-color-outline-variant);
+}
+
+/* Stats are filled cards. */
+.fi-wi-stats-overview-stat {
+    border-radius: var(--md-sys-shape-medium);
+    background-color: var(--md-sys-color-surface-container-low);
+    box-shadow: none;
+}
+
+/* --------------------------------------------------------------------- tables */
+
+.fi-ta-ctn {
+    border-radius: var(--md-sys-shape-medium);
+    background-color: var(--md-sys-color-surface-container-lowest);
+    box-shadow: inset 0 0 0 1px var(--md-sys-color-outline-variant);
+    overflow: hidden;
+}
+
+.fi-ta-table > thead > tr {
+    background-color: var(--md-sys-color-surface-container-low);
+}
+
+/*
+ * Material column headers are title-small labels, not the 3a shell's tiny uppercase: sentence case
+ * reads faster in a table with twenty columns of payroll figures.
+ */
+.fi-ta-header-cell,
+.fi-ta-header-cell-sort-btn {
+    font-size: 0.8125rem;
+    letter-spacing: 0.01em;
+    text-transform: none;
+    font-weight: 500;
+    color: var(--md-sys-color-on-surface-variant);
+
+    &:where(.dark, .dark *) {
+        color: var(--md-sys-color-on-surface-variant);
+    }
+}
+
+.fi-ta-table > tbody > tr {
+    border-color: var(--md-sys-color-outline-variant);
+}
+
+.fi-ta-row:hover {
+    background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 4%, transparent);
+
+    &:where(.dark, .dark *) {
+        background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 6%, transparent);
+    }
+}
+
+/* ---------------------------------------------------------------- chips (badges) */
+
+/* Badges become assist chips: 8px corners, no ring; the tonal colour pair is Filament's. */
+.fi-badge {
+    border-radius: var(--md-sys-shape-small);
+    box-shadow: none;
+    min-height: 1.5rem;
+    padding-inline: 0.625rem;
+    font-weight: 500;
+}
+
+.fi-badge:not(.fi-color) {
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+}
+
+/* ------------------------------------------------------------------------ tabs */
+
+/* Primary tabs: no box, a hairline under the row, and a 3px indicator under the active tab. */
+.fi-tabs,
+.fi-tabs.fi-contained {
+    border-radius: 0;
+    background-color: transparent;
+    box-shadow: none;
+    padding: 0;
+    gap: 0;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.fi-tabs-item {
+    border-radius: 0;
+    min-height: 3rem;
+    padding-inline: 1.25rem;
+    color: var(--md-sys-color-on-surface-variant);
+
+    &:hover,
+    &:focus-visible {
+        background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+    }
+
+    & .fi-tabs-item-label {
+        color: inherit;
+    }
+
+    &.fi-active {
+        background-color: transparent;
+        color: var(--md-sys-color-primary);
+        box-shadow: inset 0 -3px 0 var(--md-sys-color-primary);
+
+        & .fi-tabs-item-label,
+        & .fi-icon {
+            color: var(--md-sys-color-primary);
+        }
+    }
+}
+
+/* ----------------------------------------------------------- dialogs and menus */
+
+.fi-modal-window {
+    border-radius: var(--md-sys-shape-extra-large);
+    background-color: var(--md-sys-color-surface-container-high);
+    box-shadow: var(--md-sys-elevation-2);
+}
+
+/* A slide-over keeps square corners on the side that meets the window edge. */
+.fi-modal-slide-over-window,
+.fi-modal.fi-modal-slide-over .fi-modal-window {
+    border-radius: var(--md-sys-shape-large) 0 0 var(--md-sys-shape-large);
+}
+
+.fi-dropdown-panel {
+    border-radius: var(--md-sys-shape-extra-small);
+    background-color: var(--md-sys-color-surface-container);
+    box-shadow: var(--md-sys-elevation-2);
+}
+
+/* --------------------------------------------------------------- notifications */
+
+/* Toasts read as snackbars: the inverse surface, medium corners. */
+.fi-no-notification {
+    border-radius: var(--md-sys-shape-small);
+    background-color: var(--md-sys-color-inverse-surface);
+    color: var(--md-sys-color-inverse-on-surface);
+    box-shadow: var(--md-sys-elevation-2);
+
+    & .fi-no-notification-title,
+    & .fi-no-notification-body {
+        color: var(--md-sys-color-inverse-on-surface);
+    }
+}

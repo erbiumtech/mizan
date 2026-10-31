@@ -16,6 +16,7 @@ use App\Support\NavigationTree;
 use App\Support\TenantStorage;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Facades\Filament;
+use Filament\FontProviders\GoogleFontProvider;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -66,6 +67,54 @@ class AdminPanelProvider extends PanelProvider
         800 => '#2E6537',
         900 => '#26522E',
         950 => '#1C3E23',
+    ];
+
+    /**
+     * Material 3's primary tonal palette for the logo green — docs/material-3-theme.md.
+     *
+     * The seed is BRAND_GREEN; these are the tones Material derives from it, laid on Filament's shade
+     * numbers. Shade 600 is tone 40, Material's light-scheme primary, which is what Filament paints
+     * filled buttons and the active state with: white on it is 6.4:1. resources/css/filament/admin/
+     * material.css carries the same scheme as `--md-sys-color-*` tokens, so the two agree.
+     *
+     * BRAND_GREEN_SHADES above is kept: it is the logo-exact ramp, and the PWA manifest and other
+     * callers name BRAND_GREEN itself.
+     *
+     * @var array<int, string>
+     */
+    public const array MATERIAL_PRIMARY = [
+        50 => '#EFFAEC',
+        100 => '#DCF5DB',
+        200 => '#B2F2B6',
+        300 => '#96D59B',
+        400 => '#7BB980',
+        500 => '#619D67',
+        600 => '#2F6A3A',
+        700 => '#145120',
+        800 => '#00390F',
+        900 => '#002D0B',
+        950 => '#002109',
+    ];
+
+    /**
+     * Material 3's neutral palette for the same seed: greys with a trace of the green in them, so the
+     * surfaces, dividers and secondary text sit with the primary rather than against a cold slate.
+     * Shade 500 is tone 50, the outline colour, nudged a step darker (#6E756B) so secondary text clears 4.5:1 on white and on the surface.
+     *
+     * @var array<int, string>
+     */
+    public const array MATERIAL_NEUTRAL = [
+        50 => '#F1F5EC',
+        100 => '#E6E9E1',
+        200 => '#D7DBD2',
+        300 => '#C2C8BD',
+        400 => '#8C9388',
+        500 => '#6E756B',
+        600 => '#5A6157',
+        700 => '#424940',
+        800 => '#2C322B',
+        900 => '#1C211B',
+        950 => '#10140F',
     ];
 
     /**
@@ -238,14 +287,16 @@ class AdminPanelProvider extends PanelProvider
             // closure for the reason the brand logo above is one: it is resolved per request,
             // after the tenant middleware has run.
             ->favicon(fn (): string => CompanyLetterhead::faviconUrl() ?? asset('images/favicon.png'))
-            // Sampled from the ErbiumTech logo: the dark green slash drives the
-            // primary ramp, the mid green and lime are used as accents.
+            // Material 3, seeded from the logo green: the primary and neutral tonal palettes drive
+            // Filament's primary and gray ramps; the mid green and lime stay as accents.
             ->colors([
-                'primary' => self::BRAND_GREEN_SHADES,
+                'primary' => self::MATERIAL_PRIMARY,
                 'success' => Color::hex(self::BRAND_GREEN_MID),
                 'warning' => Color::hex(self::BRAND_LIME),
-                'gray' => Color::Slate,
+                'gray' => self::MATERIAL_NEUTRAL,
             ])
+            // Material's typeface. Google's provider because Roboto Flex is served from there.
+            ->font('Roboto Flex', provider: GoogleFontProvider::class)
             // Disabled in favour of the ⌘K command palette, which is a superset:
             // it searches records through the same resource global-search hooks,
             // and also finds resources, pages and commands. Resources keep their

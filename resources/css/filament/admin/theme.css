@@ -3784,3 +3784,14 @@ body:has(.fi-report-categories) .fi-sidebar-nav-groups {
     text-transform: uppercase;
     color: var(--color-gray-500);
 }
+
+/*
+ * ============================================================================
+ * Material Design 3
+ * ============================================================================
+ *
+ * The visual layer — colour, shape and type — in its own file, imported last so it restyles what is
+ * above without touching the geometry. docs/material-3-theme.md maps each Filament component to its
+ * Material counterpart.
+ */
+@import './material.css';
