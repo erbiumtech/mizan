@@ -6,6 +6,7 @@ use App\Models\TenantModel as Model;
 use App\Modules\Accounting\Support\BankFileAccount;
 use App\Modules\Employees\Models\Employee;
 use App\Support\Contracts\PayableDocument;
+use App\Support\ModuleMap;
 use App\Traits\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model as EloquentModel;
@@ -230,6 +231,17 @@ class Payment extends Model
                 .($this->subject_review_reason ? ': '.$this->subject_review_reason : ''),
             default => 'Employee has not accepted the payslip yet',
         };
+    }
+
+    /**
+     * Normalise on write: `payable_type` holds the model's stable alias (ModuleMap), never its live class
+     * name, as JournalEntry::source_type and CustomField::model_type already do. Laravel 13.38 resolves a
+     * morph type only through the enforced map and throws on a bare class name, so a row written with
+     * `Model::class` by a seeder, an import or a test could no longer be read back.
+     */
+    public function setPayableTypeAttribute(?string $value): void
+    {
+        $this->attributes['payable_type'] = $value === null ? null : ModuleMap::alias($value);
     }
 
     public function payable()

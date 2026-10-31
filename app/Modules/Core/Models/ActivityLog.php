@@ -3,6 +3,7 @@
 namespace App\Modules\Core\Models;
 
 use App\Support\Impersonation;
+use Filament\Facades\Filament;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Builder;
 use Spatie\Activitylog\Models\Activity as SpatieActivity;
@@ -20,7 +21,10 @@ class ActivityLog extends SpatieActivity
     {
         static::creating(function (self $activity): void {
             if ($activity->company_id === null) {
-                $activity->company_id = Company::current()?->getKey();
+                // The panel's tenant when no Spatie tenant is current: an installation without a
+                // separate tenant connection never makes a company current (Company::activate()), and
+                // the entry would otherwise belong to no company — Impersonation stamps the same way.
+                $activity->company_id = Company::current()?->getKey() ?? Filament::getTenant()?->getKey();
             }
 
             $activity->stampImpersonator();

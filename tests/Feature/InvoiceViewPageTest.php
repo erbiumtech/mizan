@@ -33,6 +33,10 @@ class InvoiceViewPageTest extends AccountingTestCase
     {
         parent::setUp();
 
+        // A company is seeded with currencies; AccountingTestCase is not, and the invoice form only
+        // accepts an active currency — as InvoiceProjectTest does.
+        $this->seed(\Database\Seeders\CurrencySeeder::class);
+
         $this->actingAs($this->makeUser('Administrator', 'invoice-view@test.local'));
         $this->setCurrentTenant();
 

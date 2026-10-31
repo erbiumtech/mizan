@@ -114,7 +114,7 @@ class WorkItemPanelTest extends AccountingTestCase
         WorkItemLink::create(['from_item_id' => $item->getKey(), 'to_item_id' => $other->getKey(), 'kind' => WorkItemLink::BLOCKS]);
         WorkItemLink::create(['from_item_id' => $parent->getKey(), 'to_item_id' => $item->getKey(), 'kind' => WorkItemLink::RELATES_TO]);
         $labels = collect(['OCI', 'SCI'])->map(fn (string $name) => WorkLabel::create(['name' => $name]));
-        $item->labels()->attach($labels->modelKeys());
+        $item->labels()->attach($labels->map(fn (WorkLabel $label): int => (int) $label->getKey())->all());
         $item->comments()->create(['user_id' => auth()->id(), 'body' => 'First']);
         $item->comments()->create(['user_id' => auth()->id(), 'body' => 'Second']);
 
