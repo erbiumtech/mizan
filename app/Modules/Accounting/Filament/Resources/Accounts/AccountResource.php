@@ -10,6 +10,7 @@ use App\Modules\Accounting\Filament\Resources\Accounts\Pages\ListAccounts;
 use App\Modules\Accounting\Filament\Resources\Accounts\RelationManagers\ChildrenRelationManager;
 use App\Modules\Accounting\Filament\Resources\Accounts\RelationManagers\LinesRelationManager;
 use App\Modules\Accounting\Filament\Resources\Accounts\Schemas\AccountForm;
+use App\Modules\Accounting\Filament\Resources\Accounts\Schemas\AccountInfolist;
 use App\Modules\Accounting\Filament\Resources\Accounts\Tables\AccountsTable;
 use App\Modules\Accounting\Models\Account;
 use BackedEnum;
@@ -54,6 +55,15 @@ class AccountResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return AccountForm::configure($schema);
+    }
+
+    /**
+     * Read in the list's view sheet: the record's values rather than its edit form disabled —
+     * docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return AccountInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

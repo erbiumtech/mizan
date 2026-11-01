@@ -134,6 +134,45 @@ class RecordSheetCoverageTest extends TestCase
         $this->assertSame([], $wrong, implode("\n", $wrong));
     }
 
+    /**
+     * A resource that views in the sheet and edits on the full page defines what the sheet reads.
+     *
+     * Without an `infolist()` Filament falls back to the edit form, disabled: greyed inputs, option
+     * keys instead of their labels, ids instead of names. And the infolist holds entries, not inputs,
+     * or that fallback is back by another route.
+     */
+    public function test_every_sheet_view_resource_defines_what_its_sheet_reads(): void
+    {
+        $wrong = [];
+
+        foreach ($this->resources() as $file => $source) {
+            if ($this->choice($source) !== 'SheetView') {
+                continue;
+            }
+
+            $name = $this->relative($file);
+
+            if (! preg_match('/public static function infolist\(Schema \$schema\): Schema\s*\{\s*return (\w+)::configure\(\$schema\);|public static function infolist\(Schema \$schema\): Schema\s*\{\s*return \$schema/', $source, $m)) {
+                $wrong[] = "{$name}: has no infolist(), so its view sheet shows the edit form disabled";
+
+                continue;
+            }
+
+            $infolist = $source;
+
+            if (($m[1] ?? '') !== '' && preg_match('/^use ([\w\\\\]+\\\\'.preg_quote($m[1], '/').');/m', $source, $use)) {
+                $path = $this->root().'/'.str_replace(['App\\', '\\'], ['app/', '/'], $use[1]).'.php';
+                $infolist = is_file($path) ? (string) file_get_contents($path) : '';
+            }
+
+            if (preg_match('/\b(TextInput|Select|Toggle|Textarea|DatePicker|DateTimePicker|Repeater|FileUpload)::make\(/', $infolist, $input)) {
+                $wrong[] = "{$name}: its infolist uses {$input[1]}, a form input";
+            }
+        }
+
+        $this->assertSame([], $wrong, implode("\n", $wrong));
+    }
+
     public function test_the_document_lists_every_resource_and_its_choice(): void
     {
         $doc = (string) file_get_contents($this->root().'/docs/side-sheets.md');

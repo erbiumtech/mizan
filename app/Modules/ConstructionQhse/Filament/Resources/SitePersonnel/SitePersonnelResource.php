@@ -9,6 +9,7 @@ use App\Modules\ConstructionQhse\Filament\Resources\SitePersonnel\Pages\EditSite
 use App\Modules\ConstructionQhse\Filament\Resources\SitePersonnel\Pages\ListSitePersonnel;
 use App\Modules\ConstructionQhse\Filament\Resources\SitePersonnel\RelationManagers\CompetenciesRelationManager;
 use App\Modules\ConstructionQhse\Filament\Resources\SitePersonnel\Schemas\SitePersonnelForm;
+use App\Modules\ConstructionQhse\Filament\Resources\SitePersonnel\Schemas\SitePersonnelInfolist;
 use App\Modules\ConstructionQhse\Filament\Resources\SitePersonnel\Tables\SitePersonnelTable;
 use App\Modules\ConstructionQhse\Models\SitePersonnel;
 use BackedEnum;
@@ -60,6 +61,15 @@ class SitePersonnelResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return SitePersonnelForm::configure($schema);
+    }
+
+    /**
+     * Read in the list's view sheet: the record's values rather than its edit form disabled —
+     * docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return SitePersonnelInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

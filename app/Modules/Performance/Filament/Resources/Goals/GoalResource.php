@@ -10,6 +10,7 @@ use App\Modules\Employees\Models\Employee;
 use App\Modules\Performance\Filament\Resources\Goals\Pages\CreateGoal;
 use App\Modules\Performance\Filament\Resources\Goals\Pages\EditGoal;
 use App\Modules\Performance\Filament\Resources\Goals\Pages\ListGoals;
+use App\Modules\Performance\Filament\Resources\Goals\Schemas\GoalInfolist;
 use App\Modules\Performance\Models\Goal;
 use App\Modules\Performance\Models\ReviewCycle;
 use App\Support\EmployeeAccess;
@@ -101,6 +102,15 @@ class GoalResource extends Resource
 
             Textarea::make('description')->rows(3)->columnSpanFull(),
         ]);
+    }
+
+    /**
+     * Read in the list's view sheet: the record's values rather than its edit form disabled —
+     * docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return GoalInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

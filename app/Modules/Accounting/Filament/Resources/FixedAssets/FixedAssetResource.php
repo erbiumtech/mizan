@@ -9,6 +9,7 @@ use App\Modules\Accounting\Filament\Resources\FixedAssets\Pages\EditFixedAsset;
 use App\Modules\Accounting\Filament\Resources\FixedAssets\Pages\ListFixedAssets;
 use App\Modules\Accounting\Filament\Resources\FixedAssets\RelationManagers\JournalEntriesRelationManager;
 use App\Modules\Accounting\Filament\Resources\FixedAssets\Schemas\FixedAssetForm;
+use App\Modules\Accounting\Filament\Resources\FixedAssets\Schemas\FixedAssetInfolist;
 use App\Modules\Accounting\Filament\Resources\FixedAssets\Tables\FixedAssetsTable;
 use App\Modules\Accounting\Models\FixedAsset;
 use BackedEnum;
@@ -47,6 +48,15 @@ class FixedAssetResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return FixedAssetForm::configure($schema);
+    }
+
+    /**
+     * Read in the list's view sheet: the record's values rather than its edit form disabled —
+     * docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return FixedAssetInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

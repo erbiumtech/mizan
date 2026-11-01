@@ -9,6 +9,7 @@ use App\Filament\Support\RecordSheet;
 use App\Modules\Crm\Filament\Resources\Opportunities\Pages\CreateOpportunity;
 use App\Modules\Crm\Filament\Resources\Opportunities\Pages\EditOpportunity;
 use App\Modules\Crm\Filament\Resources\Opportunities\Pages\ListOpportunities;
+use App\Modules\Crm\Filament\Resources\Opportunities\Schemas\OpportunityInfolist;
 use App\Modules\Crm\Filament\Support\ActivityLogFields;
 use App\Modules\Crm\Models\Lead;
 use App\Modules\Crm\Models\LostReason;
@@ -185,6 +186,15 @@ class OpportunityResource extends Resource
 
             Textarea::make('notes')->rows(3)->columnSpanFull(),
         ]);
+    }
+
+    /**
+     * Read in the list's view sheet: the record's values rather than its edit form disabled —
+     * docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return OpportunityInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table
