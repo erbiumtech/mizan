@@ -97,7 +97,10 @@ return new class extends Migration
             $table->text('failure')->nullable();
             $table->timestamps();
 
-            $table->unique(['integration_connection_id', 'provider_event_id']);
+            // Named explicitly: MySQL caps an identifier at 64 characters and Laravel's implicit
+            // name for this one is over it. SQLite does not care, so the suite passes and the
+            // deploy fails — see the comment in 2026_10_30_110000.
+            $table->unique(['integration_connection_id', 'provider_event_id'], 'unique_event_per_connection');
             $table->index(['integration_connection_id', 'processed_at']);
         });
 
@@ -113,7 +116,10 @@ return new class extends Migration
             $table->string('matched_how', 10)->nullable()->comment('email|manual|claimed');
             $table->timestamps();
 
-            $table->unique(['integration_connection_id', 'provider_username']);
+            // Named explicitly: MySQL caps an identifier at 64 characters and Laravel's implicit
+            // name for this one is over it. SQLite does not care, so the suite passes and the
+            // deploy fails — see the comment in 2026_10_30_110000.
+            $table->unique(['integration_connection_id', 'provider_username'], 'unique_identity_per_connection');
         });
 
         Schema::create('work_item_commits', function (Blueprint $table): void {
@@ -157,7 +163,10 @@ return new class extends Migration
             $table->string('checks_state', 10)->nullable()->comment('pending|success|failure');
             $table->timestamps();
 
-            $table->unique(['work_repository_id', 'number', 'work_item_id']);
+            // Named explicitly: MySQL caps an identifier at 64 characters and Laravel's implicit
+            // name for this one is over it. SQLite does not care, so the suite passes and the
+            // deploy fails — see the comment in 2026_10_30_110000.
+            $table->unique(['work_repository_id', 'number', 'work_item_id'], 'unique_pull_request_link');
         });
 
         // Which status a pull request being opened moves an item to — §8.4. Null means "the one

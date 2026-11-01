@@ -26,7 +26,10 @@ return new class extends Migration
             $table->string('name', 200);
             $table->timestamps();
 
-            $table->unique(['integration_connection_id', 'external_project_id']);
+            // Named explicitly: MySQL caps an identifier at 64 characters and Laravel's implicit
+            // name for this one is over it. SQLite does not care, so the suite passes and the
+            // deploy fails — see the comment in 2026_10_30_110000.
+            $table->unique(['integration_connection_id', 'external_project_id'], 'unique_time_project_per_connection');
             $table->index('project_id');
         });
 
