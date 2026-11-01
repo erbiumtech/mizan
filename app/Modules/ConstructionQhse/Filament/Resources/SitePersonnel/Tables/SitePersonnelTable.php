@@ -60,7 +60,7 @@ class SitePersonnelTable
 
                         return $lapsed->isEmpty()
                             ? 'yes'
-                            : $lapsed->count().' ticket(s) lapsed';
+                            : trans_choice(':count ticket lapsed|:count tickets lapsed', $lapsed->count(), ['count' => $lapsed->count()]);
                     })
                     ->color(fn (Person $record): string => $record->isClearedToWork() ? 'success' : 'danger')
                     ->tooltip('Inducted, and no mandatory ticket lapsed. A gateman\'s question.'),

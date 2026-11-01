@@ -7,6 +7,7 @@ use App\Modules\Core\Filament\Resources\CustomFields\Pages\CreateCustomField;
 use App\Modules\Core\Filament\Resources\CustomFields\Pages\EditCustomField;
 use App\Modules\Core\Filament\Resources\CustomFields\Pages\ListCustomFields;
 use App\Modules\Core\Filament\Resources\CustomFields\Schemas\CustomFieldForm;
+use App\Modules\Core\Filament\Resources\CustomFields\Schemas\CustomFieldInfolist;
 use App\Modules\Core\Filament\Resources\CustomFields\Tables\CustomFieldsTable;
 use App\Modules\Core\Models\CustomField;
 use App\Support\CustomFieldSubjects;
@@ -56,6 +57,15 @@ class CustomFieldResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return CustomFieldForm::configure($schema);
+    }
+
+    /**
+     * Read in the list's view sheet: the record's values rather than its edit form disabled —
+     * docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return CustomFieldInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

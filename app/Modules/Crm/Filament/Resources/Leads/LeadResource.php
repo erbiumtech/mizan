@@ -9,6 +9,7 @@ use App\Modules\Crm\Filament\Resources\Leads\Pages\CreateLead;
 use App\Modules\Crm\Filament\Resources\Leads\Pages\EditLead;
 use App\Modules\Crm\Filament\Resources\Leads\Pages\ListLeads;
 use App\Modules\Crm\Filament\Resources\Leads\Schemas\LeadForm;
+use App\Modules\Crm\Filament\Resources\Leads\Schemas\LeadInfolist;
 use App\Modules\Crm\Filament\Resources\Leads\Tables\LeadsTable;
 use App\Modules\Crm\Models\Lead;
 use App\Support\NavigationBadge;
@@ -75,6 +76,15 @@ class LeadResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return LeadForm::configure($schema);
+    }
+
+    /**
+     * Read in the list's view sheet: the record's values rather than its edit form disabled —
+     * docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return LeadInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

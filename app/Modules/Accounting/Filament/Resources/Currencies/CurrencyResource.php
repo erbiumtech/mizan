@@ -9,6 +9,7 @@ use App\Modules\Accounting\Filament\Resources\Currencies\Pages\EditCurrency;
 use App\Modules\Accounting\Filament\Resources\Currencies\Pages\ListCurrencies;
 use App\Modules\Accounting\Filament\Resources\Currencies\RelationManagers\RatesRelationManager;
 use App\Modules\Accounting\Filament\Resources\Currencies\Schemas\CurrencyForm;
+use App\Modules\Accounting\Filament\Resources\Currencies\Schemas\CurrencyInfolist;
 use App\Modules\Accounting\Filament\Resources\Currencies\Tables\CurrenciesTable;
 use App\Modules\Accounting\Models\Currency;
 use BackedEnum;
@@ -43,6 +44,15 @@ class CurrencyResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return CurrencyForm::configure($schema);
+    }
+
+    /**
+     * Read in the list's view sheet: the record's values rather than its edit form disabled —
+     * docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return CurrencyInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

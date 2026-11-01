@@ -10,6 +10,7 @@ use App\Modules\Accounting\Filament\Resources\TransactionTypes\Pages\ListTransac
 use App\Modules\Accounting\Filament\Resources\TransactionTypes\RelationManagers\CompanyBankAccountsRelationManager;
 use App\Modules\Accounting\Filament\Resources\TransactionTypes\RelationManagers\PaymentsRelationManager;
 use App\Modules\Accounting\Filament\Resources\TransactionTypes\Schemas\TransactionTypeForm;
+use App\Modules\Accounting\Filament\Resources\TransactionTypes\Schemas\TransactionTypeInfolist;
 use App\Modules\Accounting\Filament\Resources\TransactionTypes\Tables\TransactionTypesTable;
 use App\Modules\Accounting\Models\TransactionType;
 use BackedEnum;
@@ -42,6 +43,15 @@ class TransactionTypeResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return TransactionTypeForm::configure($schema);
+    }
+
+    /**
+     * Read in the list's view sheet: the record's values rather than its edit form disabled —
+     * docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return TransactionTypeInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table

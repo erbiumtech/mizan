@@ -10,6 +10,7 @@ use App\Modules\Projects\Models\Project;
 use App\Modules\Support\Filament\Resources\Tickets\Pages\CreateTicket;
 use App\Modules\Support\Filament\Resources\Tickets\Pages\EditTicket;
 use App\Modules\Support\Filament\Resources\Tickets\Pages\ListTickets;
+use App\Modules\Support\Filament\Resources\Tickets\Schemas\TicketInfolist;
 use App\Modules\Support\Models\Ticket;
 use App\Modules\Support\Models\TicketCategory;
 use App\Modules\Support\Services\TicketService;
@@ -120,6 +121,15 @@ class TicketResource extends Resource
 
             Textarea::make('description')->rows(4)->columnSpanFull(),
         ]);
+    }
+
+    /**
+     * Read in the list's view sheet: the record's values rather than its edit form disabled —
+     * docs/side-sheets.md.
+     */
+    public static function infolist(Schema $schema): Schema
+    {
+        return TicketInfolist::configure($schema);
     }
 
     public static function table(Table $table): Table
